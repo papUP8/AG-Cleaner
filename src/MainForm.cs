@@ -144,14 +144,14 @@ namespace CCDesk
             _themeMode = startup.ThemeMode;
             if (_themeMode != "light" && _themeMode != "dark" && _themeMode != "system") _themeMode = "dark";
             _themeSeg.Mode = _themeMode;
-            _themeSeg.SetBounds(ClientSize.Width - 250, 16, 150, 24);
+            _themeSeg.SetBounds(ClientSize.Width - 286, 16, 176, 24);
             _themeSeg.Changed += delegate { SetThemeMode(_themeSeg.Mode); };
             _title.Controls.Add(_themeSeg);
 
             _langBtn = new TitleBtn();
             _langBtn.Size = new Size(58, 24);
             _langBtn.Click += delegate { OpenLanguageMenu(); };
-            _langBtn.SetBounds(ClientSize.Width - 326, 16, 68, 24);
+            _langBtn.SetBounds(ClientSize.Width - 372, 16, 68, 24);
             _title.Controls.Add(_langBtn);
             SyncLanguageButton();
         }
@@ -406,7 +406,7 @@ namespace CCDesk
                 _pages[i].SetBounds(28, 18, _content.Width - 56, _content.Height - 36);
             }
             if (_themeSeg != null) _themeSeg.SetBounds(ClientSize.Width - 250, 16, 150, 24);
-            if (_langBtn != null) _langBtn.SetBounds(ClientSize.Width - 326, 16, 68, 24);
+            if (_langBtn != null) _langBtn.SetBounds(ClientSize.Width - 372, 16, 68, 24);
             _title.Invalidate();
         }
 

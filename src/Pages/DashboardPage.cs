@@ -36,7 +36,10 @@ namespace CCDesk
             Theme.FillRound(g, r, 12, _hover ? Theme.CardHover : Theme.Card);
             Theme.StrokeRound(g, r, 12, Theme.Border, 1);
 
-            Theme.Txt(g, Title, Theme.F(8.3f), Theme.Muted, 18, 14);
+            using (StringFormat sf = Theme.SF(StringAlignment.Near, StringAlignment.Near))
+            {
+                Theme.Txt(g, Title, Theme.F(8.3f), Theme.Muted, new Rectangle(18, 14, Width - 60, 20), sf);
+            }
             if (Glyph.Length > 0)
             {
                 using (StringFormat sf = Theme.SF(StringAlignment.Far, StringAlignment.Near))
@@ -45,7 +48,10 @@ namespace CCDesk
                 }
             }
             Theme.Txt(g, Value, Theme.F(17f, FontStyle.Bold), Theme.Text, 17, 36);
-            Theme.Txt(g, Sub, Theme.F(8f), Theme.Muted, 18, 72);
+            using (StringFormat sf = Theme.SF(StringAlignment.Near, StringAlignment.Near))
+            {
+                Theme.Txt(g, Sub, Theme.F(8f), Theme.Muted, new Rectangle(18, 66, Width - 36, 20), sf);
+            }
 
             if (Fraction >= 0)
             {
@@ -297,9 +303,13 @@ namespace CCDesk
         private void DrawMetric(Graphics g, int x, int y, int w, string label, double value, string text, Color color)
         {
             Theme.Txt(g, label, Theme.F(8.3f), Theme.TextDim, x, y);
-            Theme.Txt(g, text, Theme.F(8.6f), Theme.Text, x + 44, y - 1);
-            int bx = x + 96;
-            int bw = w - 96;
+            int lw = 44;
+            int need = (int)Math.Ceiling(g.MeasureString(label, Theme.F(8.3f)).Width) + 12;
+            if (need > lw) lw = need;
+            if (lw > 104) lw = 104;
+            Theme.Txt(g, text, Theme.F(8.6f), Theme.Text, x + lw, y - 1);
+            int bx = x + lw + 52;
+            int bw = w - lw - 52;
             if (bw < 40) return;
             Theme.FillRound(g, new Rectangle(bx, y + 5, bw, 5), 2, Theme.Track);
             int fw = (int)(bw * Math.Max(0, Math.Min(1, value)));

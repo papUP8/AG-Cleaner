@@ -204,10 +204,10 @@ namespace CCDesk
         private void LayoutChildren()
         {
             int w = Width;
-            int gap = 12;
+            int gap = 10;
             int leftW = (int)(w * 0.56);
             int y = HeaderH + 4;
-            int h1 = 256;
+            int h1 = 272;
             _pref.SetBounds(0, y, leftW, h1);
             _white.SetBounds(leftW + gap, y, w - leftW - gap, h1);
 
@@ -216,9 +216,9 @@ namespace CCDesk
                 Toggle t = _pref.Controls[i] as Toggle;
                 if (t == null) continue;
                 int row = (int)t.Tag;
-                t.SetBounds(_pref.Width - 62, 54 + row * 46, 46, 24);
+                t.SetBounds(_pref.Width - 62, 52 + row * 44, 46, 24);
             }
-            _days.SetBounds(_pref.Width - 96, 226, 76, 28);
+            _days.SetBounds(_pref.Width - 96, 224, 76, 28);
 
             _whiteBox.SetBounds(18, 66, _white.Width - 36, h1 - 120);
             _whiteSave.SetBounds(_white.Width - 154, h1 - 44, 136, 30);
@@ -232,7 +232,7 @@ namespace CCDesk
                 _driveChecks[i].SetBounds(20 + i * 104, 48, 96, 28);
             }
             int y3 = y2 + hs + gap;
-            int h2 = 120;
+            int h2 = 110;
             _proj.SetBounds(0, y3, w, h2);
             _projBox.SetBounds(18, 56, w - 176, h2 - 70);
             _projSave.SetBounds(w - 154, h2 - 42, 136, 30);
@@ -317,11 +317,18 @@ namespace CCDesk
             };
             for (int i = 0; i < 4; i++)
             {
-                Theme.Txt(g, titles[i], Theme.F(8.8f), Theme.Text, 20, 52 + i * 46);
-                Theme.Txt(g, descs[i], Theme.F(7.8f), Theme.Muted, 20, 70 + i * 46);
+                Theme.Txt(g, titles[i], Theme.F(8.8f), Theme.Text, 20, 50 + i * 44);
+                Theme.Txt(g, descs[i], Theme.F(7.8f), Theme.Muted, 20, 68 + i * 44);
             }
-            Theme.Txt(g, Lang.T("临时文件保留天数"), Theme.F(8.8f), Theme.Text, 20, 224);
-            Theme.Txt(g, Lang.T("“全部”表示清空临时目录里未被占用的文件；也可以只清若干天前的文件"), Theme.F(7.6f), Theme.Muted, 20, 242);
+            Theme.Txt(g, Lang.T("临时文件保留天数"), Theme.F(8.8f), Theme.Text, 20, 222);
+            int descW = c.Width - 120;
+            if (descW < 120) descW = 120;
+            using (StringFormat sf = new StringFormat())
+            {
+                sf.Trimming = StringTrimming.EllipsisCharacter;
+                Theme.Txt(g, Lang.T("“全部”表示清空临时目录里未被占用的文件；也可以只清若干天前的文件"),
+                    Theme.F(7.6f), Theme.Muted, new Rectangle(20, 240, descW, 26), sf);
+            }
         }
 
         private void WhitePaint(object sender, PaintEventArgs e)

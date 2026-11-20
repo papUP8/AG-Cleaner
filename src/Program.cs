@@ -7,7 +7,7 @@ namespace CCDesk
 {
     public static class Program
     {
-        public static string Version = "1.5.0";
+        public static string Version = "1.5.1";
 
         [STAThread]
         public static void Main(string[] args)
@@ -19,6 +19,16 @@ namespace CCDesk
             Core.Settings startSettings = Core.Settings.Load();
             Lang.Set(startSettings.Language);
             Theme.ApplyMode(startSettings.ThemeMode, Theme.SystemLight());
+
+            Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
+            Application.ThreadException += delegate(object sender, System.Threading.ThreadExceptionEventArgs e)
+            {
+                ReportCrash(e.Exception);
+            };
+            AppDomain.CurrentDomain.UnhandledException += delegate(object sender, UnhandledExceptionEventArgs e)
+            {
+                ReportCrash(e.ExceptionObject as Exception);
+            };
 
             if (args.Length >= 1 && args[0] == "--selftest")
             {
@@ -285,6 +295,30 @@ namespace CCDesk
 
             MainForm form = new MainForm();
             Application.Run(form);
+        }
+
+        /// <summary>把未处理异常写入 crash.log，并弹出可读提示，避免直接出现系统错误框。</summary>
+        private static void ReportCrash(Exception ex)
+        {
+            if (ex == null) return;
+            string path = "crash.log";
+            try
+            {
+                string dir = Core.Store.RootDir;
+                if (!System.IO.Directory.Exists(dir)) System.IO.Directory.CreateDirectory(dir);
+                path = System.IO.Path.Combine(dir, "crash.log");
+                string text = "=== " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + " lang=" + Lang.Cur + " ver=" + Version + "\r\n" +
+                              ex.ToString() + "\r\n";
+                System.IO.File.AppendAllText(path, text, System.Text.Encoding.UTF8);
+            }
+            catch (Exception) { }
+            try
+            {
+                System.Windows.Forms.MessageBox.Show(
+                    Lang.T("程序遇到一个内部错误，已记录到日志：") + "\r\n" + path + "\r\n\r\n" + ex.Message,
+                    "CC-Desk", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Warning);
+            }
+            catch (Exception) { }
         }
     }
 

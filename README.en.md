@@ -50,7 +50,7 @@ powershell -ExecutionPolicy Bypass -File uninstall.ps1
 
 **Language**: the title-bar button shows the current language code (中文 / EN / DE / FR / RU / ES) and opens a menu with Chinese, English, Deutsch, Français, Русский and Español; the same entry sits on the right of the "About CC-Desk" card in Settings. The choice is remembered.
 
-Coverage: Chinese and English are complete. German, French, Russian and Spanish each carry about 150 strings covering navigation, page titles, main buttons, settings and status messages; rule names and long descriptions currently fall back to English. The four translations are the author's own — native speakers are welcome to send corrections.
+Coverage: all six languages are complete — 650 strings per language, aligned one-to-one with the English table, with no fallback gaps. The four translations are the author's own — native speakers are welcome to send corrections.
 
 ---
 

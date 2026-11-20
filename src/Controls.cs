@@ -758,18 +758,51 @@ namespace CCDesk
                      ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
             BackColor = Theme.TitleBg;
             Font = Theme.F(8f);
-            Size = new Size(150, 24);
+            Size = new Size(176, 24);
             Cursor = Cursors.Hand;
+        }
+
+        /// <summary>按每段文字的实测宽度分配段宽，避免小语种被截断。</summary>
+        private int[] SegWidths()
+        {
+            int[] need = new int[3];
+            int total = 0;
+            using (Graphics g = CreateGraphics())
+            using (StringFormat sf = Theme.SF(StringAlignment.Center, StringAlignment.Center))
+            {
+                for (int i = 0; i < 3; i++)
+                {
+                    need[i] = (int)Math.Ceiling(g.MeasureString(Labels[i], Font).Width) + 16;
+                    if (need[i] < 36) need[i] = 36;
+                    total += need[i];
+                }
+            }
+            int avail = Width - 4;
+            if (avail < total)
+            {
+                int[] squeezed = new int[3];
+                for (int i = 0; i < 3; i++) squeezed[i] = (int)((long)need[i] * avail / total);
+                int fix = avail - (squeezed[0] + squeezed[1] + squeezed[2]);
+                if (fix != 0) squeezed[2] += fix;
+                return squeezed;
+            }
+            int extra = avail - total;
+            int[] widths = new int[3];
+            for (int i = 0; i < 3; i++) widths[i] = need[i] + extra / 3;
+            widths[2] += extra - (extra / 3) * 3;
+            return widths;
         }
 
         private int IndexAt(int x)
         {
-            int w = Width / 3;
-            if (w <= 0) return -1;
-            int i = x / w;
-            if (i > 2) i = 2;
-            if (i < 0) i = 0;
-            return i;
+            int[] ws = SegWidths();
+            int left = 2;
+            for (int i = 0; i < 3; i++)
+            {
+                if (x >= left && x < left + ws[i]) return i;
+                left += ws[i];
+            }
+            return x < 2 ? 0 : 2;
         }
 
         private int ActiveIndex()
@@ -814,11 +847,13 @@ namespace CCDesk
             bool onBlue = Theme.TitleOnBlue;
             Theme.FillRound(g, new Rectangle(0, 0, Width - 1, Height - 1), 7, onBlue ? Theme.Alpha(Color.White, 36) : Theme.CardSoft);
             Theme.StrokeRound(g, new Rectangle(0, 0, Width - 1, Height - 1), 7, onBlue ? Theme.Alpha(Color.White, 70) : Theme.BorderSoft, 1);
-            int w = Width / 3;
+            int[] ws = SegWidths();
             int act = ActiveIndex();
+            int x = 2;
             for (int i = 0; i < 3; i++)
             {
-                Rectangle seg = new Rectangle(i * w + 2, 2, w - 4, Height - 4);
+                Rectangle seg = new Rectangle(x, 2, ws[i], Height - 4);
+                x += ws[i];
                 if (i == act) Theme.FillRound(g, seg, 5, onBlue ? Color.White : Theme.Accent);
                 else if (i == _hover) Theme.FillRound(g, seg, 5, onBlue ? Theme.Alpha(Color.White, 34) : Theme.CardHover);
                 Color fg = i == act
