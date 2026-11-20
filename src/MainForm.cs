@@ -151,8 +151,7 @@ namespace CCDesk
         private void SetThemeMode(string mode)
         {
             _themeMode = mode;
-            bool light = mode == "light" || (mode == "system" && Theme.SystemLight());
-            Theme.Apply(light);
+            Theme.ApplyMode(mode, Theme.SystemLight());
             Settings st = Settings.Load();
             st.ThemeMode = mode;
             st.Save();
@@ -169,17 +168,28 @@ namespace CCDesk
             {
                 if (_themeMode != "system") return;
                 bool light = Theme.SystemLight();
-                if (light == Theme.IsLight) return;
-                Theme.Apply(light);
+                Theme.Skin skin = light ? Theme.Skin.SystemLight : Theme.Skin.SystemDark;
+                if (Theme.IsLight == light && Theme.TitleOnBlue) return;
+                Theme.ApplySkin(skin);
                 ApplyTheme();
             };
             _sysWatch.Start();
+        }
+
+        /// <summary>仅供截图/诊断：让顶栏分段按钮与当前模式一致，不写入配置。</summary>
+        public void SyncThemeVisualMode(string mode)
+        {
+            if (_themeSeg == null) return;
+            _themeMode = mode;
+            _themeSeg.Mode = mode;
+            _themeSeg.Invalidate();
         }
 
         /// <summary>仅供截图/诊断：让顶栏分段按钮与当前配色一致，不写入配置。</summary>
         public void SyncThemeVisual(bool light)
         {
             if (_themeSeg == null) return;
+            Theme.Apply(light);
             _themeMode = light ? "light" : "dark";
             _themeSeg.Mode = _themeMode;
             _themeSeg.Invalidate();
@@ -209,7 +219,7 @@ namespace CCDesk
             {
                 g.FillRectangle(b, 0, 0, _title.Width, _title.Height);
             }
-            using (Pen p = new Pen(Theme.Alpha(Theme.TitleText, 38)))
+            using (Pen p = new Pen(Theme.TitleOnBlue ? Theme.Alpha(Theme.TitleText, 38) : Theme.Border))
             {
                 g.DrawLine(p, 0, TitleH - 1, _title.Width, TitleH - 1);
             }
@@ -228,10 +238,10 @@ namespace CCDesk
             Font f = Theme.F(8f);
             int w = (int)g.MeasureString(admin, f).Width + 20;
             Rectangle pill = new Rectangle(186, 20, w, 20);
-            Theme.FillRound(g, pill, 10, Theme.Alpha(Theme.TitleText, 34));
+            Theme.FillRound(g, pill, 10, Theme.TitleOnBlue ? Theme.Alpha(Theme.TitleText, 34) : Theme.Alpha(ac, 24));
             using (StringFormat sf = Theme.SF(StringAlignment.Center, StringAlignment.Center))
             {
-                Theme.Txt(g, admin, f, Theme.TitleText, pill, sf);
+                Theme.Txt(g, admin, f, Theme.TitleOnBlue ? Theme.TitleText : ac, pill, sf);
             }
         }
 
@@ -389,11 +399,13 @@ namespace CCDesk
             if (_hover)
             {
                 Theme.FillRound(e.Graphics, new Rectangle(0, 0, Width - 1, Height - 1), 6,
-                    Danger ? Theme.Alpha(Theme.Danger, 210) : Theme.Alpha(Theme.TitleText, 46));
+                    Danger ? Theme.Alpha(Theme.Danger, 210)
+                    : (Theme.TitleOnBlue ? Theme.Alpha(Theme.TitleText, 46) : Theme.CardHover));
             }
             using (StringFormat sf = Theme.SF(StringAlignment.Center, StringAlignment.Center))
             {
-                Color fg = Danger && _hover ? Color.White : Theme.TitleText;
+                Color fg = Theme.TitleOnBlue ? Theme.TitleText : (_hover && Danger ? Theme.Danger : Theme.TextDim);
+                if (Danger && _hover && Theme.TitleOnBlue) fg = Color.White;
                 Theme.Txt(e.Graphics, Glyph, Theme.F(9f), fg, new Rectangle(0, 0, Width, Height), sf);
             }
         }

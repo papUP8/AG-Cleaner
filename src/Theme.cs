@@ -41,8 +41,13 @@ namespace CCDesk
         public static Color CheckBg;
         public static Color CheckMark;
 
-        /// <summary>当前是否为浅色主题。</summary>
+        /// <summary>当前是否为浅色外观。</summary>
         public static bool IsLight { get; private set; }
+
+        /// <summary>顶栏是否为蓝底（“系统”两档用白字，“浅色/深色”用深色字）。</summary>
+        public static bool TitleOnBlue { get; private set; }
+
+        public enum Skin { Light, Dark, SystemLight, SystemDark }
 
         static Theme()
         {
@@ -52,14 +57,47 @@ namespace CCDesk
         /// <summary>切换配色：深色（默认）或浅色。</summary>
         public static void Apply(bool light)
         {
+            ApplySkin(light ? Skin.Light : Skin.Dark);
+        }
+
+        /// <summary>按三档模式配色：light / dark / system（system 再按 Windows 深浅色二选一）。</summary>
+        public static void ApplyMode(string mode, bool systemLight)
+        {
+            if (mode == "light") ApplySkin(Skin.Light);
+            else if (mode == "dark") ApplySkin(Skin.Dark);
+            else ApplySkin(systemLight ? Skin.SystemLight : Skin.SystemDark);
+        }
+
+        /// <summary>四套皮肤：浅色（白顶栏）、深色（近黑顶栏）、系统浅色/系统深色（蓝顶栏）。</summary>
+        public static void ApplySkin(Skin skin)
+        {
+            bool light = skin == Skin.Light || skin == Skin.SystemLight;
             IsLight = light;
+            Base(light);
+            if (skin == Skin.Light)
+            {
+                TitleBg = C("#F7F9FC"); TitleText = Text; TitleDim = Muted; TitleOnBlue = false;
+            }
+            else if (skin == Skin.Dark)
+            {
+                TitleBg = C("#0B1016"); TitleText = Text; TitleDim = Muted; TitleOnBlue = false;
+            }
+            else if (skin == Skin.SystemLight)
+            {
+                TitleBg = C("#1D5FC4"); TitleText = C("#FFFFFF"); TitleDim = C("#C7D9F2"); TitleOnBlue = true;
+            }
+            else
+            {
+                TitleBg = C("#0E2A4D"); TitleText = C("#EDF4FF"); TitleDim = C("#9CB6D8"); TitleOnBlue = true;
+            }
+        }
+
+        private static void Base(bool light)
+        {
             if (!light)
             {
                 Bg = C("#0A0E13");
                 SidebarBg = C("#0D131A");
-                TitleBg = C("#0E2A4D");
-                TitleText = C("#EDF4FF");
-                TitleDim = C("#9CB6D8");
                 Card = C("#121A23");
                 CardHover = C("#18222D");
                 CardSoft = C("#0F1620");
@@ -89,9 +127,6 @@ namespace CCDesk
             {
                 Bg = C("#ECEFF4");
                 SidebarBg = C("#CBD7E4");
-                TitleBg = C("#1D5FC4");
-                TitleText = C("#FFFFFF");
-                TitleDim = C("#C7D9F2");
                 Card = C("#FFFFFF");
                 CardHover = C("#F4F7FB");
                 CardSoft = C("#F1F4F9");

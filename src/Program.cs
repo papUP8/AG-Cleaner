@@ -7,7 +7,7 @@ namespace CCDesk
 {
     public static class Program
     {
-        public static string Version = "1.3.3";
+        public static string Version = "1.3.4";
 
         [STAThread]
         public static void Main(string[] args)
@@ -17,8 +17,7 @@ namespace CCDesk
             Application.AddMessageFilter(new WheelRouter());
 
             Core.Settings startSettings = Core.Settings.Load();
-            Theme.Apply(startSettings.ThemeMode == "light" ||
-                        (startSettings.ThemeMode == "system" && Theme.SystemLight()));
+            Theme.ApplyMode(startSettings.ThemeMode, Theme.SystemLight());
 
             if (args.Length >= 1 && args[0] == "--selftest")
             {
@@ -242,9 +241,14 @@ namespace CCDesk
             {
                 int page = 0;
                 if (args.Length >= 3) int.TryParse(args[2], out page);
-                for (int i = 0; i < args.Length; i++) { if (args[i] == "light") Theme.Apply(true); if (args[i] == "dark") Theme.Apply(false); }
+                string themeMode = "";
+                for (int i = 0; i < args.Length; i++)
+                {
+                    if (args[i] == "light" || args[i] == "dark" || args[i] == "system") themeMode = args[i];
+                }
+                if (themeMode.Length > 0) Theme.ApplyMode(themeMode, Theme.SystemLight());
                 MainForm f = new MainForm();
-                f.SyncThemeVisual(Theme.IsLight);
+                if (themeMode.Length > 0) f.SyncThemeVisualMode(themeMode);
                 f.StartPosition = FormStartPosition.Manual;
                 f.Location = new Point(-4000, 0);
                 f.ShowInTaskbar = false;
@@ -253,7 +257,7 @@ namespace CCDesk
                 Application.DoEvents();
                 for (int i = 0; i < args.Length; i++)
                 {
-                    if (args[i] == "toggle") { Theme.Apply(true); f.ApplyTheme(); }
+                    if (args[i] == "toggle") { Theme.ApplySkin(Theme.Skin.SystemLight); f.ApplyTheme(); }
                 }
                 Application.DoEvents();
                 int waitMs = 600;

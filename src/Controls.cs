@@ -777,18 +777,22 @@ namespace CCDesk
             {
                 g.FillRectangle(b, ClientRectangle);
             }
-            Theme.FillRound(g, new Rectangle(0, 0, Width - 1, Height - 1), 7, Theme.Alpha(Color.White, 36));
-            Theme.StrokeRound(g, new Rectangle(0, 0, Width - 1, Height - 1), 7, Theme.Alpha(Color.White, 70), 1);
+            bool onBlue = Theme.TitleOnBlue;
+            Theme.FillRound(g, new Rectangle(0, 0, Width - 1, Height - 1), 7, onBlue ? Theme.Alpha(Color.White, 36) : Theme.CardSoft);
+            Theme.StrokeRound(g, new Rectangle(0, 0, Width - 1, Height - 1), 7, onBlue ? Theme.Alpha(Color.White, 70) : Theme.BorderSoft, 1);
             int w = Width / 3;
             int act = ActiveIndex();
             for (int i = 0; i < 3; i++)
             {
                 Rectangle seg = new Rectangle(i * w + 2, 2, w - 4, Height - 4);
-                if (i == act) Theme.FillRound(g, seg, 5, Color.White);
-                else if (i == _hover) Theme.FillRound(g, seg, 5, Theme.Alpha(Color.White, 34));
+                if (i == act) Theme.FillRound(g, seg, 5, onBlue ? Color.White : Theme.Accent);
+                else if (i == _hover) Theme.FillRound(g, seg, 5, onBlue ? Theme.Alpha(Color.White, 34) : Theme.CardHover);
+                Color fg = i == act
+                    ? (onBlue ? Theme.TitleBg : Theme.AccentFg)
+                    : (onBlue ? Theme.TitleText : Theme.TextDim);
                 using (StringFormat sf = Theme.SF(StringAlignment.Center, StringAlignment.Center))
                 {
-                    Theme.Txt(g, Labels[i], Font, i == act ? Theme.TitleBg : Theme.TitleText, seg, sf);
+                    Theme.Txt(g, Labels[i], Font, fg, seg, sf);
                 }
             }
         }
