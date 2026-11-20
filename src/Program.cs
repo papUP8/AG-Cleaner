@@ -7,7 +7,30 @@ namespace CCDesk
 {
     public static class Program
     {
-        public static string Version = "1.5.2";
+        public static string Version = "1.5.3";
+
+        private static Icon _appIcon;
+
+        /// <summary>窗口与任务栏用的图标：优先取编译进 exe 的多尺寸 ico，取不到再退回 exe 自身图标。</summary>
+        public static Icon AppIcon()
+        {
+            if (_appIcon != null) return _appIcon;
+            try
+            {
+                using (System.IO.Stream s = System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("app.ico"))
+                {
+                    if (s != null) _appIcon = new Icon(s);
+                }
+            }
+            catch (Exception) { }
+            if (_appIcon == null)
+            {
+                try { _appIcon = Icon.ExtractAssociatedIcon(Application.ExecutablePath); }
+                catch (Exception) { }
+            }
+            if (_appIcon == null) _appIcon = SystemIcons.Application;
+            return _appIcon;
+        }
 
         [STAThread]
         public static void Main(string[] args)

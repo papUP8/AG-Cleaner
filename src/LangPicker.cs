@@ -12,6 +12,7 @@ namespace CCDesk
         public LangPicker()
         {
             FormBorderStyle = FormBorderStyle.None;
+            Icon = Program.AppIcon();
             BackColor = Theme.Card;
             StartPosition = FormStartPosition.CenterParent;
             ShowInTaskbar = false;

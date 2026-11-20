@@ -22,6 +22,7 @@ namespace CCDesk
         public DocForm()
         {
             FormBorderStyle = FormBorderStyle.None;
+            Icon = Program.AppIcon();
             BackColor = Theme.Card;
             StartPosition = FormStartPosition.CenterParent;
             ShowInTaskbar = false;

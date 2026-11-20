@@ -32,6 +32,8 @@ foreach ($doc in @("README.md", "CHANGES.md", "NOTICE.md", "LICENSE")) {
     if (Test-Path $path) { $opt += "/resource:$path" }
 }
 if ($Icon) {
+    $icoRes = Join-Path $root "assets\app.ico"
+    if (Test-Path $icoRes) { $opt += "/resource:$icoRes" }
     $ico = Join-Path $root "assets\app.ico"
     if (Test-Path $ico) { $opt += "/win32icon:$ico" }
 }

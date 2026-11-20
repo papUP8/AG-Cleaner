@@ -64,6 +64,7 @@ namespace CCDesk
         public MainForm()
         {
             Text = Lang.T("CC-Desk 桌面清理");
+            Icon = Program.AppIcon();
             FormBorderStyle = FormBorderStyle.None;
             StartPosition = FormStartPosition.CenterScreen;
             ClientSize = new Size(1200, 788);

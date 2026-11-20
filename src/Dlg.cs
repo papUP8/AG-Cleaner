@@ -16,6 +16,7 @@ namespace CCDesk
         public DlgForm()
         {
             FormBorderStyle = FormBorderStyle.None;
+            Icon = Program.AppIcon();
             BackColor = Theme.Card;
             StartPosition = FormStartPosition.CenterParent;
             ShowInTaskbar = false;
@@ -58,6 +59,7 @@ namespace CCDesk
         public ReportForm()
         {
             FormBorderStyle = FormBorderStyle.None;
+            Icon = Program.AppIcon();
             BackColor = Theme.Card;
             StartPosition = FormStartPosition.CenterParent;
             ShowInTaskbar = false;
