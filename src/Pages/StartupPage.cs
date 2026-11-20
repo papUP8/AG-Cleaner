@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Threading;
@@ -22,6 +22,8 @@ namespace CCDesk
         private string _status = "读取启动项...";
         private Spinner _spinner;
         private ProgressBar2 _prog;
+        private Btn _hide;
+        private bool _hideOff = true;
 
         public StartupPage()
         {
@@ -31,6 +33,19 @@ namespace CCDesk
             _refresh.Size = new Size(80, 32);
             _refresh.Click += delegate { Load(); };
             Controls.Add(_refresh);
+
+            _hide = new Btn();
+            _hide.Kind = ButtonKind.Subtle;
+            _hide.Text = "隐藏已禁用";
+            _hide.Size = new Size(112, 32);
+            _hide.Click += delegate
+            {
+                _hideOff = !_hideOff;
+                _hide.Text = _hideOff ? "隐藏已禁用" : "显示已禁用";
+                _hide.Invalidate();
+                Fill();
+            };
+            Controls.Add(_hide);
 
             _list = new VList();
             _list.ShowCheck = false;
@@ -62,6 +77,7 @@ namespace CCDesk
             int w = Width;
             int y = HeaderH + 2;
             _refresh.SetBounds(0, y, 80, 32);
+            _hide.SetBounds(w - 120, y, 112, 32);
             int cx = 92;
             for (int i = 0; i < _chips.Count; i++)
             {
@@ -79,7 +95,7 @@ namespace CCDesk
                 top += 52;
             }
             _list.SetBounds(0, top, w, Height - top - 92);
-            _spinner.SetBounds(w - 40, y + 4, 24, 24);
+            _spinner.SetBounds(w - 56, y, 44, 44);
         }
 
         protected override void OnResize(EventArgs e)
@@ -213,8 +229,9 @@ namespace CCDesk
 
         private bool Match(StartupItem it)
         {
-            if (_filter == "all") return true;
             if (_filter == "disabled") return !it.Enabled;
+            if (_hideOff && !it.Enabled) return false;
+            if (_filter == "all") return true;
             return it.Group == _filter;
         }
 
@@ -268,3 +285,4 @@ namespace CCDesk
         }
     }
 }
+

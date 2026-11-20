@@ -7,7 +7,7 @@ namespace CCDesk
 {
     public static class Program
     {
-        public static string Version = "1.3.0";
+        public static string Version = "1.3.1";
 
         [STAThread]
         public static void Main(string[] args)
@@ -164,6 +164,23 @@ namespace CCDesk
                 return;
             }
 
+            if (args.Length >= 2 && args[0] == "--startup")
+            {
+                System.Text.StringBuilder sb = new System.Text.StringBuilder();
+                System.Collections.Generic.List<CCDesk.Core.StartupItem> list = CCDesk.Core.Startup.List();
+                for (int i = 0; i < list.Count; i++)
+                {
+                    CCDesk.Core.StartupItem it = list[i];
+                    sb.Append(it.GroupText).Append(" | ").Append(it.Enabled ? "on " : "off").Append(" | ");
+                    sb.Append(it.Name).Append(" | ").Append(it.Command).Append(" | ").Append(it.Source);
+                    sb.Append(" | chars=");
+                    for (int c = 0; c < it.Name.Length; c++) sb.Append(((int)it.Name[c]).ToString("X4")).Append(' ');
+                    sb.AppendLine();
+                }
+                System.IO.File.WriteAllText(args[1], sb.ToString(), System.Text.Encoding.UTF8);
+                return;
+            }
+
             if (args.Length >= 2 && args[0] == "--dlgshot")
             {
                 // 离屏渲染“清理完成”报告框，用于自检排版
@@ -293,4 +310,5 @@ namespace CCDesk
         }
     }
 }
+
 

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Threading;
@@ -66,7 +66,7 @@ namespace CCDesk
             _refresh.SetBounds(w - 96, y, 96, 34);
             _bar.SetBounds(0, Height - 58, w, 58);
             _list.SetBounds(0, y + 46, w, Height - (y + 46) - 92);
-            _spinner.SetBounds(w - 130, y + 5, 24, 24);
+            _spinner.SetBounds(w - 140, y - 6, 44, 44);
         }
 
         protected override void OnResize(EventArgs e)
@@ -241,4 +241,5 @@ namespace CCDesk
         }
     }
 }
+
 

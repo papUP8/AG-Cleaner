@@ -97,7 +97,31 @@ namespace CCDesk.Core
                 if (a.Enabled != b.Enabled) return a.Enabled ? -1 : 1;
                 return string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase);
             });
+            for (int i = 0; i < items.Count; i++)
+            {
+                items[i].Name = Clean(items[i].Name);
+                items[i].Detail = Clean(items[i].Detail);
+                items[i].Command = Clean(items[i].Command);
+            }
             return items;
+        }
+
+        /// <summary>清掉注册表里用来排序的控制字符（常见 \u0001）与多余空白，避免界面出现方框乱码。</summary>
+        private static string Clean(string s)
+        {
+            if (s == null || s.Length == 0) return "";
+            StringBuilder sb = new StringBuilder();
+            bool space = false;
+            for (int i = 0; i < s.Length; i++)
+            {
+                char c = s[i];
+                if (char.IsControl(c)) continue;
+                if (char.IsWhiteSpace(c)) { space = true; continue; }
+                if (space && sb.Length > 0) sb.Append(' ');
+                space = false;
+                sb.Append(c);
+            }
+            return sb.ToString();
         }
 
         private static int GroupRank(string g)

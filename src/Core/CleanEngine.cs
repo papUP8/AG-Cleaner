@@ -260,9 +260,9 @@ namespace CCDesk.Core
             public StepProgress P;
             public int Step;
             public int Total = 13;
-            public void Begin(string text) { Report(P, 2 + Step * 28 / Total, text); }
-            public Action<string> Msg(string text) { return delegate (string m) { Report(P, 2 + Step * 28 / Total, text); }; }
-            public void Next() { Step++; Report(P, 2 + Step * 28 / Total, "已完成分类列举 " + Step + "/" + Total); }
+            public void Begin(string text) { Report(P, 4 + Step * 32 / Total, text); }
+            public Action<string> Msg(string text) { return delegate (string m) { Report(P, 4 + Step * 32 / Total, text); }; }
+            public void Next() { Step++; Report(P, 4 + Step * 32 / Total, "已完成分类列举 " + Step + "/" + Total); }
         }
 
         public static string LocalAppData { get { return Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData); } }
@@ -280,7 +280,7 @@ namespace CCDesk.Core
             List<CleanCategory> cats = new List<CleanCategory>();
             ScanCtx c = new ScanCtx();
             c.P = prog;
-            Report(prog, 2, "正在列举可清理目录...");
+            Report(prog, 3, "正在列举可清理目录...");
 
             cats.Add(ScanUserTemp(s, c.Msg("扫描临时文件与临时目录..."))); c.Next();
             cats.Add(ScanBrowser(s, c.Msg("扫描浏览器缓存..."))); c.Next();
@@ -309,16 +309,16 @@ namespace CCDesk.Core
 
             if (all.Count > 0)
             {
-                Report(prog, 30, "正在统计 " + all.Count + " 个项目的体积...");
+                Report(prog, 36, "正在统计 " + all.Count + " 个项目的体积...");
                 int done = 0;
-                int lastPct = 30;
+                int lastPct = 36;
                 System.Threading.Tasks.Parallel.For(0, all.Count, delegate (int idx)
                 {
                     CleanItem it = all[idx];
                     try { SizeItem(it); }
                     catch (Exception) { }
                     int d = System.Threading.Interlocked.Increment(ref done);
-                    int pct = 30 + d * 68 / all.Count;
+                    int pct = 36 + d * 60 / all.Count;
                     if (pct > lastPct)
                     {
                         System.Threading.Interlocked.Exchange(ref lastPct, pct);
@@ -339,6 +339,7 @@ namespace CCDesk.Core
                 }
                 cats[i].Items = keep;
             }
+            Report(prog, 99, "整理清单...");
             Report(prog, 100, "扫描完成");
             return cats;
         }
@@ -1069,7 +1070,7 @@ namespace CCDesk.Core
                 {
                     string label = it.Name;
                     if (label.Length > 24) label = label.Substring(0, 24) + "…";
-                    Report(prog, (i * 100) / Math.Max(1, items.Count), "正在清理 " + (i + 1) + "/" + items.Count + " · " + label);
+                    Report(prog, 1 + ((i * 96) / Math.Max(1, items.Count)), "正在清理 " + (i + 1) + "/" + items.Count + " · " + label);
                 }
                 if (!it.Exists) continue;
                 if (it.Kind == CleanKind.RecycleBin)

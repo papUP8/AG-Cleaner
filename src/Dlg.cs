@@ -138,7 +138,9 @@ namespace CCDesk
             ok.Text = "完成";
             ok.Size = new Size(96, 34);
             ok.Location = new Point(660 - 24 - 96, 500 - 52);
-            ok.Click += delegate { f.Close(); };
+            // 在 MouseDown 就关闭：避免对话框销毁后同一次点击的 MouseUp 落到主窗口按钮上，
+            // 造成“清理完成”对话框一关就再次触发清理的死循环
+            ok.MouseDown += delegate { f.Close(); };
             f.Controls.Add(ok);
             ok.Select();
             f.ShowDialog(owner);
@@ -164,7 +166,7 @@ namespace CCDesk
             ok.Text = okText;
             ok.Size = new Size(112, 34);
             ok.Location = new Point(460 - 24 - 84 - 12 - 112, 210 - 58);
-            ok.Click += delegate { f.Result = true; f.Close(); };
+            ok.MouseDown += delegate { f.Result = true; f.Close(); };
             f.Controls.Add(ok);
 
             f.AcceptButton = null;
@@ -211,7 +213,7 @@ namespace CCDesk
             ok.Text = "确定";
             ok.Size = new Size(96, 34);
             ok.Location = new Point(520 - 24 - 84 - 12 - 96, 230 - 56);
-            ok.Click += delegate { f.Result = true; f.Close(); };
+            ok.MouseDown += delegate { f.Result = true; f.Close(); };
             f.Controls.Add(ok);
 
             f.ShowDialog(owner);

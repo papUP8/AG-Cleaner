@@ -114,7 +114,7 @@ namespace CCDesk
                 listTop += 52;
             }
             _list.SetBounds(0, listTop, w, Height - listTop - 92);
-            _spinner.SetBounds(w - 46, y + 4, 24, 24);
+            _spinner.SetBounds(w - 56, y, 44, 44);
         }
 
         protected override void OnResize(EventArgs e)
@@ -410,7 +410,7 @@ namespace CCDesk
                         string hint = err > 0 ? "有 " + err + " 项未能处理，通常是被进程占用或权限不足，可重启后重试" : "目录已进回收站、注册表已导出 .reg 备份，均可在需要时还原";
                         Dlg.Report(FindForm(), "残留清理完成", summary, lines, hint);
                         _groups.Clear();
-                        StartScan();
+                        _list.Clear();
                     });
                 }
                 catch (Exception) { }
@@ -426,3 +426,4 @@ namespace CCDesk
         }
     }
 }
+

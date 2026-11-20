@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Threading;
@@ -69,6 +69,7 @@ namespace CCDesk
         private bool _busy;
         private Spinner _spinner;
         private ProgressBar2 _prog;
+        private long _lastCleanEnd;
         private long _lastFreed = 0;
 
         public CleanPage()
@@ -179,7 +180,7 @@ namespace CCDesk
                 listTop += 52;
             }
             _list.SetBounds(0, listTop, w, Height - listTop - 92);
-            _spinner.SetBounds(w - 46, y + 4, 24, 24);
+            _spinner.SetBounds(w - 56, y, 44, 44);
         }
 
         protected override void OnResize(EventArgs e)
@@ -401,6 +402,8 @@ namespace CCDesk
 
         private void ExecuteClean()
         {
+            // 清理刚结束时忽略连续的点击，避免“完成”按钮的残留点击再次触发清理
+            if (Environment.TickCount - _lastCleanEnd < 900) return;
             List<CleanItem> selected = new List<CleanItem>();
             for (int i = 0; i < _list.VisibleCount; i++)
             {
@@ -469,12 +472,12 @@ namespace CCDesk
                     BeginInvoke((MethodInvoker)delegate
                     {
                         _busy = false;
+                        _lastCleanEnd = Environment.TickCount;
                         _spinner.Spin(false);
                         HideProgress();
                         _cleanBtn.Enabled = true;
-                        _status = "已释放 " + Byt.Format(f) + (err > 0 ? "，" + err + " 项被占用或跳过" : "");
+                        _status = "已释放 " + Byt.Format(f) + (err > 0 ? "，" + err + " 项被占用或跳过" : "") + "；点“重新扫描”查看最新清单";
                         _bar.Invalidate();
-                        StartScan();
 
                         List<string> lines = new List<string>();
                         if (lg != null)
@@ -507,4 +510,5 @@ namespace CCDesk
         }
     }
 }
+
 
