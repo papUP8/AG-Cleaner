@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
@@ -15,8 +15,10 @@ namespace CCDesk
 
         private Card _pref;
         private Card _white;
+        private Card _scope;
         private Card _proj;
         private Card _about;
+        private List<CheckBox2> _driveChecks = new List<CheckBox2>();
 
         private Toggle _recycle;
         private Toggle _gpu;
@@ -48,6 +50,10 @@ namespace CCDesk
             _proj = new Card();
             _proj.Paint += ProjPaint;
             Controls.Add(_proj);
+
+            _scope = new Card();
+            _scope.Paint += ScopePaint;
+            Controls.Add(_scope);
 
             _about = new Card();
             _about.Paint += AboutPaint;
@@ -110,6 +116,7 @@ namespace CCDesk
 
             LoadWhiteBox();
             LoadProjectBox();
+            BuildDriveChecks();
             LayoutChildren();
         }
 
@@ -145,13 +152,54 @@ namespace CCDesk
             return box;
         }
 
+        private void BuildDriveChecks()
+        {
+            for (int i = 0; i < _driveChecks.Count; i++) _scope.Controls.Remove(_driveChecks[i]);
+            _driveChecks.Clear();
+
+            List<string> drives = Disk.Drives();
+            string sel = _settings.ScanDrives ?? "";
+            bool all = sel.Trim().Length == 0;
+            for (int i = 0; i < drives.Count; i++)
+            {
+                CheckBox2 c = new CheckBox2();
+                c.Text = drives[i].TrimEnd('\\');
+                c.Size = new Size(96, 28);
+                bool on = all;
+                if (!all)
+                {
+                    string letter = drives[i].TrimEnd('\\').ToUpperInvariant();
+                    string[] parts = sel.Split(',');
+                    for (int j = 0; j < parts.Length; j++) if (parts[j].Trim().ToUpperInvariant() == letter) on = true;
+                }
+                c.Checked = on;
+                c.Changed += delegate { SaveDrives(); };
+                _scope.Controls.Add(c);
+                _driveChecks.Add(c);
+            }
+        }
+
+        private void SaveDrives()
+        {
+            List<string> picked = new List<string>();
+            for (int i = 0; i < _driveChecks.Count; i++)
+            {
+                if (!_driveChecks[i].Checked) continue;
+                picked.Add(_driveChecks[i].Text.ToUpperInvariant());
+            }
+            // 全部勾选（或一个都不勾）都按“全部固定盘”处理
+            if (picked.Count == 0 || picked.Count == _driveChecks.Count) _settings.ScanDrives = "";
+            else _settings.ScanDrives = string.Join(",", picked.ToArray());
+            _settings.Save();
+        }
+
         private void LayoutChildren()
         {
             int w = Width;
-            int gap = 14;
+            int gap = 12;
             int leftW = (int)(w * 0.56);
             int y = HeaderH + 4;
-            int h1 = 270;
+            int h1 = 256;
             _pref.SetBounds(0, y, leftW, h1);
             _white.SetBounds(leftW + gap, y, w - leftW - gap, h1);
 
@@ -162,20 +210,27 @@ namespace CCDesk
                 int row = (int)t.Tag;
                 t.SetBounds(_pref.Width - 62, 54 + row * 46, 46, 24);
             }
-            _days.SetBounds(_pref.Width - 96, 228, 76, 28);
+            _days.SetBounds(_pref.Width - 96, 226, 76, 28);
 
             _whiteBox.SetBounds(18, 66, _white.Width - 36, h1 - 120);
             _whiteSave.SetBounds(_white.Width - 118, h1 - 44, 100, 30);
             _whiteDefault.SetBounds(_white.Width - 202, h1 - 43, 76, 28);
 
             int y2 = y + h1 + gap;
-            int h2 = 152;
-            _proj.SetBounds(0, y2, w, h2);
-            _projBox.SetBounds(18, 60, w - 140, h2 - 78);
-            _projSave.SetBounds(w - 118, h2 - 44, 100, 30);
+            int hs = 80;
+            _scope.SetBounds(0, y2, w, hs);
+            for (int i = 0; i < _driveChecks.Count; i++)
+            {
+                _driveChecks[i].SetBounds(20 + i * 104, 48, 96, 28);
+            }
+            int y3 = y2 + hs + gap;
+            int h2 = 120;
+            _proj.SetBounds(0, y3, w, h2);
+            _projBox.SetBounds(18, 56, w - 140, h2 - 70);
+            _projSave.SetBounds(w - 118, h2 - 42, 100, 30);
 
-            int y3 = y2 + h2 + gap;
-            _about.SetBounds(0, y3, w, Math.Max(90, Height - y3 - 4));
+            int y4 = y3 + h2 + gap;
+            _about.SetBounds(0, y4, w, Math.Max(86, Height - y4 - 4));
         }
 
         protected override void OnResize(EventArgs e)
@@ -227,6 +282,16 @@ namespace CCDesk
             Dlg.Info(FindForm(), "已保存", "项目扫描目录共 " + dirs.Count + " 个。");
         }
 
+        private void ScopePaint(object sender, PaintEventArgs e)
+        {
+            Graphics g = e.Graphics;
+            Theme.Smooth(g);
+            Card c = (Card)sender;
+            Theme.Txt(g, "残留扫描范围", Theme.F(10.5f, FontStyle.Bold), Theme.Text, 20, 14);
+            Theme.Txt(g, "勾选要扫描的磁盘（只影响“残留清理”）；全部勾选或全部取消都表示全部固定盘",
+                Theme.F(7.8f), Theme.Muted, 20, 33);
+        }
+
         private void PrefPaint(object sender, PaintEventArgs e)
         {
             Graphics g = e.Graphics;
@@ -246,8 +311,8 @@ namespace CCDesk
                 Theme.Txt(g, titles[i], Theme.F(8.8f), Theme.Text, 20, 52 + i * 46);
                 Theme.Txt(g, descs[i], Theme.F(7.8f), Theme.Muted, 20, 70 + i * 46);
             }
-            Theme.Txt(g, "临时文件保留天数", Theme.F(8.8f), Theme.Text, 20, 230);
-            Theme.Txt(g, "“全部”表示清空临时目录里未被占用的文件；也可以只清若干天前的文件", Theme.F(7.6f), Theme.Muted, 20, 250);
+            Theme.Txt(g, "临时文件保留天数", Theme.F(8.8f), Theme.Text, 20, 224);
+            Theme.Txt(g, "“全部”表示清空临时目录里未被占用的文件；也可以只清若干天前的文件", Theme.F(7.6f), Theme.Muted, 20, 242);
         }
 
         private void WhitePaint(object sender, PaintEventArgs e)
@@ -272,8 +337,8 @@ namespace CCDesk
             Graphics g = e.Graphics;
             Theme.Smooth(g);
             Card c = (Card)sender;
-            Theme.Txt(g, "关于 CCDesk", Theme.F(10.5f, FontStyle.Bold), Theme.Text, 20, 14);
-            Theme.Txt(g, "CCDesk " + Program.Version + "  ·  Windows 图形桌面清理与优化工具",
+            Theme.Txt(g, "关于 CC-Desk", Theme.F(10.5f, FontStyle.Bold), Theme.Text, 20, 14);
+            Theme.Txt(g, "CC-Desk " + Program.Version + "  ·  Windows 图形桌面清理与优化工具",
                 Theme.F(8.2f), Theme.TextDim, 20, 40);
             Theme.Txt(g, "许可证：GPL-3.0 · 社区版，代码开源可审计 · 所有配置与日志只保存在本机",
                 Theme.F(7.9f), Theme.Muted, 20, 62);

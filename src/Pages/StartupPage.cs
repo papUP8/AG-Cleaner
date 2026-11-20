@@ -77,16 +77,25 @@ namespace CCDesk
             _refresh.SetBounds(0, y, 80, 32);
             _hide.SetBounds(w - 168, y + 1, 148, 30);
             int cx = 92;
+            int cy = y + 2;
+            int rows = 1;
             for (int i = 0; i < _chips.Count; i++)
             {
                 Graphics g = CreateGraphics();
                 int cw = _chips[i].FitWidth(g);
                 g.Dispose();
-                _chips[i].SetBounds(cx, y + 2, cw, 28);
+                // 右侧要给“隐藏已禁用项”勾选框留位置，放不下就换行，避免压字
+                if (cx + cw > w - 176 && cx > 92)
+                {
+                    cx = 92;
+                    cy += 34;
+                    rows++;
+                }
+                _chips[i].SetBounds(cx, cy, cw, 28);
                 cx += cw + 8;
             }
             _bar.SetBounds(0, Height - 58, w, 58);
-            int top = y + 44;
+            int top = y + 44 + (rows - 1) * 34;
             if (_prog != null && _prog.Visible)
             {
                 _prog.SetBounds(0, top, w, 44);
@@ -364,7 +373,7 @@ namespace CCDesk
             if (it == null) return;
             if (it.IsService)
             {
-                Dlg.Info(FindForm(), "系统服务仅展示", "服务项涉及系统组件，CCDesk 不在此处启停。\n如需调整，请在“服务”管理器中操作，或使用系统配置工具。");
+                Dlg.Info(FindForm(), "系统服务仅展示", "服务项涉及系统组件，CC-Desk 不在此处启停。\n如需调整，请在“服务”管理器中操作，或使用系统配置工具。");
                 return;
             }
             string message = "";

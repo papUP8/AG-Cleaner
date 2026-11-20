@@ -62,7 +62,7 @@ namespace CCDesk
 
         public MainForm()
         {
-            Text = "CCDesk 桌面清理";
+            Text = "CC-Desk 桌面清理";
             FormBorderStyle = FormBorderStyle.None;
             StartPosition = FormStartPosition.CenterScreen;
             ClientSize = new Size(1200, 788);
@@ -180,7 +180,8 @@ namespace CCDesk
         public void SyncThemeVisual(bool light)
         {
             if (_themeSeg == null) return;
-            _themeSeg.Mode = light ? "light" : "dark";
+            _themeMode = light ? "light" : "dark";
+            _themeSeg.Mode = _themeMode;
             _themeSeg.Invalidate();
         }
 
@@ -208,7 +209,7 @@ namespace CCDesk
             {
                 g.FillRectangle(b, 0, 0, _title.Width, _title.Height);
             }
-            using (Pen p = new Pen(Theme.Border))
+            using (Pen p = new Pen(Theme.Alpha(Theme.TitleText, 38)))
             {
                 g.DrawLine(p, 0, TitleH - 1, _title.Width, TitleH - 1);
             }
@@ -219,18 +220,18 @@ namespace CCDesk
             {
                 Theme.Txt(g, "C", Theme.F(12f, FontStyle.Bold), Theme.AccentFg, logo, sf);
             }
-            Theme.Txt(g, "CCDesk", Theme.F(12f, FontStyle.Bold), Theme.Text, 54, 14);
-            Theme.Txt(g, "桌面清理与优化 · Windows", Theme.F(8f), Theme.Muted, 54, 34);
+            Theme.Txt(g, "CC-Desk", Theme.F(12f, FontStyle.Bold), Theme.TitleText, 54, 14);
+            Theme.Txt(g, "桌面清理与优化 · Windows", Theme.F(8f), Theme.TitleDim, 54, 34);
 
             string admin = Native.IsAdmin() ? "管理员模式" : "普通用户";
             Color ac = Native.IsAdmin() ? Theme.Accent : Theme.Warn;
             Font f = Theme.F(8f);
             int w = (int)g.MeasureString(admin, f).Width + 20;
-            Rectangle pill = new Rectangle(174, 20, w, 20);
-            Theme.FillRound(g, pill, 10, Theme.Alpha(ac, 24));
+            Rectangle pill = new Rectangle(186, 20, w, 20);
+            Theme.FillRound(g, pill, 10, Theme.Alpha(Theme.TitleText, 34));
             using (StringFormat sf = Theme.SF(StringAlignment.Center, StringAlignment.Center))
             {
-                Theme.Txt(g, admin, f, ac, pill, sf);
+                Theme.Txt(g, admin, f, Theme.TitleText, pill, sf);
             }
         }
 
@@ -381,13 +382,19 @@ namespace CCDesk
         protected override void OnPaint(PaintEventArgs e)
         {
             Theme.Smooth(e.Graphics);
+            using (SolidBrush b = new SolidBrush(Theme.TitleBg))
+            {
+                e.Graphics.FillRectangle(b, ClientRectangle);
+            }
             if (_hover)
             {
-                Theme.FillRound(e.Graphics, new Rectangle(0, 0, Width - 1, Height - 1), 6, Danger ? Theme.Danger : Theme.CardHover);
+                Theme.FillRound(e.Graphics, new Rectangle(0, 0, Width - 1, Height - 1), 6,
+                    Danger ? Theme.Alpha(Theme.Danger, 210) : Theme.Alpha(Theme.TitleText, 46));
             }
             using (StringFormat sf = Theme.SF(StringAlignment.Center, StringAlignment.Center))
             {
-                Theme.Txt(e.Graphics, Glyph, Theme.F(9f), _hover && Danger ? Theme.Danger : Theme.TextDim, new Rectangle(0, 0, Width, Height), sf);
+                Color fg = Danger && _hover ? Color.White : Theme.TitleText;
+                Theme.Txt(e.Graphics, Glyph, Theme.F(9f), fg, new Rectangle(0, 0, Width, Height), sf);
             }
         }
     }

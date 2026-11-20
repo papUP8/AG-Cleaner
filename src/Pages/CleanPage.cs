@@ -71,6 +71,7 @@ namespace CCDesk
         private ProgressBar2 _prog;
         private long _lastCleanEnd;
         private long _lastFreed = 0;
+        private bool _doneClean;
 
         public CleanPage()
         {
@@ -191,12 +192,14 @@ namespace CCDesk
 
         public override void OnEnter()
         {
-            if (_cats.Count == 0) StartScan();
+            if (_cats.Count == 0 && !_doneClean) StartScan();
         }
 
         public void StartScan()
         {
             if (_busy) return;
+            _doneClean = false;
+            _modeReset();
             _busy = true;
             _status = "正在扫描...";
             _list.Clear();
@@ -262,6 +265,13 @@ namespace CCDesk
                 }
                 catch (Exception) { }
             });
+        }
+
+        /// <summary>把列表空状态恢复成“等待扫描”的默认文案。</summary>
+        private void _modeReset()
+        {
+            _list.EmptyText = "还没有扫描结果";
+            _list.EmptyHint = "扫描会自动开始，看到清单后再逐项决定删除";
         }
 
         private void BuildChips()
@@ -408,7 +418,10 @@ namespace CCDesk
             _chips.Clear();
             _filter = "all";
             _lastFreed = freed;
+            _doneClean = true;
             _list.Clear();
+            _list.EmptyText = "本次清理已完成";
+            _list.EmptyHint = "如需再次查看可清理项，请点击上方“重新扫描”；本次运行期间不会自动重扫";
             _status = "清理完成，本次释放 " + Byt.Format(freed) + "；已回到概览页";
             _bar.Invalidate();
             UpdateSummary();

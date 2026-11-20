@@ -14,6 +14,8 @@ namespace CCDesk
         public static Color Bg;
         public static Color SidebarBg;
         public static Color TitleBg;
+        public static Color TitleText;
+        public static Color TitleDim;
         public static Color Card;
         public static Color CardHover;
         public static Color CardSoft;
@@ -55,7 +57,9 @@ namespace CCDesk
             {
                 Bg = C("#0A0E13");
                 SidebarBg = C("#0D131A");
-                TitleBg = C("#0B1016");
+                TitleBg = C("#0E2A4D");
+                TitleText = C("#EDF4FF");
+                TitleDim = C("#9CB6D8");
                 Card = C("#121A23");
                 CardHover = C("#18222D");
                 CardSoft = C("#0F1620");
@@ -85,7 +89,9 @@ namespace CCDesk
             {
                 Bg = C("#ECEFF4");
                 SidebarBg = C("#CBD7E4");
-                TitleBg = C("#F7F9FC");
+                TitleBg = C("#1D5FC4");
+                TitleText = C("#FFFFFF");
+                TitleDim = C("#C7D9F2");
                 Card = C("#FFFFFF");
                 CardHover = C("#F4F7FB");
                 CardSoft = C("#F1F4F9");

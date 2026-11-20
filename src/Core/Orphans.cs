@@ -208,18 +208,19 @@ namespace CCDesk.Core
 
             // 系统盘上的常规位置
             int step = 0;
+            bool sysOn = DriveAllowed(pf);
             step = Step(prog, step, 14, "扫描 Program Files（系统盘）...");
-            ScanRoot(g, apps, pf, 90, false);
+            if (sysOn) ScanRoot(g, apps, pf, 90, false);
             step = Step(prog, step, 18, "扫描 Program Files (x86)（系统盘）...");
-            ScanRoot(g, apps, pf86, 90, false);
+            if (sysOn) ScanRoot(g, apps, pf86, 90, false);
             step = Step(prog, step, 21, "扫描用户 Programs 目录...");
-            ScanRoot(g, apps, lap, 60, false);
+            if (sysOn) ScanRoot(g, apps, lap, 60, false);
             step = Step(prog, step, 24, "扫描 ProgramData...");
-            ScanRoot(g, apps, pd, 60, false);
+            if (sysOn) ScanRoot(g, apps, pd, 60, false);
             step = Step(prog, step, 27, "扫描 LocalAppData...");
-            ScanRoot(g, apps, la, 40, false);
+            if (sysOn) ScanRoot(g, apps, la, 40, false);
             step = Step(prog, step, 30, "扫描 Roaming...");
-            ScanRoot(g, apps, ra, 40, false);
+            if (sysOn) ScanRoot(g, apps, ra, 40, false);
 
             // 其他磁盘上的同类位置（软件常装到 D/E 盘，这里以前漏扫）
             string[] driveRoots = DriveRoots();
@@ -227,6 +228,7 @@ namespace CCDesk.Core
             {
                 string dr = driveRoots[i];
                 step = Step(prog, step, 32 + i * 3, "扫描 " + dr + " 下的软件目录...");
+                if (!DriveAllowed(dr)) continue;
                 ScanRoot(g, apps, Path.Combine(dr, "Program Files"), 60, false);
                 ScanRoot(g, apps, Path.Combine(dr, "Program Files (x86)"), 60, false);
                 ScanRoot(g, apps, Path.Combine(dr, "Programs"), 40, false);
@@ -234,6 +236,27 @@ namespace CCDesk.Core
                 ScanRoot(g, apps, dr, 30, true);
             }
             return g;
+        }
+
+        /// <summary>设置里限定扫描磁盘时，只扫勾选的盘；为空表示全部固定盘。</summary>
+        private static bool DriveAllowed(string root)
+        {
+            try
+            {
+                string sel = Settings.Load().ScanDrives;
+                if (sel == null || sel.Trim().Length == 0) return true;
+                string letter = Path.GetPathRoot(root).TrimEnd('\\').ToUpperInvariant();
+                string[] parts = sel.Split(',');
+                for (int i = 0; i < parts.Length; i++)
+                {
+                    if (parts[i].Trim().ToUpperInvariant() == letter) return true;
+                }
+                return false;
+            }
+            catch (Exception)
+            {
+                return true;
+            }
         }
 
         private static int Step(StepProgress prog, int step, int percent, string msg)
@@ -300,6 +323,11 @@ namespace CCDesk.Core
                 {
                     if (!HasUninstaller(dir))
                     {
+                        if (IsCopyDir(dir))
+                        {
+                            if (AddCopy(g, root, dir, name)) added++;
+                            continue;
+                        }
                         // 厂商父目录本身不带卸载程序（例如 D:\360），继续看它的下一层
                         added += ScanChildren(g, apps, dir, max - added);
                         continue;
@@ -328,7 +356,15 @@ namespace CCDesk.Core
                 if (Skip(n)) continue;
                 if (Guard.IsWhitelisted(sub)) continue;
                 if (Referenced(sub, apps)) continue;
-                if (!HasUninstaller(sub)) continue;
+                if (!HasUninstaller(sub))
+                {
+                    if (IsCopyDir(sub))
+                    {
+                        string cl = Path.GetFileName(dir) + "\\" + n;
+                        if (AddCopy(g, dir, sub, cl)) added++;
+                    }
+                    continue;
+                }
                 string label = Path.GetFileName(dir) + "\\" + n;
                 if (Evaluate(g, dir, sub, label, added)) added++;
             }
@@ -354,6 +390,56 @@ namespace CCDesk.Core
                 catch (Exception) { }
             }
             return newest;
+        }
+
+        /// <summary>判断目录名是否是同级目录的“副本”：带数字后缀、副本、copy、(2) 等。</summary>
+        private static bool IsCopyDir(string dir)
+        {
+            string name = Path.GetFileName(dir);
+            string parent = Path.GetDirectoryName(dir);
+            if (name.Length < 3 || parent == null) return false;
+            string baseName = "";
+            if (name.EndsWith("副本")) baseName = name.Substring(0, name.Length - 2);
+            else if (name.EndsWith("(2)") || name.EndsWith("（2）")) baseName = name.Substring(0, name.Length - 3);
+            else
+            {
+                int cut = name.Length;
+                while (cut > 0 && char.IsDigit(name[cut - 1])) cut--;
+                if (cut > 0 && cut < name.Length) baseName = name.Substring(0, cut);
+            }
+            baseName = baseName.Trim();
+            if (baseName.Length < 3) return false;
+            if (baseName.ToLowerInvariant() == name.ToLowerInvariant()) return false;
+            string sibling = Path.Combine(parent, baseName);
+            return Directory.Exists(sibling);
+        }
+
+        /// <summary>加入“升级副本目录”残留（同一软件的正规目录还在，这一份没人引用）。</summary>
+        private static bool AddCopy(OrphanGroup g, string root, string dir, string label)
+        {
+            long size = 0;
+            try { size = FileUtil.SizeOf(dir); }
+            catch (Exception) { }
+            if (size < MinBytes) return false;
+            string norm = Guard.Norm(dir);
+            for (int i = 0; i < g.Items.Count; i++)
+            {
+                if (Guard.Norm(g.Items[i].Target) == norm) return false;
+            }
+            DateTime newest = DateTime.MinValue;
+            try { newest = ShallowNewest(dir); }
+            catch (Exception) { }
+            OrphanItem it = new OrphanItem();
+            it.GroupId = g.Id;
+            it.Kind = "dir";
+            it.Name = label;
+            it.Target = dir;
+            it.Detail = root + " 下 · 升级/安装留下的副本目录，同级的正规目录仍在安装 · 无程序引用" +
+                (newest > DateTime.MinValue ? " · 最近改动 " + newest.ToString("yyyy-MM-dd") : "");
+            it.Bytes = size;
+            it.AdminNeeded = !Native.IsAdmin();
+            g.Items.Add(it);
+            return true;
         }
 
         /// <summary>判定一个目录是否为残留，命中则加入清单并返回 true。</summary>

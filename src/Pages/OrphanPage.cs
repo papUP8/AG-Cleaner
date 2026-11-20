@@ -16,6 +16,7 @@ namespace CCDesk
         private VList _list;
         private ActionBar _bar;
         private Btn _scanBtn;
+        private bool _doneClean;
         private Btn _allBtn;
         private Btn _invBtn;
         private Btn _cleanBtn;
@@ -125,12 +126,14 @@ namespace CCDesk
 
         public override void OnEnter()
         {
-            if (_groups.Count == 0) StartScan();
+            if (_groups.Count == 0 && !_doneClean) StartScan();
         }
 
         public void StartScan()
         {
             if (_busy) return;
+            _doneClean = false;
+            _list.EmptyText = "没有发现残留";
             _busy = true;
             _status = "正在扫描...";
             _list.Clear();
@@ -411,6 +414,9 @@ namespace CCDesk
                         Dlg.Report(FindForm(), "残留清理完成", summary, lines, hint);
                         _groups.Clear();
                         _list.Clear();
+                        _doneClean = true;
+                        _list.EmptyText = "本次残留清理已完成";
+                        _list.EmptyHint = "如需重新检查，请点击上方“重新扫描”";
                         _status = "处理完成，本次回收 " + Byt.Format(f) + "；已回到概览页";
                         _bar.Invalidate();
                         MainForm mf2 = FindForm() as MainForm;

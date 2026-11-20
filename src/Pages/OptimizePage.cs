@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Text;
@@ -61,7 +61,7 @@ namespace CCDesk
             _adminBtn.Size = new Size(150, 32);
             _adminBtn.Click += delegate
             {
-                if (Dlg.Confirm(FindForm(), "以管理员身份重启？", "将以 UAC 提权方式重新启动 CCDesk，解锁 ARP 缓存、磁盘 TRIM 与 Windows 更新缓存清理。当前窗口会关闭。", "重启", false))
+                if (Dlg.Confirm(FindForm(), "以管理员身份重启？", "将以 UAC 提权方式重新启动 CC-Desk，解锁 ARP 缓存、磁盘 TRIM 与 Windows 更新缓存清理。当前窗口会关闭。", "重启", false))
                 {
                     if (Native.RelaunchAsAdmin()) Application.Exit();
                 }
@@ -70,7 +70,7 @@ namespace CCDesk
 
             Fill();
             LayoutChildren();
-            Append("CCDesk 系统优化 · " + (Native.IsAdmin() ? "当前为管理员权限" : "当前为普通用户权限，标记“需要管理员”的项目会被拦截"));
+            Append("CC-Desk 系统优化 · " + (Native.IsAdmin() ? "当前为管理员权限" : "当前为普通用户权限，标记“需要管理员”的项目会被拦截"));
         }
 
         private void Fill()
