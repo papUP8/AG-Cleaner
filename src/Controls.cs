@@ -212,6 +212,40 @@ namespace CCDesk
         }
     }
 
+    /// <summary>顶栏上的胶囊小按钮（颜色跟随顶栏底色，不随内容区配色走）。</summary>
+    public class TitleBtn : Control
+    {
+        private bool _hover;
+        private bool _down;
+
+        public TitleBtn()
+        {
+            SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
+            Cursor = Cursors.Hand;
+            Font = Theme.F(8.4f);
+        }
+
+        protected override void OnMouseEnter(EventArgs e) { _hover = true; Invalidate(); base.OnMouseEnter(e); }
+        protected override void OnMouseLeave(EventArgs e) { _hover = false; _down = false; Invalidate(); base.OnMouseLeave(e); }
+        protected override void OnMouseDown(MouseEventArgs e) { if (e.Button == MouseButtons.Left) { _down = true; Invalidate(); } base.OnMouseDown(e); }
+        protected override void OnMouseUp(MouseEventArgs e) { _down = false; Invalidate(); base.OnMouseUp(e); }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            Graphics g = e.Graphics;
+            Theme.Smooth(g);
+            bool onBlue = Theme.TitleOnBlue;
+            int a = _down ? 56 : (_hover ? 44 : 30);
+            Theme.FillRound(g, new Rectangle(0, 0, Width - 1, Height - 1), 7, onBlue ? Theme.Alpha(Color.White, a) : Theme.CardSoft);
+            Theme.StrokeRound(g, new Rectangle(0, 0, Width - 1, Height - 1), 7, onBlue ? Theme.Alpha(Color.White, 70) : Theme.BorderSoft, 1);
+            Color fg = onBlue ? Theme.TitleText : Theme.TextDim;
+            using (StringFormat sf = Theme.SF(StringAlignment.Center, StringAlignment.Center))
+            {
+                Theme.Txt(g, Text, Font, fg, new Rectangle(0, 0, Width, Height), sf);
+            }
+        }
+    }
+
     /// <summary>侧边栏导航项。</summary>
     public class NavItem : Control
     {

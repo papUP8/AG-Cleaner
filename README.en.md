@@ -48,7 +48,7 @@ powershell -ExecutionPolicy Bypass -File uninstall.ps1
 
 **Theme**: the System / Light / Dark buttons at the top right of the title bar; the choice is remembered.
 
-**Language**: the `English / 中文` button on the right of the "About CC-Desk" card at the bottom of Settings applies immediately and is remembered.
+**Language**: the `EN / 中文` button at the right of the title bar switches the whole UI in one click; the same button also sits on the right of the "About CC-Desk" card in Settings. The choice is remembered.
 
 ---
 

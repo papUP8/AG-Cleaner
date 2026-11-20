@@ -50,8 +50,8 @@ namespace CCDesk
         private Timer _tick;
         private Label _verLabel;
         private Label _credit;
-        private Badge _adminBadge;
         private Seg3 _themeSeg;
+        private TitleBtn _langBtn;
         private Timer _sysWatch;
         private string _themeMode = "dark";
 
@@ -147,6 +147,33 @@ namespace CCDesk
             _themeSeg.SetBounds(ClientSize.Width - 250, 16, 150, 24);
             _themeSeg.Changed += delegate { SetThemeMode(_themeSeg.Mode); };
             _title.Controls.Add(_themeSeg);
+
+            _langBtn = new TitleBtn();
+            _langBtn.Size = new Size(58, 24);
+            _langBtn.Click += delegate { ToggleLanguage(); };
+            _langBtn.SetBounds(ClientSize.Width - 316, 16, 58, 24);
+            _title.Controls.Add(_langBtn);
+            SyncLanguageButton();
+        }
+
+        /// <summary>顶栏语言按钮：显示「切换后能切到的语言」，当前中文时显示 EN。</summary>
+        private void SyncLanguageButton()
+        {
+            if (_langBtn == null) return;
+            _langBtn.Text = Lang.IsEn ? Lang.T("中文") : "EN";
+            _langBtn.Invalidate();
+        }
+
+        private void ToggleLanguage()
+        {
+            string next = Lang.IsEn ? "zh" : "en";
+            Lang.Set(next);
+            Settings st = Settings.Load();
+            st.Language = next;
+            st.Save();
+            SyncLanguageButton();
+            // 点击来源就在即将被重建的页面上，延后一帧再重建，避免在事件里 Dispose 自己
+            BeginInvoke((Action)delegate { ReloadPages(_current); });
         }
 
         private void SetThemeMode(string mode)
@@ -208,6 +235,7 @@ namespace CCDesk
             ThemeSync.Apply(_content);
             _title.Invalidate();
             _sidebar.Invalidate();
+            if (_langBtn != null) _langBtn.Invalidate();
             Invalidate(true);
             for (int i = 0; i < _pages.Count; i++) _pages[i].Invalidate(true);
         }
@@ -233,17 +261,6 @@ namespace CCDesk
             }
             Theme.Txt(g, "CC-Desk", Theme.F(12f, FontStyle.Bold), Theme.TitleText, 54, 14);
             Theme.Txt(g, Lang.T("桌面清理与优化 · Windows"), Theme.F(8f), Theme.TitleDim, 54, 34);
-
-            string admin = Native.IsAdmin() ? Lang.T("管理员模式") : Lang.T("普通用户");
-            Color ac = Native.IsAdmin() ? Theme.Accent : Theme.Warn;
-            Font f = Theme.F(8f);
-            int w = (int)g.MeasureString(admin, f).Width + 20;
-            Rectangle pill = new Rectangle(186, 20, w, 20);
-            Theme.FillRound(g, pill, 10, Theme.TitleOnBlue ? Theme.Alpha(Theme.TitleText, 34) : Theme.Alpha(ac, 24));
-            using (StringFormat sf = Theme.SF(StringAlignment.Center, StringAlignment.Center))
-            {
-                Theme.Txt(g, admin, f, Theme.TitleOnBlue ? Theme.TitleText : ac, pill, sf);
-            }
         }
 
         private void BuildSidebar()
@@ -377,6 +394,7 @@ namespace CCDesk
             }
             if (_credit != null) _credit.Text = Lang.T("社区版 · GPL-3.0 · 代码开源");
             if (_verLabel != null) _verLabel.Text = "v" + Program.Version + "  · GPL-3.0";
+            SyncLanguageButton();
             Invalidate(true);
         }
 
@@ -392,6 +410,7 @@ namespace CCDesk
                 _pages[i].SetBounds(28, 18, _content.Width - 56, _content.Height - 36);
             }
             if (_themeSeg != null) _themeSeg.SetBounds(ClientSize.Width - 250, 16, 150, 24);
+            if (_langBtn != null) _langBtn.SetBounds(ClientSize.Width - 316, 16, 58, 24);
             _title.Invalidate();
         }
 

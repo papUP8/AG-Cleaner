@@ -362,7 +362,7 @@ namespace CCDesk
             _settings.Language = next;
             _settings.Save();
             MainForm mf = FindForm() as MainForm;
-            if (mf != null) mf.ReloadPages(8);
+            if (mf != null) mf.BeginInvoke((Action)delegate { mf.ReloadPages(8); });
         }
     }
 }

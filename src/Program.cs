@@ -7,7 +7,7 @@ namespace CCDesk
 {
     public static class Program
     {
-        public static string Version = "1.4.0";
+        public static string Version = "1.4.1";
 
         [STAThread]
         public static void Main(string[] args)
