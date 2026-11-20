@@ -91,13 +91,24 @@ namespace CCDesk.Core
 
         public static List<OrphanGroup> Scan(Action<string> report)
         {
+            return Scan(report, null);
+        }
+
+        public static List<OrphanGroup> Scan(Action<string> report, StepProgress prog)
+        {
             List<OrphanGroup> groups = new List<OrphanGroup>();
+            if (prog != null) prog(4, "读取已安装程序索引...");
             List<Installed> apps = ReadInstalled();
             R(report, "读取已安装程序索引：" + apps.Count + " 条");
+            if (prog != null) prog(12, "扫描孤儿安装目录...");
             groups.Add(ScanDirs(apps, report));
+            if (prog != null) prog(55, "扫描无效卸载注册表项...");
             groups.Add(ScanRegistry(report));
+            if (prog != null) prog(72, "扫描失效快捷方式...");
             groups.Add(ScanShortcuts(report));
+            if (prog != null) prog(88, "扫描失效启动项...");
             groups.Add(ScanStartup(report));
+            if (prog != null) prog(100, "残留扫描完成");
             return groups;
         }
 
@@ -453,6 +464,7 @@ namespace CCDesk.Core
             {
                 StartupItem s = items[i];
                 if (s.IsFile) continue;
+                if (s.IsService || s.IsTask) continue;
                 string exe = ExtractExe(s.Command);
                 if (exe.Length == 0) continue;
                 if (File.Exists(exe)) continue;
@@ -473,12 +485,18 @@ namespace CCDesk.Core
 
         public static long Execute(List<OrphanItem> items, out List<string> log, out int errors)
         {
+            return Execute(items, out log, out errors, null);
+        }
+
+        public static long Execute(List<OrphanItem> items, out List<string> log, out int errors, StepProgress prog)
+        {
             log = new List<string>();
             errors = 0;
             long freed = 0;
             for (int i = 0; i < items.Count; i++)
             {
                 OrphanItem it = items[i];
+                if (prog != null) prog(i * 100 / Math.Max(1, items.Count), "正在处理 " + (i + 1) + "/" + items.Count + " · " + it.Name);
                 try
                 {
                     if (it.Kind == "dir")
@@ -534,6 +552,7 @@ namespace CCDesk.Core
                     log.Add("异常：" + it.Name + " · " + ex.Message);
                 }
             }
+            if (prog != null) prog(100, "处理完成");
             return freed;
         }
 

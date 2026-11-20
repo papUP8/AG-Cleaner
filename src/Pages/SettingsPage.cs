@@ -60,16 +60,16 @@ namespace CCDesk
 
             _days = new Btn();
             _days.Kind = ButtonKind.Subtle;
-            _days.Text = _settings.TempDays + " 天";
-            _days.Size = new Size(76, 28);
+            _days.Text = DayText(_settings.TempDays);
+            _days.Size = new Size(96, 28);
             _days.Click += delegate
             {
-                int[] steps = new int[] { 1, 3, 7, 14, 30 };
+                int[] steps = new int[] { 0, 1, 3, 7, 14, 30 };
                 int idx = 0;
                 for (int i = 0; i < steps.Length; i++) if (steps[i] == _settings.TempDays) idx = i;
                 idx = (idx + 1) % steps.Length;
                 _settings.TempDays = steps[idx];
-                _days.Text = _settings.TempDays + " 天";
+                _days.Text = DayText(_settings.TempDays);
                 _days.Invalidate();
                 _settings.Save();
             };
@@ -111,6 +111,11 @@ namespace CCDesk
             LoadWhiteBox();
             LoadProjectBox();
             LayoutChildren();
+        }
+
+        private static string DayText(int days)
+        {
+            return days <= 0 ? "全部" : days + " 天";
         }
 
         private Toggle AddToggle(Card card, int row, bool value, Action<bool> onChange)
@@ -242,7 +247,7 @@ namespace CCDesk
                 Theme.Txt(g, descs[i], Theme.F(7.8f), Theme.Muted, 20, 70 + i * 46);
             }
             Theme.Txt(g, "临时文件保留天数", Theme.F(8.8f), Theme.Text, 20, 230);
-            Theme.Txt(g, "早于该天数的临时文件才会进入清理清单", Theme.F(7.6f), Theme.Muted, 20, 250);
+            Theme.Txt(g, "“全部”表示清空临时目录里未被占用的文件；也可以只清若干天前的文件", Theme.F(7.6f), Theme.Muted, 20, 250);
         }
 
         private void WhitePaint(object sender, PaintEventArgs e)

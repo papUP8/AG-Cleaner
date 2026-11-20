@@ -68,6 +68,7 @@ namespace CCDesk
         private string _status = "正在统计可清理项目，稍候即出清单";
         private bool _busy;
         private Spinner _spinner;
+        private ProgressBar2 _prog;
         private long _lastFreed = 0;
 
         public CleanPage()
@@ -118,7 +119,26 @@ namespace CCDesk
             Controls.Add(_spinner);
             _spinner.BringToFront();
 
+            _prog = new ProgressBar2();
+            _prog.BackColor = Theme.Bg;
+            _prog.Visible = false;
+            Controls.Add(_prog);
+            _prog.BringToFront();
+
             LayoutChildren();
+        }
+
+        private void ShowProgress(int percent, string caption)
+        {
+            if (_prog == null) return;
+            _prog.Visible = true;
+            _prog.BringToFront();
+            _prog.SetProgress(percent, caption);
+        }
+
+        private void HideProgress()
+        {
+            if (_prog != null) _prog.Visible = false;
         }
 
         public void LayoutChildren()
@@ -149,6 +169,7 @@ namespace CCDesk
             _bar.SetBounds(0, Height - 58, w, 58);
             _list.SetBounds(0, listTop, w, Height - listTop - 92);
             _spinner.SetBounds(w - 46, y + 4, 24, 24);
+            _prog.SetBounds(0, Height - 58 - 32, w, 30);
         }
 
         protected override void OnResize(EventArgs e)
@@ -170,6 +191,9 @@ namespace CCDesk
             _list.Clear();
             _spinner.Spin(true);
             _scanBtn.Enabled = false;
+            _cleanBtn.Enabled = false;
+            _prog.Parent = this;
+            ShowProgress(0, "准备扫描...");
             _bar.Invalidate();
             ThreadPool.QueueUserWorkItem(delegate
             {
@@ -178,9 +202,17 @@ namespace CCDesk
                 try
                 {
                     Settings st = Settings.Load();
-                    result = CleanEngine.Scan(st, delegate (string msg)
+                    result = CleanEngine.Scan(st, delegate (int pc, string msg)
                     {
-                        try { BeginInvoke((MethodInvoker)delegate { _status = msg; _bar.Invalidate(); }); }
+                        try
+                        {
+                            BeginInvoke((MethodInvoker)delegate
+                            {
+                                _status = msg;
+                                ShowProgress(pc, msg);
+                                _bar.Invalidate();
+                            });
+                        }
                         catch (Exception) { }
                     });
                 }
@@ -191,7 +223,9 @@ namespace CCDesk
                     {
                         _busy = false;
                         _spinner.Spin(false);
+                        HideProgress();
                         _scanBtn.Enabled = true;
+                        _cleanBtn.Enabled = true;
                         if (result != null)
                         {
                             _cats = result;
@@ -386,7 +420,10 @@ namespace CCDesk
 
             _busy = true;
             _spinner.Spin(true);
+            _scanBtn.Enabled = false;
+            _cleanBtn.Enabled = false;
             _status = "正在清理...";
+            ShowProgress(0, "准备清理...");
             _bar.Invalidate();
             ThreadPool.QueueUserWorkItem(delegate
             {
@@ -395,7 +432,19 @@ namespace CCDesk
                 List<string> log = null;
                 try
                 {
-                    freed = CleanEngine.Execute(selected, out log, out errors);
+                    freed = CleanEngine.Execute(selected, out log, out errors, delegate (int pc, string msg)
+                    {
+                        try
+                        {
+                            BeginInvoke((MethodInvoker)delegate
+                            {
+                                _status = msg;
+                                ShowProgress(pc, msg);
+                                _bar.Invalidate();
+                            });
+                        }
+                        catch (Exception) { }
+                    });
                 }
                 catch (Exception ex)
                 {
@@ -404,18 +453,32 @@ namespace CCDesk
                 long f = freed;
                 List<string> lg = log;
                 int err = errors;
+                int sel = selected.Count;
                 try
                 {
                     BeginInvoke((MethodInvoker)delegate
                     {
                         _busy = false;
                         _spinner.Spin(false);
-                        _status = "已释放 " + Byt.Format(f) + (err > 0 ? "，" + err + " 项被占用跳过" : "");
+                        HideProgress();
+                        _cleanBtn.Enabled = true;
+                        _status = "已释放 " + Byt.Format(f) + (err > 0 ? "，" + err + " 项被占用或跳过" : "");
                         _bar.Invalidate();
                         StartScan();
-                        string detail = "释放空间：" + Byt.Format(f);
-                        if (lg != null && lg.Count > 0) detail += "\n\n明细（前 8 条）：\n" + Join(log, 8);
-                        Dlg.Info(FindForm(), "清理完成", detail);
+
+                        List<string> lines = new List<string>();
+                        if (lg != null)
+                        {
+                            for (int i = 0; i < lg.Count; i++)
+                            {
+                                lines.Add(lg[i]);
+                            }
+                        }
+                        string summary = "释放空间 " + Byt.Format(f) + " · 处理 " + sel + " 项 · 明细 " + lines.Count + " 条";
+                        string hint = err > 0
+                            ? "有 " + err + " 项被系统占用或无权删除，已记入日志，可选择重启后再清理"
+                            : "全部处理完成；来源路径与体积已写入操作日志，可在历史记录页导出 CSV";
+                        Dlg.Report(FindForm(), "清理完成", summary, lines, hint);
                     });
                 }
                 catch (Exception) { }

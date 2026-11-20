@@ -197,7 +197,7 @@ namespace CCDesk
                 try
                 {
                     Settings st = Settings.Load();
-                    List<CleanCategory> cats = CleanEngine.Scan(st, null);
+                    List<CleanCategory> cats = CleanEngine.Scan(st, (Action<string>)null);
                     for (int i = 0; i < cats.Count; i++)
                     {
                         if (cats[i].Id == "gpu" || cats[i].Id == "projects" || cats[i].Id == "recycle") continue;

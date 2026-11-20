@@ -240,9 +240,31 @@ namespace CCDesk.Core
         }
     }
 
+    /// <summary>扫描/清理进度回调：百分比 0-100 与当前动作说明。</summary>
+    public delegate void StepProgress(int percent, string text);
+
     /// <summary>按分类目录逐项扫描，产出“审阅后删除”的清单。</summary>
     public static class CleanEngine
     {
+        private static void Report(StepProgress p, int percent, string text)
+        {
+            if (p == null) return;
+            if (percent < 0) percent = 0;
+            if (percent > 100) percent = 100;
+            p(percent, text);
+        }
+
+        /// <summary>扫描阶段的分段进度：前 30% 用于列举候选项，后 70% 用于统计体积。</summary>
+        private class ScanCtx
+        {
+            public StepProgress P;
+            public int Step;
+            public int Total = 13;
+            public void Begin(string text) { Report(P, 2 + Step * 28 / Total, text); }
+            public Action<string> Msg(string text) { return delegate (string m) { Report(P, 2 + Step * 28 / Total, text); }; }
+            public void Next() { Step++; Report(P, 2 + Step * 28 / Total, "已完成分类列举 " + Step + "/" + Total); }
+        }
+
         public static string LocalAppData { get { return Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData); } }
         public static string RoamingAppData { get { return Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData); } }
         public static string Temp { get { return Environment.GetEnvironmentVariable("TEMP"); } }
@@ -250,21 +272,30 @@ namespace CCDesk.Core
 
         public static List<CleanCategory> Scan(Settings s, Action<string> report)
         {
-            List<CleanCategory> cats = new List<CleanCategory>();
-            cats.Add(ScanUserTemp(s, report));
-            cats.Add(ScanBrowser(s, report));
-            cats.Add(ScanApps(s, report));
-            cats.Add(ScanTraces(s, report));
-            cats.Add(ScanSystem(s, report));
-            cats.Add(ScanDeep(s, report));
-            if (s.CleanGpuShaders) cats.Add(ScanGpu(report));
-            cats.Add(ScanLogsReports(report));
-            cats.Add(ScanUsage(s, report));
-            if (s.DeleteOldInstallers) cats.Add(ScanInstallers(report));
-            if (s.CleanProjectArtifacts) cats.Add(ScanProjects(s, report));
-            cats.Add(ScanRecycleBin(report));
+            return Scan(s, delegate (int pc, string msg) { if (report != null) report(msg); });
+        }
 
-            R(report, "并行统计体积...");
+        public static List<CleanCategory> Scan(Settings s, StepProgress prog)
+        {
+            List<CleanCategory> cats = new List<CleanCategory>();
+            ScanCtx c = new ScanCtx();
+            c.P = prog;
+            Report(prog, 2, "正在列举可清理目录...");
+
+            cats.Add(ScanUserTemp(s, c.Msg("扫描临时文件与临时目录..."))); c.Next();
+            cats.Add(ScanBrowser(s, c.Msg("扫描浏览器缓存..."))); c.Next();
+            cats.Add(ScanApps(s, c.Msg("扫描应用缓存与 UWP 缓存..."))); c.Next();
+            cats.Add(ScanTraces(s, c.Msg("扫描缩略图与图标数据库..."))); c.Next();
+            cats.Add(ScanSystem(s, c.Msg("扫描系统缓存与日志..."))); c.Next();
+            cats.Add(ScanDeep(s, c.Msg("扫描旧系统备份与组件缓存..."))); c.Next();
+            if (s.CleanGpuShaders) cats.Add(ScanGpu(c.Msg("扫描显卡着色器缓存...")));
+            cats.Add(ScanLogsReports(c.Msg("扫描崩溃转储与错误报告..."))); c.Next();
+            cats.Add(ScanUsage(s, c.Msg("扫描使用痕迹..."))); c.Next();
+            if (s.DeleteOldInstallers) cats.Add(ScanInstallers(c.Msg("扫描下载目录的旧安装包...")));
+            if (s.CleanProjectArtifacts) cats.Add(ScanProjects(s, c.Msg("扫描项目构建产物...")));
+            cats.Add(ScanBigLogs(c.Msg("扫描大体积日志与转储文件..."))); c.Next();
+            cats.Add(ScanRecycleBin(c.Msg("检查回收站..."))); c.Next();
+
             List<CleanItem> all = new List<CleanItem>();
             for (int i = 0; i < cats.Count; i++)
             {
@@ -275,7 +306,28 @@ namespace CCDesk.Core
                     all.Add(it);
                 }
             }
-            System.Threading.Tasks.Parallel.For(0, all.Count, delegate (int idx) { SizeItem(all[idx]); });
+
+            if (all.Count > 0)
+            {
+                Report(prog, 30, "正在统计 " + all.Count + " 个项目的体积...");
+                int done = 0;
+                int lastPct = 30;
+                System.Threading.Tasks.Parallel.For(0, all.Count, delegate (int idx)
+                {
+                    CleanItem it = all[idx];
+                    try { SizeItem(it); }
+                    catch (Exception) { }
+                    int d = System.Threading.Interlocked.Increment(ref done);
+                    int pct = 30 + d * 68 / all.Count;
+                    if (pct > lastPct)
+                    {
+                        System.Threading.Interlocked.Exchange(ref lastPct, pct);
+                        string label = it.Name;
+                        if (label.Length > 26) label = label.Substring(0, 26) + "…";
+                        Report(prog, pct, "统计体积 " + d + "/" + all.Count + " · " + label);
+                    }
+                });
+            }
 
             // 去掉体积为 0 的空项
             for (int i = 0; i < cats.Count; i++)
@@ -287,6 +339,7 @@ namespace CCDesk.Core
                 }
                 cats[i].Items = keep;
             }
+            Report(prog, 100, "扫描完成");
             return cats;
         }
 
@@ -322,8 +375,6 @@ namespace CCDesk.Core
             it.OlderThanDays = days;
             it.Recycle = recycle;
             it.Exists = true;
-            long total = 0;
-            int files = 0;
             it.Bytes = 0;
             it.Files = 0;
             cat.Items.Add(it);
@@ -430,9 +481,13 @@ namespace CCDesk.Core
 
         private static CleanCategory ScanUserTemp(Settings s, Action<string> report)
         {
-            CleanCategory cat = NewCat("temp", "临时文件", "系统与用户临时目录中 " + s.TempDays + " 天前的文件", "🕒", true);
+            string desc = s.TempDays <= 0
+                ? "系统与用户临时目录里未被占用的全部文件"
+                : "系统与用户临时目录中 " + s.TempDays + " 天前的文件";
+            CleanCategory cat = NewCat("temp", "临时文件", desc, "🕒", true);
             R(report, "扫描临时文件...");
-            AddDirItem(cat, "用户临时目录", Temp, CleanKind.OldFilesInDir, s.TempDays, s.UseRecycleBin);
+            string tn = s.TempDays <= 0 ? "用户临时目录" : "用户临时目录（" + s.TempDays + " 天前）";
+            AddDirItem(cat, tn, Temp, CleanKind.OldFilesInDir, s.TempDays, s.UseRecycleBin);
             string localTemp = Path.Combine(LocalAppData, "Temp");
             if (Guard.Norm(localTemp) != Guard.Norm(Temp))
             {
@@ -443,7 +498,7 @@ namespace CCDesk.Core
 
         private static string[] ChromiumLeaves()
         {
-            return new string[] { "Cache", "Code Cache", "GPUCache", "DawnGraphiteCache", "DawnWebGPUCache" };
+            return new string[] { "Cache", "Code Cache", "GPUCache", "DawnGraphiteCache", "DawnWebGPUCache", @"Service Worker\ScriptCache" };
         }
 
         private static void ScanChromium(CleanCategory cat, Settings s, string label, string root, string[] rootLeaves)
@@ -489,6 +544,20 @@ namespace CCDesk.Core
             ScanChromium(cat, s, "360 极速浏览器", Path.Combine(la, @"360Chrome\Chrome\User Data"), rootLeaves);
             ScanChromium(cat, s, "夸克浏览器", Path.Combine(la, @"Quark\User Data"), rootLeaves);
             ScanChromiumGeneric(cat, s);
+
+            // WebView2（Edge 内核嵌入控件）缓存
+            string[] wvRoots = new string[]
+            {
+                Path.Combine(la, @"Microsoft\EdgeWebView"),
+                Path.Combine(la, @"Microsoft\EdgeWebView\EBWebView"),
+                Path.Combine(la, @"Microsoft\EdgeUpdate")
+            };
+            for (int i = 0; i < wvRoots.Length; i++)
+            {
+                AddDirItem(cat, "WebView2 · Default\\Cache", Path.Combine(wvRoots[i], @"Default\Cache"), CleanKind.DirContents, 0, s.UseRecycleBin);
+                AddDirItem(cat, "WebView2 · Default\\Code Cache", Path.Combine(wvRoots[i], @"Default\Code Cache"), CleanKind.DirContents, 0, s.UseRecycleBin);
+                AddDirItem(cat, "WebView2 · EBWebView\\Default\\Cache", Path.Combine(wvRoots[i], @"EBWebView\Default\Cache"), CleanKind.DirContents, 0, s.UseRecycleBin);
+            }
 
             // Firefox：本地缓存目录 + 启动缓存
             string ffLocal = Path.Combine(la, @"Mozilla\Firefox\Profiles");
@@ -598,6 +667,11 @@ namespace CCDesk.Core
             AddDirItem(cat, "Windows 错误报告归档", Path.Combine(la, @"Microsoft\Windows\WER\ReportArchive"), CleanKind.DirContents, 0, true);
             AddDirItem(cat, "Windows 错误报告队列", Path.Combine(la, @"Microsoft\Windows\WER\ReportQueue"), CleanKind.DirContents, 0, true);
             AddDirItem(cat, "崩溃转储 CrashDumps", Path.Combine(la, "CrashDumps"), CleanKind.DirContents, 0, true);
+            AddDirItem(cat, "错误报告归档（系统级）", @"C:\ProgramData\Microsoft\Windows\WER\ReportArchive", CleanKind.DirContents, 0, true);
+            AddDirItem(cat, "错误报告队列（系统级）", @"C:\ProgramData\Microsoft\Windows\WER\ReportQueue", CleanKind.DirContents, 0, true);
+            AddDirItem(cat, "WER 临时报告", @"C:\ProgramData\Microsoft\Windows\WER\Temp", CleanKind.DirContents, 0, true);
+            AddFileItem(cat, "完整内存转储 MEMORY.DMP", @"C:\Windows\MEMORY.DMP", false);
+            AddDirItem(cat, "Office 文件缓存", Path.Combine(la, @"Microsoft\Office\16.0\OfficeFileCache"), CleanKind.DirContents, 0, true);
             AddDirItem(cat, "腾讯会议日志", Path.Combine(la, @"Tencent\Wemeet\logs"), CleanKind.OldFilesInDir, 7, true);
             AddDirItem(cat, "百度网盘日志", Path.Combine(ra, @"BaiduYunGuanjia\logs"), CleanKind.OldFilesInDir, 7, true);
             AddDirItem(cat, "Docker 日志", Path.Combine(la, @"Docker\log"), CleanKind.OldFilesInDir, 7, true);
@@ -821,6 +895,16 @@ namespace CCDesk.Core
                 AddDirItem(cat, "更新协调日志", @"C:\ProgramData\USOShared\Logs", CleanKind.DirContents, 0, true);
                 AddDirItem(cat, "诊断数据缓存", @"C:\ProgramData\Microsoft\Diagnosis", CleanKind.DirContents, 0, false);
                 AddDirItem(cat, "零售演示内容", @"C:\ProgramData\Microsoft\Windows\RetailDemo", CleanKind.DirContents, 0, false);
+                AddDirItem(cat, "驱动仓库临时文件", @"C:\Windows\System32\DriverStore\Temp", CleanKind.DirContents, 0, false);
+                AddDirItem(cat, "Defender 扫描历史", @"C:\ProgramData\Microsoft\Windows Defender\Scans\History\Results", CleanKind.DirContents, 0, false);
+                AddDirItem(cat, "错误报告临时目录", @"C:\ProgramData\Microsoft\Windows\WER\Temp", CleanKind.DirContents, 0, false);
+                AddDirItem(cat, "更新重启缓存", @"C:\Windows\SoftwareDistribution\PostRebootEventCache", CleanKind.DirContents, 0, false);
+                AddDirItem(cat, "更新数据库日志", @"C:\Windows\SoftwareDistribution\DataStore\Logs", CleanKind.DirContents, 0, true);
+                AddDirItem(cat, "Intel 驱动安装缓存", @"C:\ProgramData\Intel\Package Cache", CleanKind.DirContents, 0, false);
+                AddDirItem(cat, "Windows 升级临时目录", @"C:\Windows\SoftwareDistribution\Download\SharedFileCache", CleanKind.DirContents, 0, false);
+                AddDirItem(cat, "传递优化缓存", @"C:\Windows\ServiceProfiles\NetworkService\AppData\Local\Microsoft\Windows\DeliveryOptimization\Cache", CleanKind.DirContents, 0, false);
+                AddDirItem(cat, "传递优化日志", @"C:\Windows\ServiceProfiles\NetworkService\AppData\Local\Microsoft\Windows\DeliveryOptimization\Logs", CleanKind.DirContents, 0, false);
+                AddDirItem(cat, "OneDrive 日志", Path.Combine(LocalAppData, @"Microsoft\OneDrive\logs"), CleanKind.OldFilesInDir, 7, true);
 
                 // 多用户临时目录（只清其他账号的 Temp，自己那份已在“临时文件”里）
                 string usersRoot = Path.Combine(Path.GetPathRoot(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)), "Users");
@@ -859,8 +943,84 @@ namespace CCDesk.Core
                 AddDirItem(cat, "系统组件缓存 WinSxS", @"C:\Windows\WinSxS\Temp", CleanKind.DirContents, 0, false);
                 AddDirItem(cat, "搜索索引数据库", @"C:\ProgramData\Microsoft\Search\Data", CleanKind.DirContents, 0, false);
                 AddDirItem(cat, "安装包缓存 Package Cache", @"C:\ProgramData\Package Cache", CleanKind.DirContents, 0, false);
+                AddDirItem(cat, "MSI 补丁缓存 $PatchCache$", @"C:\Windows\Installer\$PatchCache$", CleanKind.DirContents, 0, false);
             }
             return cat;
+        }
+
+        /// <summary>
+        /// 大体积日志与转储：只列出单个 64 MB 以上、30 天未写入的诊断类文件，
+        /// 明细级别由用户逐条决定，默认不勾选。
+        /// </summary>
+        private static CleanCategory ScanBigLogs(Action<string> report)
+        {
+            CleanCategory cat = NewCat("biglog", "大体积日志与转储", "单文件大于 48 MB、3 天未更新的日志/转储；逐条审阅，默认不勾选", "", false);
+            R(report, "扫描大体积日志文件...");
+            AddBigFiles(cat, @"C:\Windows\Logs", 3);
+            AddBigFiles(cat, @"C:\Windows\System32\WDI", 2);
+            AddBigFiles(cat, @"C:\Windows\Temp", 2);
+            AddBigFiles(cat, @"C:\ProgramData", 2);
+            string la = LocalAppData;
+            AddBigFiles(cat, Path.Combine(la, "Temp"), 2);
+            AddBigFiles(cat, Path.Combine(la, @"Microsoft\Windows\WER"), 2);
+            AddBigFiles(cat, la, 4);
+            AddBigFiles(cat, RoamingAppData, 4);
+            AddBigFiles(cat, Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), 4);
+            return cat;
+        }
+
+        private static readonly string[] BigLogExts = new string[] { ".log", ".etl", ".dmp", ".mdmp", ".cab", ".evtx", ".wer" };
+
+        private static void AddBigFiles(CleanCategory cat, string dir, int depth)
+        {
+            if (dir == null || dir.Length == 0) return;
+            if (!Directory.Exists(dir)) return;
+            if (depth < 0) return;
+            if (cat.Items.Count > 60) return;
+            string[] files;
+            try { files = Directory.GetFiles(dir); }
+            catch (Exception) { files = new string[0]; }
+            DateTime cutoff = DateTime.Now.AddDays(-3);
+            for (int i = 0; i < files.Length; i++)
+            {
+                string f = files[i];
+                if (!BigLogExtsContain(Path.GetExtension(f))) continue;
+                try
+                {
+                    FileInfo fi = new FileInfo(f);
+                    if (fi.Length < 48L * 1024 * 1024) continue;
+                    if (fi.LastWriteTime >= cutoff) continue;
+                    if (!Guard.CanDelete(f, true)) continue;
+                    CleanItem it = new CleanItem();
+                    it.CategoryId = cat.Id;
+                    it.Name = Path.GetFileName(Path.GetDirectoryName(f)) + "\\" + Path.GetFileName(f);
+                    it.Path = f;
+                    it.Kind = CleanKind.FileItself;
+                    it.Bytes = fi.Length;
+                    it.Files = 1;
+                    it.Recycle = false;
+                    it.Exists = true;
+                    it.Note = "最后写入 " + fi.LastWriteTime.ToString("yyyy-MM-dd") + "，大小 " + Byt.Format(fi.Length);
+                    cat.Items.Add(it);
+                    if (cat.Items.Count > 60) return;
+                }
+                catch (Exception) { }
+            }
+            if (depth == 0) return;
+            string[] subs;
+            try { subs = Directory.GetDirectories(dir); }
+            catch (Exception) { return; }
+            for (int i = 0; i < subs.Length; i++)
+            {
+                AddBigFiles(cat, subs[i], depth - 1);
+            }
+        }
+
+        private static bool BigLogExtsContain(string ext)
+        {
+            string e = ext == null ? "" : ext.ToLowerInvariant();
+            for (int i = 0; i < BigLogExts.Length; i++) if (BigLogExts[i] == e) return true;
+            return false;
         }
 
         private static CleanCategory ScanRecycleBin(Action<string> report)
@@ -888,12 +1048,23 @@ namespace CCDesk.Core
         /// <summary>执行清理，返回实际释放字节。</summary>
         public static long Execute(List<CleanItem> items, out List<string> log, out int errors)
         {
+            return Execute(items, out log, out errors, null);
+        }
+
+        public static long Execute(List<CleanItem> items, out List<string> log, out int errors, StepProgress prog)
+        {
             long freed = 0;
             errors = 0;
             log = new List<string>();
             for (int i = 0; i < items.Count; i++)
             {
                 CleanItem it = items[i];
+                if (prog != null)
+                {
+                    string label = it.Name;
+                    if (label.Length > 24) label = label.Substring(0, 24) + "…";
+                    Report(prog, (i * 100) / Math.Max(1, items.Count), "正在清理 " + (i + 1) + "/" + items.Count + " · " + label);
+                }
                 if (!it.Exists) continue;
                 if (it.Kind == CleanKind.RecycleBin)
                 {
@@ -952,6 +1123,7 @@ namespace CCDesk.Core
                     OpLog.Write("clean", it.Path, before);
                 }
             }
+            Report(prog, 100, "清理完成");
             return freed;
         }
 

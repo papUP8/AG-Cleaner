@@ -42,13 +42,14 @@ namespace CCDesk.Core
     public class Settings
     {
         public bool UseRecycleBin = true;
-        public int TempDays = 7;
+        public int TempDays = 0;
         public bool CleanGpuShaders = false;
         public bool CleanProjectArtifacts = false;
         public bool DeleteOldInstallers = true;
         public string ThemeMode = "dark";
         public List<string> ProjectDirs = new List<string>();
         public bool ConfirmBeforeDelete = true;
+        public bool TempMigrated = false;
 
         public static Settings Load()
         {
@@ -68,7 +69,16 @@ namespace CCDesk.Core
                 else if (k == "projects") s.CleanProjectArtifacts = v == "1";
                 else if (k == "installers") s.DeleteOldInstallers = v == "1";
                 else if (k == "theme") s.ThemeMode = v;
+                else if (k == "tempmig") s.TempMigrated = v == "1";
                 else if (k == "dir") { if (v.Length > 0) s.ProjectDirs.Add(v); }
+            }
+            // 早期默认是“只清 7 天前的临时文件”，会漏掉大量仍可安全删除的临时文件；
+            // 只迁移一次，之后以用户在设置页选择的天数为准
+            if (!s.TempMigrated)
+            {
+                if (s.TempDays == 7) s.TempDays = 0;
+                s.TempMigrated = true;
+                s.Save();
             }
             if (s.ProjectDirs.Count == 0)
             {
@@ -84,6 +94,7 @@ namespace CCDesk.Core
             sb.AppendLine("# CCDesk 配置");
             sb.AppendLine("recycle=" + (UseRecycleBin ? "1" : "0"));
             sb.AppendLine("tempdays=" + TempDays);
+            sb.AppendLine("tempmig=1");
             sb.AppendLine("gpu=" + (CleanGpuShaders ? "1" : "0"));
             sb.AppendLine("projects=" + (CleanProjectArtifacts ? "1" : "0"));
             sb.AppendLine("installers=" + (DeleteOldInstallers ? "1" : "0"));
@@ -123,6 +134,8 @@ namespace CCDesk.Core
         {
             "C:\\Windows\\Temp",
             "C:\\Windows\\Logs",
+            "C:\\Windows\\System32\\WDI",
+            "C:\\Windows\\System32\\WDI\\LogFiles",
             "C:\\Windows\\WinSxS\\Temp",
             "C:\\Windows\\SoftwareDistribution\\Download",
             "C:\\Windows\\Prefetch",
@@ -136,9 +149,14 @@ namespace CCDesk.Core
             "C:\\Windows\\ServiceProfiles\\LocalService\\AppData\\Local\\FontCache",
             "C:\\Windows\\ServiceProfiles\\LocalService\\AppData\\Local\\Temp",
             "C:\\Windows\\LiveKernelReports",
+            "C:\\Windows\\System32\\DriverStore\\Temp",
+            "C:\\Windows\\SoftwareDistribution\\PostRebootEventCache",
+            "C:\\Windows\\SoftwareDistribution\\DataStore\\Logs",
             "C:\\ProgramData\\Microsoft\\Search\\Data",
             "C:\\ProgramData\\Microsoft\\Windows\\WER",
-            "C:\\ProgramData\\Microsoft\\Network\\Downloader"
+            "C:\\ProgramData\\Microsoft\\Windows Defender\\Scans\\History\\Results",
+            "C:\\ProgramData\\Microsoft\\Network\\Downloader",
+            "C:\\ProgramData\\Intel\\Package Cache"
         };
 
         private static readonly string[] SensitiveSegments = new string[]

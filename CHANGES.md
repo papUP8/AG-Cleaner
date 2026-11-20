@@ -1,5 +1,40 @@
 # 变更记录
 
+## 1.2.0
+
+### 进度反馈
+
+- 扫描与清理全过程显示百分比进度条：列举候选（0–28%）→ 并行统计体积（30–98%）→ 完成（100%），进度条右侧显示当前正在处理的分类名
+- 深度清理、残留清理、清理执行、残留执行四处都接了进度回调
+
+### 结果报告
+
+- 清理完成不再只显示前 8 条：改为可滚动的报告框，明细全量列出，顶部给出「释放空间 / 处理项 / 明细条数」摘要，底部保留「打开操作日志」与「完成」
+- 残留清理的完成提示同样改为该报告框
+
+### 启动项管理重写
+
+- 分类：用户启动项、系统组件、计划任务、系统服务、已禁用，五类可切换筛选，共 102 项
+- 覆盖来源：HKCU/HKLM 的 Run、RunOnce（三处）、RunServices、Explorer\Run（两处）、Active Setup StubPath、启动文件夹
+- 计划任务：读取 `C:\Windows\System32\Tasks` 下的 XML，只收录登录触发与开机触发的任务，命令取 `<Command>` + `<Arguments>`，启用状态先看 `<Enabled>`
+- 系统服务：Win32 自动启动类（Auto），只读展示，不做修改
+- 指标解析：`@%SystemRoot%\system32\xxx.dll,-100` 这类间接字符串，用 `LoadLibraryEx(LOAD_LIBRARY_AS_DATAFILE)` + `LoadString` 还原成真实服务描述
+- 禁用/启用：注册表启动项写 StartupApproved 标记，计划任务调用 `schtasks /Change /Disable|/Enable`，服务项拒绝操作并给出说明
+
+### 清理规则扩充
+
+- 临时文件口径调整：默认「全部」（清空临时目录里未被占用的文件），设置页可在 全部 / 1 / 3 / 7 / 14 / 30 天之间切换；旧配置里的 7 天默认值自动迁移一次
+- 系统缓存与日志新增：DriverStore\Temp、Defender 扫描历史、更新重启缓存 PostRebootEventCache、更新数据库日志 DataStore\Logs、Intel 驱动安装缓存、更新下载 SharedFileCache、传递优化缓存与日志、OneDrive 日志、WDI 启动性能日志
+- 日志与错误报告新增：系统级 WER 归档/队列/临时目录、MEMORY.DMP、Office 文件缓存
+- 深度清理新增：MSI `$PatchCache$`
+- 浏览器补齐 `Service Worker\ScriptCache`；WebView2 三处缓存
+- 新增分类「大体积日志与转储」：单文件大于 48 MB 且 3 天未更新的 .log / .etl / .dmp / .mdmp / .cab / .evtx / .wer，逐条列出最后写入时间与大小，默认不勾选，需要用户自己勾选后才删除
+
+### 命令行
+
+- 新增 `--dlgshot <png>`：离屏渲染结果报告框
+- 新增 `--guard <path...>`：输出单条路径的判定结果（可删 / 受保护 / 白名单 / 敏感片段 / 可信目录 / 是否存在），用于核对某条规则为什么没扫出来
+
 ## 1.1.0
 
 ### 清理规则扩充

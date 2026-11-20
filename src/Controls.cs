@@ -882,6 +882,58 @@ namespace CCDesk
         }
     }
 
+    /// <summary>带百分比文字的进度条，用于扫描与清理过程。</summary>
+    public class ProgressBar2 : Control
+    {
+        public int Percent = 0;
+        public string Caption = "";
+        public string RightText = "";
+        public Color BarColor = Theme.Accent;
+
+        public ProgressBar2()
+        {
+            SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint |
+                     ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
+            BackColor = Theme.Bg;
+            Height = 30;
+        }
+
+        public void SetProgress(int percent, string caption)
+        {
+            Percent = Math.Max(0, Math.Min(100, percent));
+            Caption = caption == null ? "" : caption;
+            RightText = Percent + "%";
+            Invalidate();
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            Graphics g = e.Graphics;
+            Theme.Smooth(g);
+            using (SolidBrush b = new SolidBrush(Theme.Bg))
+            {
+                g.FillRectangle(b, ClientRectangle);
+            }
+            Font f = Theme.F(8.2f);
+            int percentW = 46;
+            Rectangle track = new Rectangle(0, 4, Width - percentW - 8, 12);
+            Theme.FillRound(g, track, 6, Theme.Track);
+            int w = (int)(track.Width * Percent / 100.0);
+            if (w > 4) Theme.FillRound(g, new Rectangle(track.X, track.Y, w, track.Height), 6, BarColor);
+            using (StringFormat sf = Theme.SF(StringAlignment.Far, StringAlignment.Near))
+            {
+                Theme.Txt(g, RightText, Theme.F(9f, FontStyle.Bold), Theme.Accent, new Rectangle(Width - percentW, 0, percentW, 20), sf);
+            }
+            if (Caption.Length > 0)
+            {
+                using (StringFormat sf = Theme.SF(StringAlignment.Near, StringAlignment.Near))
+                {
+                    Theme.Txt(g, Caption, f, Theme.Muted, new Rectangle(0, 18, Width - percentW - 8, 14), sf);
+                }
+            }
+        }
+    }
+
     /// <summary>加载指示器。</summary>
     public class Spinner : Control
     {

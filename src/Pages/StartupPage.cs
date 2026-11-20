@@ -10,18 +10,18 @@ namespace CCDesk
     public class StartupPage : PageBase
     {
         public override string PageTitle { get { return "启动项管理"; } }
-        public override string PageSubtitle { get { return "注册表 Run 与启动文件夹项目，禁用时自动备份，可随时还原"; } }
+        public override string PageSubtitle { get { return "用户启动项、系统组件、计划任务与服务项；禁用前自动备份，可一键还原"; } }
 
         private VList _list;
         private ActionBar _bar;
         private Btn _refresh;
-        private Btn _showDisabled;
         private List<StartupItem> _items = new List<StartupItem>();
-        private List<StartupItem> _disabled = new List<StartupItem>();
+        private List<Chip> _chips = new List<Chip>();
         private bool _busy;
-        private bool _showOff = true;
+        private string _filter = "all";
         private string _status = "读取启动项...";
         private Spinner _spinner;
+        private ProgressBar2 _prog;
 
         public StartupPage()
         {
@@ -32,25 +32,12 @@ namespace CCDesk
             _refresh.Click += delegate { Load(); };
             Controls.Add(_refresh);
 
-            _showDisabled = new Btn();
-            _showDisabled.Kind = ButtonKind.Link;
-            _showDisabled.Text = "已禁用项";
-            _showDisabled.Size = new Size(88, 30);
-            _showDisabled.Click += delegate
-            {
-                _showOff = !_showOff;
-                _showDisabled.Kind = _showOff ? ButtonKind.Link : ButtonKind.Subtle;
-                _showDisabled.Invalidate();
-                Fill();
-            };
-            Controls.Add(_showDisabled);
-
             _list = new VList();
             _list.ShowCheck = false;
             _list.RightHeader = "状态";
             _list.RowHeight = 58;
             _list.EmptyText = "没有启动项";
-            _list.EmptyHint = "注册表与启动文件夹均为空";
+            _list.EmptyHint = "当前分类下没有项目";
             _list.ActionClicked += delegate { ToggleSelected(); };
             Controls.Add(_list);
 
@@ -63,6 +50,10 @@ namespace CCDesk
             _spinner.Visible = false;
             Controls.Add(_spinner);
 
+            _prog = new ProgressBar2();
+            _prog.Visible = false;
+            Controls.Add(_prog);
+
             LayoutChildren();
         }
 
@@ -71,10 +62,19 @@ namespace CCDesk
             int w = Width;
             int y = HeaderH + 2;
             _refresh.SetBounds(0, y, 80, 32);
-            _showDisabled.SetBounds(88, y + 2, 88, 30);
+            int cx = 92;
+            for (int i = 0; i < _chips.Count; i++)
+            {
+                Graphics g = CreateGraphics();
+                int cw = _chips[i].FitWidth(g);
+                g.Dispose();
+                _chips[i].SetBounds(cx, y + 2, cw, 28);
+                cx += cw + 8;
+            }
             _bar.SetBounds(0, Height - 58, w, 58);
             _list.SetBounds(0, y + 44, w, Height - (y + 44) - 92);
             _spinner.SetBounds(w - 40, y + 4, 24, 24);
+            _prog.SetBounds(0, Height - 58 - 32, w, 30);
         }
 
         protected override void OnResize(EventArgs e)
@@ -93,15 +93,13 @@ namespace CCDesk
             if (_busy) return;
             _busy = true;
             _spinner.Spin(true);
+            _prog.Visible = true;
+            _prog.BringToFront();
+            _prog.SetProgress(5, "读取注册表与服务列表...");
             ThreadPool.QueueUserWorkItem(delegate
             {
                 List<StartupItem> on = null;
-                List<StartupItem> off = null;
-                try
-                {
-                    on = Startup.List();
-                    off = Startup.ListDisabled();
-                }
+                try { on = Startup.List(); }
                 catch (Exception) { }
                 try
                 {
@@ -109,8 +107,9 @@ namespace CCDesk
                     {
                         _busy = false;
                         _spinner.Spin(false);
+                        _prog.Visible = false;
                         _items = on == null ? new List<StartupItem>() : on;
-                        _disabled = off == null ? new List<StartupItem>() : off;
+                        BuildChips();
                         Fill();
                     });
                 }
@@ -118,50 +117,109 @@ namespace CCDesk
             });
         }
 
-        private void Fill()
+        private void BuildChips()
         {
-            List<VRow> rows = new List<VRow>();
+            for (int i = 0; i < _chips.Count; i++) Controls.Remove(_chips[i]);
+            _chips.Clear();
+            _filter = "all";
+
+            int user = 0, sys = 0, task = 0, svc = 0, off = 0;
             for (int i = 0; i < _items.Count; i++)
             {
                 StartupItem it = _items[i];
+                if (!it.Enabled) off++;
+                if (it.Group == "user") user++;
+                else if (it.Group == "sys") sys++;
+                else if (it.Group == "task") task++;
+                else svc++;
+            }
+
+            Chip all = MakeChip("全部", _items.Count, "all", true);
+            MakeChip("用户启动项", user, "user", false);
+            MakeChip("系统组件", sys, "sys", false);
+            MakeChip("计划任务", task, "task", false);
+            MakeChip("系统服务", svc, "service", false);
+            MakeChip("已禁用", off, "disabled", false);
+            LayoutChildren();
+        }
+
+        private Chip MakeChip(string name, int count, string id, bool active)
+        {
+            Chip chip = new Chip();
+            chip.Text = name;
+            chip.Count = count;
+            chip.Active = active;
+            chip.Click += delegate
+            {
+                _filter = id;
+                for (int i = 0; i < _chips.Count; i++)
+                {
+                    _chips[i].Active = _chips[i] == chip;
+                    _chips[i].Invalidate();
+                }
+                Fill();
+            };
+            Controls.Add(chip);
+            _chips.Add(chip);
+            chip.BringToFront();
+            return chip;
+        }
+
+        private void Fill()
+        {
+            List<VRow> rows = new List<VRow>();
+            int shown = 0;
+            for (int i = 0; i < _items.Count; i++)
+            {
+                StartupItem it = _items[i];
+                if (!Match(it)) continue;
+                shown++;
                 VRow r = new VRow();
                 r.Title = it.Name;
-                r.Sub = Theme.ShortPath(it.Command, 84);
-                r.Tag = it.Source;
-                r.TagColor = it.IsFile ? Theme.Blue : Theme.Accent;
-                r.Right = "已启用";
-                r.Action = "禁用";
-                r.ActionColor = Theme.Warn;
+                r.Sub = Theme.ShortPath(it.Command, 86);
+                r.Tag = it.GroupText;
+                r.TagColor = GroupColor(it.Group);
+                r.Right = it.Enabled ? "已启用" : "已禁用";
+                r.Alarm = !it.Enabled;
                 r.Data = it;
+                if (it.IsService)
+                {
+                    r.Action = "";
+                    r.Disabled = false;
+                }
+                else
+                {
+                    r.Action = it.Enabled ? "禁用" : "启用";
+                    r.ActionColor = it.Enabled ? Theme.Warn : Theme.Accent;
+                }
                 rows.Add(r);
             }
-            if (_showOff)
-            {
-                for (int i = 0; i < _disabled.Count; i++)
-                {
-                    StartupItem it = _disabled[i];
-                    VRow r = new VRow();
-                    r.Title = it.Name;
-                    r.Sub = Theme.ShortPath(it.Command, 84);
-                    r.Tag = it.Source;
-                    r.TagColor = Theme.Muted;
-                    r.Right = "已禁用";
-                    r.Alarm = false;
-                    r.Action = "启用";
-                    r.ActionColor = Theme.Accent;
-                    r.Data = it;
-                    rows.Add(r);
-                }
-            }
             _list.SetRows(rows);
-            _status = "启用中 " + _items.Count + " 项 · 已禁用 " + _disabled.Count + " 项（禁用项已备份，可还原）";
+            int off = 0;
+            for (int i = 0; i < _items.Count; i++) if (!_items[i].Enabled) off++;
+            _status = "当前显示 " + shown + " 项 · 共 " + _items.Count + " 项，其中已禁用 " + off + " 项；服务项仅展示，不做修改";
             _bar.Invalidate();
+        }
+
+        private bool Match(StartupItem it)
+        {
+            if (_filter == "all") return true;
+            if (_filter == "disabled") return !it.Enabled;
+            return it.Group == _filter;
+        }
+
+        private Color GroupColor(string g)
+        {
+            if (g == "sys") return Theme.Danger;
+            if (g == "task") return Theme.Warn;
+            if (g == "service") return Theme.C(Theme.IsLight ? "#8B5CF6" : "#8B7CF6");
+            return Theme.Accent;
         }
 
         private void BarPaint(object sender, PaintEventArgs e)
         {
             Theme.Smooth(e.Graphics);
-            Theme.Txt(e.Graphics, "启动项直接拖慢开机速度，禁用不影响程序手动启动", Theme.F(8.5f), Theme.TextDim, 4, 12);
+            Theme.Txt(e.Graphics, "禁用只影响开机自启，不会删除程序；注册表项与文件均先备份", Theme.F(8.5f), Theme.TextDim, 4, 12);
             Theme.Txt(e.Graphics, _status, Theme.F(8f), Theme.Muted, 4, 34);
         }
 
@@ -171,12 +229,18 @@ namespace CCDesk
             if (r == null) return;
             StartupItem it = r.Data as StartupItem;
             if (it == null) return;
+            if (it.IsService)
+            {
+                Dlg.Info(FindForm(), "系统服务仅展示", "服务项涉及系统组件，CCDesk 不在此处启停。\n如需调整，请在“服务”管理器中操作，或使用系统配置工具。");
+                return;
+            }
             string message = "";
             bool ok;
             if (it.Enabled)
             {
-                bool confirm = Dlg.Confirm(FindForm(), "禁用启动项 " + it.Name + "？",
-                    "命令：" + Theme.ShortPath(it.Command, 90) + "\n\n禁用会从启动位置移除该项，原始数据已备份，可在此页随时“启用”还原。",
+                string mode = it.IsTask ? "计划任务" : (it.IsFile ? "启动文件夹项" : "注册表启动项");
+                bool confirm = Dlg.Confirm(FindForm(), "禁用" + mode + " " + it.Name + "？",
+                    "命令：" + Theme.ShortPath(it.Command, 90) + "\n\n禁用只阻止它开机自动运行，不会删除程序本身。原始数据会自动备份，可在此页随时“启用”还原。",
                     "禁用", false);
                 if (!confirm) return;
                 ok = Startup.Disable(it, out message);
@@ -191,4 +255,3 @@ namespace CCDesk
         }
     }
 }
-

@@ -20,6 +20,7 @@ namespace CCDesk
         private Btn _invBtn;
         private Btn _cleanBtn;
         private Spinner _spinner;
+        private ProgressBar2 _prog;
         private List<Chip> _chips = new List<Chip>();
         private List<OrphanGroup> _groups = new List<OrphanGroup>();
         private string _filter = "all";
@@ -74,6 +75,10 @@ namespace CCDesk
             Controls.Add(_spinner);
             _spinner.BringToFront();
 
+            _prog = new ProgressBar2();
+            _prog.Visible = false;
+            Controls.Add(_prog);
+
             LayoutChildren();
         }
 
@@ -105,6 +110,7 @@ namespace CCDesk
             _bar.SetBounds(0, Height - 58, w, 58);
             _list.SetBounds(0, listTop, w, Height - listTop - 92);
             _spinner.SetBounds(w - 46, y + 4, 24, 24);
+            _prog.SetBounds(0, Height - 58 - 32, w, 30);
         }
 
         protected override void OnResize(EventArgs e)
@@ -126,6 +132,10 @@ namespace CCDesk
             _list.Clear();
             _spinner.Spin(true);
             _scanBtn.Enabled = false;
+            _cleanBtn.Enabled = false;
+            _prog.Visible = true;
+            _prog.BringToFront();
+            _prog.SetProgress(0, "准备扫描残留...");
             _bar.Invalidate();
             ThreadPool.QueueUserWorkItem(delegate
             {
@@ -137,6 +147,19 @@ namespace CCDesk
                     {
                         try { BeginInvoke((MethodInvoker)delegate { _status = msg; _bar.Invalidate(); }); }
                         catch (Exception) { }
+                    }, delegate (int pc, string msg)
+                    {
+                        try
+                        {
+                            BeginInvoke((MethodInvoker)delegate
+                            {
+                                _status = msg;
+                                _prog.Visible = true;
+                                _prog.SetProgress(pc, msg);
+                                _bar.Invalidate();
+                            });
+                        }
+                        catch (Exception) { }
                     });
                 }
                 catch (Exception ex) { error = ex.Message; }
@@ -146,7 +169,9 @@ namespace CCDesk
                     {
                         _busy = false;
                         _spinner.Spin(false);
+                        _prog.Visible = false;
                         _scanBtn.Enabled = true;
+                        _cleanBtn.Enabled = true;
                         if (result != null)
                         {
                             _groups = result;
@@ -327,29 +352,55 @@ namespace CCDesk
 
             _busy = true;
             _spinner.Spin(true);
+            _scanBtn.Enabled = false;
+            _cleanBtn.Enabled = false;
             _status = "正在清理...";
+            _prog.Visible = true;
+            _prog.BringToFront();
+            _prog.SetProgress(0, "准备处理残留...");
             _bar.Invalidate();
             ThreadPool.QueueUserWorkItem(delegate
             {
                 long freed = 0;
                 int errors = 0;
                 List<string> log = null;
-                try { freed = Orphans.Execute(selected, out log, out errors); }
+                try
+                {
+                    freed = Orphans.Execute(selected, out log, out errors, delegate (int pc, string msg)
+                    {
+                        try
+                        {
+                            BeginInvoke((MethodInvoker)delegate
+                            {
+                                _status = msg;
+                                _prog.Visible = true;
+                                _prog.SetProgress(pc, msg);
+                                _bar.Invalidate();
+                            });
+                        }
+                        catch (Exception) { }
+                    });
+                }
                 catch (Exception ex) { log = new List<string>(new string[] { "执行失败：" + ex.Message }); }
                 long f = freed;
                 List<string> lg = log;
                 int err = errors;
+                int sel = selected.Count;
                 try
                 {
                     BeginInvoke((MethodInvoker)delegate
                     {
                         _busy = false;
                         _spinner.Spin(false);
-                        _status = "已处理，回收 " + Byt.Format(f) + (err > 0 ? "，" + err + " 项失败" : "");
+                        _prog.Visible = false;
+                        _cleanBtn.Enabled = true;
+                        _status = "已处理 " + sel + " 项，回收 " + Byt.Format(f) + (err > 0 ? "，" + err + " 项失败" : "");
                         _bar.Invalidate();
-                        string detail = "回收空间：" + Byt.Format(f) + (err > 0 ? "\n失败 " + err + " 项" : "");
-                        if (lg != null && lg.Count > 0) detail += "\n\n明细（前 10 条）：\n" + Join(lg, 10);
-                        Dlg.Info(FindForm(), "残留清理完成", detail);
+                        List<string> lines = new List<string>();
+                        if (lg != null) { for (int i = 0; i < lg.Count; i++) lines.Add(lg[i]); }
+                        string summary = "回收空间 " + Byt.Format(f) + " · 处理 " + sel + " 项 · 明细 " + lines.Count + " 条";
+                        string hint = err > 0 ? "有 " + err + " 项未能处理，通常是被进程占用或权限不足，可重启后重试" : "目录已进回收站、注册表已导出 .reg 备份，均可在需要时还原";
+                        Dlg.Report(FindForm(), "残留清理完成", summary, lines, hint);
                         _groups.Clear();
                         StartScan();
                     });

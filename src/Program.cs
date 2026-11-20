@@ -7,7 +7,7 @@ namespace CCDesk
 {
     public static class Program
     {
-        public static string Version = "1.1.0";
+        public static string Version = "1.2.0";
 
         [STAThread]
         public static void Main(string[] args)
@@ -108,7 +108,7 @@ namespace CCDesk
                 try
                 {
                     Core.Settings st = Core.Settings.Load();
-                    System.Collections.Generic.List<Core.CleanCategory> cats = Core.CleanEngine.Scan(st, null);
+                    System.Collections.Generic.List<Core.CleanCategory> cats = Core.CleanEngine.Scan(st, (Action<string>)null);
                     for (int i = 0; i < cats.Count; i++)
                     {
                         sb.AppendLine(cats[i].Name + " -> " + cats[i].Items.Count + " items, " + Core.Byt.Format(cats[i].TotalBytes()));
@@ -142,6 +142,81 @@ namespace CCDesk
                 }
                 catch (Exception ex) { sb.AppendLine("EX " + ex.ToString()); }
                 System.IO.File.WriteAllText(args.Length >= 2 ? args[1] : "orphans.txt", sb.ToString());
+                return;
+            }
+
+            if (args.Length >= 2 && args[0] == "--guard")
+            {
+                // 诊断单条路径的判定结果，便于核对为什么某项被跳过
+                System.Text.StringBuilder g = new System.Text.StringBuilder();
+                for (int i = 1; i < args.Length; i++)
+                {
+                    string path = args[i];
+                    g.AppendLine(path);
+                    g.AppendLine("  can-delete = " + Core.Guard.CanDelete(path, true));
+                    g.AppendLine("  protected  = " + Core.Guard.IsProtected(path));
+                    g.AppendLine("  whitelist  = " + Core.Guard.IsWhitelisted(path));
+                    g.AppendLine("  sensitive  = " + Core.Guard.IsSensitiveSegment(path));
+                    g.AppendLine("  trusted    = " + Core.Guard.IsTrustedForClean(path));
+                    g.AppendLine("  exists     = " + System.IO.Directory.Exists(path));
+                }
+                System.IO.File.WriteAllText("guard.txt", g.ToString(), System.Text.Encoding.UTF8);
+                return;
+            }
+
+            if (args.Length >= 2 && args[0] == "--dlgshot")
+            {
+                // 离屏渲染“清理完成”报告框，用于自检排版
+                ReportForm f = new ReportForm();
+                f.Headline = "清理完成";
+                f.Summary = "释放空间 1.73 GB · 处理 42 项 · 明细 42 条";
+                f.Hint = "全部处理完成；来源路径与体积已写入操作日志，可在历史记录页导出 CSV";
+                f.ClientSize = new System.Drawing.Size(660, 500);
+                f.StartPosition = FormStartPosition.Manual;
+                f.Location = new System.Drawing.Point(-4000, 0);
+                f.ShowInTaskbar = false;
+                CCDesk.VList list = new CCDesk.VList();
+                list.ShowCheck = false;
+                list.RightHeader = "";
+                list.RowHeight = 28;
+                list.SetBounds(20, 76, 620, 300);
+                System.Collections.Generic.List<CCDesk.VRow> rows = new System.Collections.Generic.List<CCDesk.VRow>();
+                string[] demo = new string[]
+                {
+                    "用户临时目录  55.4 MB", "Windows 更新下载缓存  346 MB", "事件日志  172 MB",
+                    "字体缓存  48.8 MB", "搜索索引数据库  454 MB", "安装包缓存 Package Cache  493 MB",
+                    "Chrome · Profile 5\\Cache  67.3 MB", "Chrome · Profile 5\\Code Cache  844 KB",
+                    "Edge · Default\\Cache  22.6 MB", "系统日志 Logs  13 MB", "交付优化缓存  6.27 MB"
+                };
+                for (int i = 0; i < demo.Length; i++)
+                {
+                    CCDesk.VRow r = new CCDesk.VRow();
+                    r.Title = demo[i];
+                    rows.Add(r);
+                }
+                list.SetRows(rows);
+                f.Controls.Add(list);
+                CCDesk.Btn b1 = new CCDesk.Btn();
+                b1.Kind = CCDesk.ButtonKind.Subtle;
+                b1.Text = "打开操作日志";
+                b1.Size = new System.Drawing.Size(112, 34);
+                b1.Location = new System.Drawing.Point(20, 448);
+                f.Controls.Add(b1);
+                CCDesk.Btn b2 = new CCDesk.Btn();
+                b2.Kind = CCDesk.ButtonKind.Accent;
+                b2.Text = "完成";
+                b2.Size = new System.Drawing.Size(96, 34);
+                b2.Location = new System.Drawing.Point(540, 448);
+                f.Controls.Add(b2);
+                f.Show();
+                Application.DoEvents();
+                System.Threading.Thread.Sleep(200);
+                Application.DoEvents();
+                System.Drawing.Bitmap bmp = new System.Drawing.Bitmap(f.Width, f.Height);
+                f.DrawToBitmap(bmp, new System.Drawing.Rectangle(0, 0, f.Width, f.Height));
+                bmp.Save(args[1], System.Drawing.Imaging.ImageFormat.Png);
+                bmp.Dispose();
+                f.Close();
                 return;
             }
 

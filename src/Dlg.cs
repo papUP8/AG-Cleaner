@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
 
@@ -47,8 +48,102 @@ namespace CCDesk
         }
     }
 
+    /// <summary>结果报告框：可滚动的完整明细列表，不再截断。</summary>
+    public class ReportForm : Form
+    {
+        public string Headline = "";
+        public string Summary = "";
+        public string Hint = "";
+
+        public ReportForm()
+        {
+            FormBorderStyle = FormBorderStyle.None;
+            BackColor = Theme.Card;
+            StartPosition = FormStartPosition.CenterParent;
+            ShowInTaskbar = false;
+            Font = Theme.F(9f);
+            DoubleBuffered = true;
+        }
+
+        protected override CreateParams CreateParams
+        {
+            get
+            {
+                CreateParams cp = base.CreateParams;
+                cp.ClassStyle |= 0x00020000;
+                return cp;
+            }
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            Theme.Smooth(e.Graphics);
+            Rectangle r = new Rectangle(0, 0, Width - 1, Height - 1);
+            Theme.FillRound(e.Graphics, r, 12, Theme.Card);
+            Theme.StrokeRound(e.Graphics, r, 12, Theme.Border, 1);
+            Theme.Txt(e.Graphics, Headline, Theme.F(12f, FontStyle.Bold), Theme.Text, 24, 18);
+            Theme.Txt(e.Graphics, Summary, Theme.F(9f), Theme.Accent, 24, 44);
+            if (Hint.Length > 0)
+                Theme.Txt(e.Graphics, Hint, Theme.F(7.8f), Theme.Muted, 24, Height - 120);
+            base.OnPaint(e);
+        }
+    }
+
     public static class Dlg
     {
+        /// <summary>完整结果报告：明细不截断，可滚动查看，并可打开操作日志。</summary>
+        public static void Report(IWin32Window owner, string headline, string summary, List<string> lines, string hint)
+        {
+            ReportForm f = new ReportForm();
+            f.Headline = headline;
+            f.Summary = summary;
+            f.Hint = hint == null ? "" : hint;
+            f.ClientSize = new Size(660, 500);
+
+            VList list = new VList();
+            list.ShowCheck = false;
+            list.RightHeader = "";
+            list.RowHeight = 28;
+            list.EmptyText = "没有明细记录";
+            list.EmptyHint = "选中的项目可能都不需要实际删除";
+            list.SetBounds(20, 76, 660 - 40, 500 - 76 - 124);
+            List<VRow> rows = new List<VRow>();
+            if (lines != null)
+            {
+                for (int i = 0; i < lines.Count; i++)
+                {
+                    VRow r = new VRow();
+                    r.Title = lines[i];
+                    r.Tag = "";
+                    rows.Add(r);
+                }
+            }
+            list.SetRows(rows);
+            f.Controls.Add(list);
+
+            Btn logBtn = new Btn();
+            logBtn.Kind = ButtonKind.Subtle;
+            logBtn.Text = "打开操作日志";
+            logBtn.Size = new Size(112, 34);
+            logBtn.Location = new Point(20, 500 - 52);
+            logBtn.Click += delegate
+            {
+                try { System.Diagnostics.Process.Start("notepad.exe", CCDesk.Core.Store.OpLogFile); }
+                catch (Exception) { }
+            };
+            f.Controls.Add(logBtn);
+
+            Btn ok = new Btn();
+            ok.Kind = ButtonKind.Accent;
+            ok.Text = "完成";
+            ok.Size = new Size(96, 34);
+            ok.Location = new Point(660 - 24 - 96, 500 - 52);
+            ok.Click += delegate { f.Close(); };
+            f.Controls.Add(ok);
+            ok.Select();
+            f.ShowDialog(owner);
+        }
+
         public static bool Confirm(IWin32Window owner, string headline, string message, string okText, bool danger)
         {
             DlgForm f = new DlgForm();
