@@ -11,7 +11,7 @@ namespace CCDesk
     public class AnalyzePage : PageBase
     {
         public override string PageTitle { get { return "磁盘分析"; } }
-        public override string PageSubtitle { get { return "逐层下钻查看目录占用，支持大文件排行与回收站删除"; } }
+        public override string PageSubtitle { get { return "逐层下钻查看目录占用，支持大文件排行；本页只分析不删除，可定位到所在文件夹"; } }
 
         private VList _list;
         private ActionBar _bar;
@@ -88,7 +88,7 @@ namespace CCDesk
             _list.EmptyText = "尚未扫描";
             _list.EmptyHint = "点击左侧磁盘按钮选择驱动器";
             _list.RowActivated += delegate { OpenSelected(); };
-            _list.ActionClicked += delegate { DeleteSelected(); };
+            _list.ActionClicked += delegate { RevealSelected(); };
             Controls.Add(_list);
 
             _bar = new ActionBar();
@@ -112,7 +112,7 @@ namespace CCDesk
             _reveal.SetBounds(184, y + 1, 80, 30);
             _modeBtn.SetBounds(w - 110, y, 110, 32);
             _bar.SetBounds(0, Height - 58, w, 58);
-            _list.SetBounds(0, y + 44, w, Height - (y + 44) - 92);
+            _list.SetBounds(0, y + 44, w, Height - (y + 44) - 72);
             _spinner.SetBounds(w - 160, y - 6, 44, 44);
         }
 
@@ -205,8 +205,8 @@ namespace CCDesk
                     r.TagColor = Theme.Warn;
                     r.Fraction = _totalBytes > 0 ? (double)e.Bytes / _totalBytes : 0;
                     r.BarColor = Theme.Warn;
-                    r.Action = "删除";
-                    r.ActionColor = Theme.Danger;
+                    r.Action = "定位";
+                    r.ActionColor = Theme.Blue;
                     r.Data = e;
                     rows.Add(r);
                 }
@@ -256,8 +256,8 @@ namespace CCDesk
                 r.TagColor = e.IsDir ? Theme.Blue : Theme.Muted;
                 r.Fraction = max > 0 ? (double)e.Bytes / max : 0;
                 r.BarColor = e.Bytes > 1024L * 1024 * 1024 ? Theme.Danger : Theme.Blue;
-                r.Action = "删除";
-                r.ActionColor = Theme.Danger;
+                r.Action = "定位";
+                r.ActionColor = Theme.Blue;
                 r.Data = e;
                 rows.Add(r);
             }
@@ -277,7 +277,7 @@ namespace CCDesk
             Theme.Txt(g, _status, Theme.F(8f), Theme.Muted, 4, 33);
             using (StringFormat sf = Theme.SF(StringAlignment.Far, StringAlignment.Near))
             {
-                Theme.Txt(g, "双击文件夹下钻 · 删除默认进回收站", Theme.F(8f), Theme.Hint, new Rectangle(0, 32, _bar.Width - 8, 20), sf);
+                Theme.Txt(g, "双击文件夹下钻 · “定位”在资源管理器中打开所在位置，是否删除由你自行决定", Theme.F(8f), Theme.Hint, new Rectangle(0, 32, _bar.Width - 8, 20), sf);
             }
         }
 
@@ -291,34 +291,15 @@ namespace CCDesk
             else Native.RevealInExplorer(e.Path);
         }
 
-        private void DeleteSelected()
+        private void RevealSelected()
         {
             VRow r = _list.SelectedRow;
             if (r == null) return;
             DiskEntry e = r.Data as DiskEntry;
             if (e == null) return;
-            if (!Guard.CanDelete(e.Path, false))
-            {
-                Dlg.Info(FindForm(), "受保护路径", "该路径属于系统或受保护位置，CCDesk 不会删除。");
-                return;
-            }
-            bool ok = Dlg.Confirm(FindForm(), "删除该项？",
-                e.Path + "\n\n体积：" + Byt.Format(e.Bytes) + "\n项目将移入回收站，可从回收站还原。",
-                "移入回收站", true);
-            if (!ok) return;
-            long size = e.Bytes;
-            int errors = 0;
-            long freed = 0;
-            if (Native.Recycle(new List<string>(new string[] { e.Path }))) freed = size;
-            else
-            {
-                FileUtil.ClearReadOnly(e.Path);
-                if (!File.Exists(e.Path) && !Directory.Exists(e.Path)) freed = size;
-                else errors++;
-            }
-            OpLog.Write("delete", e.Path, freed);
-            Dlg.Info(FindForm(), "已删除", errors > 0 ? "部分文件被占用，未能删除" : ("已释放 " + Byt.Format(freed)));
-            Navigate(_path);
+            Native.RevealInExplorer(e.Path);
+            _status = "已在资源管理器中定位：" + e.Path;
+            _bar.Invalidate();
         }
     }
 }

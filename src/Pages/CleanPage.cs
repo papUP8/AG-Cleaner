@@ -179,7 +179,7 @@ namespace CCDesk
                 _prog.SetBounds(0, listTop, w, 44);
                 listTop += 52;
             }
-            _list.SetBounds(0, listTop, w, Height - listTop - 92);
+            _list.SetBounds(0, listTop, w, Height - listTop - 72);
             _spinner.SetBounds(w - 56, y, 44, 44);
         }
 
@@ -400,6 +400,22 @@ namespace CCDesk
             _cleanBtn.SetBounds(_bar.Width - 148, 10, 128, 38);
         }
 
+        /// <summary>清理结束后回到干净状态：清空清单与分类，再返回概览页。</summary>
+        private void ResetAfterClean(long freed)
+        {
+            _cats = new List<CleanCategory>();
+            for (int i = 0; i < _chips.Count; i++) Controls.Remove(_chips[i]);
+            _chips.Clear();
+            _filter = "all";
+            _lastFreed = freed;
+            _list.Clear();
+            _status = "清理完成，本次释放 " + Byt.Format(freed) + "；已回到概览页";
+            _bar.Invalidate();
+            UpdateSummary();
+            MainForm mf = FindForm() as MainForm;
+            if (mf != null) mf.SelectPage(0);
+        }
+
         private void ExecuteClean()
         {
             // 清理刚结束时忽略连续的点击，避免“完成”按钮的残留点击再次触发清理
@@ -492,6 +508,7 @@ namespace CCDesk
                             ? "有 " + err + " 项被系统占用或无权删除，已记入日志，可选择重启后再清理"
                             : "全部处理完成；来源路径与体积已写入操作日志，可在历史记录页导出 CSV";
                         Dlg.Report(FindForm(), "清理完成", summary, lines, hint);
+                        ResetAfterClean(f);
                     });
                 }
                 catch (Exception) { }

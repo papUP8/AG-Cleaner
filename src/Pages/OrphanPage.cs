@@ -113,7 +113,7 @@ namespace CCDesk
                 _prog.SetBounds(0, listTop, w, 44);
                 listTop += 52;
             }
-            _list.SetBounds(0, listTop, w, Height - listTop - 92);
+            _list.SetBounds(0, listTop, w, Height - listTop - 72);
             _spinner.SetBounds(w - 56, y, 44, 44);
         }
 
@@ -411,6 +411,10 @@ namespace CCDesk
                         Dlg.Report(FindForm(), "残留清理完成", summary, lines, hint);
                         _groups.Clear();
                         _list.Clear();
+                        _status = "处理完成，本次回收 " + Byt.Format(f) + "；已回到概览页";
+                        _bar.Invalidate();
+                        MainForm mf2 = FindForm() as MainForm;
+                        if (mf2 != null) mf2.SelectPage(0);
                     });
                 }
                 catch (Exception) { }

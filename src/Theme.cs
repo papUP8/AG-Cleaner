@@ -4,6 +4,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Text;
 using System.Windows.Forms;
+using Microsoft.Win32;
 
 namespace CCDesk
 {
@@ -83,7 +84,7 @@ namespace CCDesk
             else
             {
                 Bg = C("#ECEFF4");
-                SidebarBg = C("#FFFFFF");
+                SidebarBg = C("#CBD7E4");
                 TitleBg = C("#F7F9FC");
                 Card = C("#FFFFFF");
                 CardHover = C("#F4F7FB");
@@ -109,6 +110,23 @@ namespace CCDesk
                 Scroll = C("#C6D0DA");
                 CheckBg = C("#E9EEF4");
                 CheckMark = C("#FFFFFF");
+            }
+        }
+
+        /// <summary>读取 Windows 当前是否处于浅色外观（设置 → 个性化 → 颜色）。</summary>
+        public static bool SystemLight()
+        {
+            try
+            {
+                object v = Registry.GetValue(
+                    @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize",
+                    "AppsUseLightTheme", 1);
+                if (v == null) return true;
+                return Convert.ToInt32(v) == 1;
+            }
+            catch (Exception)
+            {
+                return true;
             }
         }
 

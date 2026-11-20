@@ -38,6 +38,7 @@ namespace CCDesk
             // 顶栏与侧栏由主窗体自己配色，不能按“父容器底色”覆盖
             if (c is Panel2 && c.Parent is Form) return;
             if (c is NavItem) { c.BackColor = Theme.SidebarBg; return; }
+            if (c is Seg3) { c.BackColor = Theme.TitleBg; return; }
             if (c is MiniBtn) { c.BackColor = Theme.TitleBg; return; }
             if (c is ScrollView)
             {
@@ -356,6 +357,8 @@ namespace CCDesk
     {
         public string Title = "";
         public string Sub = "";
+        public string Note = "";
+        public Color SubColor = Theme.Muted;
         public string Right = "";
         public string Tag = "";
         public string Action = "";
@@ -375,6 +378,9 @@ namespace CCDesk
     /// <summary>虚拟化自绘列表，用于清理结果、应用列表、磁盘目录等。</summary>
     public class VList : Control
     {
+        /// <summary>右侧数字/状态列的固定宽度，绘制与表头共用，避免列串位。</summary>
+        public const int RightW = 132;
+
         private List<VRow> _rows = new List<VRow>();
         private List<VRow> _view = new List<VRow>();
         public int RowHeight = 54;
@@ -563,7 +569,8 @@ namespace CCDesk
                 }
                 using (StringFormat sf = Theme.SF(StringAlignment.Far, StringAlignment.Near))
                 {
-                    Theme.Txt(g, RightHeader, Theme.F(8.5f), Theme.Muted, new Rectangle(Width - 228, 6, 132, 20), sf);
+                    int hw = RightW;
+                    Theme.Txt(g, RightHeader, Theme.F(8.5f), Theme.Muted, new Rectangle(Width - hw - 6, 6, hw - 6, 20), sf);
                 }
                 using (Pen p = new Pen(Theme.BorderSoft))
                 {
@@ -582,12 +589,16 @@ namespace CCDesk
                 return;
             }
 
+            // 行区域严格裁到表头下方，滚动时行不会爬到表头文字上
+            GraphicsState gs = g.Save();
+            g.SetClip(new Rectangle(0, HeaderHeight, Width, Height - HeaderHeight));
             int first = Math.Max(0, _scroll / RowHeight);
             int last = Math.Min(_view.Count - 1, (_scroll + Height) / RowHeight + 1);
             for (int i = first; i <= last; i++)
             {
                 DrawRow(g, _view[i], i);
             }
+            g.Restore(gs);
 
             int total = _view.Count * RowHeight + HeaderHeight;
             if (total > Height)
@@ -630,26 +641,36 @@ namespace CCDesk
                 textX = 50;
             }
 
-            int rightW = 110;
+            // 右侧“体积/状态”列与操作按钮列宽固定，标题、标签、数字互相避让，不再叠字
+            int rightW = RightW;
             int actionW = row.Action.Length > 0 ? 78 : 0;
+            int rightX = Width - rightW - actionW - 6;
 
             Color titleColor = row.Disabled ? Theme.Muted : Theme.Text;
+            int textW = Math.Max(40, rightX - textX - 34);
             using (StringFormat sf = Theme.SF(StringAlignment.Near, StringAlignment.Near))
             {
-                Theme.Txt(g, row.Title, Theme.F(9.5f), titleColor, new Rectangle(textX, top + 10, Width - textX - rightW - actionW - 10, 20), sf);
+                Theme.Txt(g, row.Title, Theme.F(9.5f), titleColor, new Rectangle(textX, top + 10, textW, 20), sf);
             }
             if (row.Sub.Length > 0)
             {
                 using (StringFormat sf = Theme.SF(StringAlignment.Near, StringAlignment.Near))
                 {
-                    Theme.Txt(g, row.Sub, Theme.F(8.2f), Theme.Muted, new Rectangle(textX, top + (RowHeight > 44 ? 30 : 26), Width - textX - rightW - actionW - 10, 18), sf);
+                    Theme.Txt(g, row.Sub, Theme.F(8.2f), row.SubColor, new Rectangle(textX, top + 30, textW, 18), sf);
+                }
+            }
+            if (row.Note.Length > 0)
+            {
+                using (StringFormat sf = Theme.SF(StringAlignment.Near, StringAlignment.Near))
+                {
+                    Theme.Txt(g, row.Note, Theme.F(8f), Theme.Muted, new Rectangle(textX, top + 50, textW, 18), sf);
                 }
             }
 
             if (row.Fraction >= 0)
             {
                 int barY = top + RowHeight - 9;
-                int barW = Width - textX - rightW - actionW - 20;
+                int barW = textW;
                 if (barW > 40)
                 {
                     Theme.FillRound(g, new Rectangle(textX, barY, barW, 4), 2, Theme.Track);
@@ -661,8 +682,8 @@ namespace CCDesk
             if (row.Tag.Length > 0)
             {
                 Font tf = Theme.F(7.5f);
-                int tw = (int)g.MeasureString(row.Tag, tf).Width + 14;
-                Rectangle tagRect = new Rectangle(Width - rightW - actionW - tw - 6, top + (RowHeight - 18) / 2, tw, 18);
+                int tw = Math.Min(rightX - textX - 120, (int)g.MeasureString(row.Tag, tf).Width + 14);
+                Rectangle tagRect = new Rectangle(rightX - tw, top + (RowHeight - 18) / 2, tw, 18);
                 Theme.FillRound(g, tagRect, 4, Theme.Alpha(row.TagColor, 26));
                 using (StringFormat sf = Theme.SF(StringAlignment.Center, StringAlignment.Center))
                 {
@@ -683,7 +704,153 @@ namespace CCDesk
 
             using (StringFormat sf = Theme.SF(StringAlignment.Far, StringAlignment.Near))
             {
-                Theme.Txt(g, row.Right, Theme.F(9f), row.Alarm ? Theme.Warn : Theme.TextDim, new Rectangle(Width - 150 - actionW, top + 10, 132, 20), sf);
+                Theme.Txt(g, row.Right, Theme.F(9f), row.Alarm ? Theme.Warn : Theme.TextDim, new Rectangle(rightX, top + 10, rightW - 6, 20), sf);
+            }
+        }
+    }
+
+    /// <summary>三档分段选择器：系统 / 浅色 / 深色。</summary>
+    public class Seg3 : Control
+    {
+        public string[] Labels = new string[] { "系统", "浅色", "深色" };
+        public string[] Modes = new string[] { "system", "light", "dark" };
+        public string Mode = "dark";
+        private int _hover = -1;
+        public event EventHandler Changed;
+
+        public Seg3()
+        {
+            SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint |
+                     ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
+            BackColor = Theme.TitleBg;
+            Font = Theme.F(8f);
+            Size = new Size(150, 24);
+            Cursor = Cursors.Hand;
+        }
+
+        private int IndexAt(int x)
+        {
+            int w = Width / 3;
+            if (w <= 0) return -1;
+            int i = x / w;
+            if (i > 2) i = 2;
+            if (i < 0) i = 0;
+            return i;
+        }
+
+        private int ActiveIndex()
+        {
+            for (int i = 0; i < Modes.Length; i++) if (Modes[i] == Mode) return i;
+            return 2;
+        }
+
+        protected override void OnMouseMove(MouseEventArgs e)
+        {
+            base.OnMouseMove(e);
+            int i = IndexAt(e.X);
+            if (i != _hover) { _hover = i; Invalidate(); }
+        }
+
+        protected override void OnMouseLeave(EventArgs e)
+        {
+            _hover = -1;
+            Invalidate();
+            base.OnMouseLeave(e);
+        }
+
+        protected override void OnMouseDown(MouseEventArgs e)
+        {
+            if (e.Button != MouseButtons.Left) return;
+            int i = IndexAt(e.X);
+            if (i < 0) return;
+            Mode = Modes[i];
+            Invalidate();
+            if (Changed != null) Changed(this, EventArgs.Empty);
+            base.OnMouseDown(e);
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            Graphics g = e.Graphics;
+            Theme.Smooth(g);
+            using (SolidBrush b = new SolidBrush(BackColor))
+            {
+                g.FillRectangle(b, ClientRectangle);
+            }
+            Theme.FillRound(g, new Rectangle(0, 0, Width - 1, Height - 1), 7, Theme.CardSoft);
+            Theme.StrokeRound(g, new Rectangle(0, 0, Width - 1, Height - 1), 7, Theme.BorderSoft, 1);
+            int w = Width / 3;
+            int act = ActiveIndex();
+            for (int i = 0; i < 3; i++)
+            {
+                Rectangle seg = new Rectangle(i * w + 2, 2, w - 4, Height - 4);
+                if (i == act) Theme.FillRound(g, seg, 5, Theme.Accent);
+                else if (i == _hover) Theme.FillRound(g, seg, 5, Theme.CardHover);
+                using (StringFormat sf = Theme.SF(StringAlignment.Center, StringAlignment.Center))
+                {
+                    Theme.Txt(g, Labels[i], Font, i == act ? Theme.AccentFg : Theme.TextDim, seg, sf);
+                }
+            }
+        }
+    }
+
+    /// <summary>带文字标签的勾选框，用于“隐藏已禁用”等开关项。</summary>
+    public class CheckBox2 : Control
+    {
+        public bool Checked = false;
+        public new string Text = "";
+        private bool _hover;
+        public event EventHandler Changed;
+
+        public CheckBox2()
+        {
+            SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint |
+                     ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
+            BackColor = Theme.Bg;
+            Font = Theme.F(8.2f);
+            Cursor = Cursors.Hand;
+            Size = new Size(120, 32);
+        }
+
+        protected override void OnMouseEnter(EventArgs e) { _hover = true; Invalidate(); base.OnMouseEnter(e); }
+        protected override void OnMouseLeave(EventArgs e) { _hover = false; Invalidate(); base.OnMouseLeave(e); }
+
+        protected override void OnMouseDown(MouseEventArgs e)
+        {
+            if (e.Button != MouseButtons.Left) return;
+            Checked = !Checked;
+            Invalidate();
+            if (Changed != null) Changed(this, EventArgs.Empty);
+            base.OnMouseDown(e);
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            Graphics g = e.Graphics;
+            Theme.Smooth(g);
+            using (SolidBrush b = new SolidBrush(BackColor))
+            {
+                g.FillRectangle(b, ClientRectangle);
+            }
+            Rectangle box = new Rectangle(0, (Height - 16) / 2, 16, 16);
+            if (Checked)
+            {
+                Theme.FillRound(g, box, 5, Theme.Accent);
+                using (Pen p = new Pen(Theme.CheckMark, 2f))
+                {
+                    g.DrawLine(p, box.X + 4, box.Y + 8, box.X + 7, box.Y + 11);
+                    g.DrawLine(p, box.X + 7, box.Y + 11, box.X + 12, box.Y + 4);
+                }
+            }
+            else
+            {
+                Theme.FillRound(g, box, 5, _hover ? Theme.CardHover : Theme.CheckBg);
+                Theme.StrokeRound(g, box, 5, _hover ? Theme.Accent : Theme.Border, 1);
+            }
+            using (StringFormat sf = Theme.SF(StringAlignment.Near, StringAlignment.Center))
+            {
+                Theme.Txt(g, Text, Font, _hover ? Theme.Text : Theme.TextDim,
+                    new Rectangle(22, 0, Width - 24, Height), sf);
             }
         }
     }

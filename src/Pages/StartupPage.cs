@@ -22,7 +22,7 @@ namespace CCDesk
         private string _status = "读取启动项...";
         private Spinner _spinner;
         private ProgressBar2 _prog;
-        private Btn _hide;
+        private CheckBox2 _hide;
         private bool _hideOff = true;
 
         public StartupPage()
@@ -34,15 +34,13 @@ namespace CCDesk
             _refresh.Click += delegate { Load(); };
             Controls.Add(_refresh);
 
-            _hide = new Btn();
-            _hide.Kind = ButtonKind.Subtle;
-            _hide.Text = "隐藏已禁用";
-            _hide.Size = new Size(112, 32);
-            _hide.Click += delegate
+            _hide = new CheckBox2();
+            _hide.Text = "隐藏已禁用项";
+            _hide.Checked = true;
+            _hide.Size = new Size(148, 30);
+            _hide.Changed += delegate
             {
-                _hideOff = !_hideOff;
-                _hide.Text = _hideOff ? "隐藏已禁用" : "显示已禁用";
-                _hide.Invalidate();
+                _hideOff = _hide.Checked;
                 Fill();
             };
             Controls.Add(_hide);
@@ -50,7 +48,7 @@ namespace CCDesk
             _list = new VList();
             _list.ShowCheck = false;
             _list.RightHeader = "状态";
-            _list.RowHeight = 58;
+            _list.RowHeight = 74;
             _list.EmptyText = "没有启动项";
             _list.EmptyHint = "当前分类下没有项目";
             _list.ActionClicked += delegate { ToggleSelected(); };
@@ -77,7 +75,7 @@ namespace CCDesk
             int w = Width;
             int y = HeaderH + 2;
             _refresh.SetBounds(0, y, 80, 32);
-            _hide.SetBounds(w - 120, y, 112, 32);
+            _hide.SetBounds(w - 168, y + 1, 148, 30);
             int cx = 92;
             for (int i = 0; i < _chips.Count; i++)
             {
@@ -94,7 +92,7 @@ namespace CCDesk
                 _prog.SetBounds(0, top, w, 44);
                 top += 52;
             }
-            _list.SetBounds(0, top, w, Height - top - 92);
+            _list.SetBounds(0, top, w, Height - top - 72);
             _spinner.SetBounds(w - 56, y, 44, 44);
         }
 
@@ -202,7 +200,8 @@ namespace CCDesk
                 shown++;
                 VRow r = new VRow();
                 r.Title = it.Name;
-                r.Sub = Theme.ShortPath(it.Command, 86);
+                ApplyAdvice(it, r);
+                r.Note = "命令：" + Theme.ShortPath(it.Command, 110);
                 r.Tag = it.GroupText;
                 r.TagColor = GroupColor(it.Group);
                 r.Right = it.Enabled ? "已启用" : "已禁用";
@@ -233,6 +232,110 @@ namespace CCDesk
             if (_hideOff && !it.Enabled) return false;
             if (_filter == "all") return true;
             return it.Group == _filter;
+        }
+
+        /// <summary>给每项写一句用途说明与“禁用的影响”，只在命中已知特征时下结论，其余给出通用结论。</summary>
+        private void ApplyAdvice(StartupItem it, VRow r)
+        {
+            string n = (it.Name ?? "").ToLowerInvariant();
+            string c = (it.Command ?? "").ToLowerInvariant();
+            bool isUpdater = Has(n, c, "update", "updater", "upgrade", "自动更新")
+                || Has(n, c, "googleupdate", "gupdate", "edgeupdate", "adobeupdater", "ccxprocess", "sunjava")
+                || Has(n, c, "updatechecker", "wuauclt", "softwareupdate");
+            bool isSecurity = Has(n, c, "defender", "msmpeng", "securityhealth", "antivirus", "360", "huorong", "火绒", "安全")
+                || Has(n, c, "kaspersky", "avast", "avg", "nod32", "eset");
+            bool isSync = Has(n, c, "onedrive", "dropbox", "baidunetdisk", "百度网盘", "阿里云盘", "坚果云", "sync");
+            bool isIme = Has(n, c, "sogou", "搜狗", "qq拼音", "ime", "input");
+            bool isAudio = Has(n, c, "audio", "realtek", "wave", "sound");
+            bool isGpu = Has(n, c, "amd", "nvidia", "nvsvc", "\\ati\\", "catalyst", "igfx", "intel graphics", "显卡");
+            bool isChat = Has(n, c, "wechat", "微信", "qq", "dingtalk", "钉钉", "wxwork", "企业微信", "telegram", "feishu", "飞书");
+            bool isMsTask = it.IsTask && (c.Contains("\\microsoft\\windows\\") || c.Contains("microsoft\\windows\\")
+                || n.Contains("microsoft") || c.Contains("\\windows\\"));
+
+            bool isActiveSetup = (it.Source ?? "").Contains("Active Setup") || Has(n, c, "chrmstp", "--configure-user-settings", "/firstlogon");
+
+            string text;
+            Color color = Theme.Accent;
+
+            if (isActiveSetup)
+            {
+                text = "首次登录的一次性配置项：只在新建用户首次登录时执行，禁用不影响浏览器或程序正常使用";
+                color = Theme.Accent;
+            }
+            else if (it.Group == "syssvc" || it.Group == "sys")
+            {
+                text = "系统组件：禁用可能导致系统功能异常，不建议在此关闭";
+                color = Theme.Danger;
+            }
+            else if (isSecurity)
+            {
+                text = "安全防护组件：禁用会降低实时防护能力，不影响其他程序运行，但不建议禁用";
+                color = Theme.Danger;
+            }
+            else if (isGpu || isAudio)
+            {
+                text = "驱动相关服务：禁用可能影响显示效果或声音输出，不建议禁用，可保留默认";
+                color = Theme.Warn;
+            }
+            else if (isMsTask)
+            {
+                text = "Windows 自带维护任务：禁用会停止自动更新或诊断维护，一般建议保留";
+                color = Theme.Warn;
+            }
+            else if (isUpdater)
+            {
+                text = "只负责自动更新：禁用后程序仍可正常手动使用，只是不再自动升级，可放心禁用";
+                color = Theme.Accent;
+            }
+            else if (isSync)
+            {
+                text = "只负责同步与备份：禁用后不再开机自动同步，手动打开程序仍可正常使用";
+                color = Theme.Accent;
+            }
+            else if (isIme)
+            {
+                text = "输入法预加载：禁用后仍可正常打字，只是首次切换输入法会稍慢";
+                color = Theme.Accent;
+            }
+            else if (isChat)
+            {
+                text = "通讯软件启动项：禁用后不会开机自动登录，手动打开仍可正常收发消息";
+                color = Theme.Accent;
+            }
+            else if (it.Group == "plugin")
+            {
+                text = "插件/右键菜单入口：禁用后对应菜单项消失，不影响程序主体功能";
+                color = Theme.Accent;
+            }
+            else if (it.IsService)
+            {
+                text = "应用后台服务：禁用后该软件的自动更新或托盘功能可能失效，程序主体一般仍可用，按需决定";
+                color = Theme.Warn;
+            }
+            else if (it.IsTask)
+            {
+                text = "计划任务：禁用后不再按计划自动执行，手动使用不受影响";
+                color = Theme.Accent;
+            }
+            else
+            {
+                text = "开机启动项：禁用后不会开机自动运行，程序仍可手动打开，不影响正常使用";
+                color = Theme.Accent;
+            }
+
+            r.Sub = text;
+            r.SubColor = color;
+        }
+
+        private bool Has(string name, string command, params string[] keys)
+        {
+            for (int i = 0; i < keys.Length; i++)
+            {
+                string k = keys[i];
+                if (k.Length == 0) continue;
+                if (name.Contains(k) || command.Contains(k)) return true;
+            }
+            return false;
         }
 
         private Color GroupColor(string g)

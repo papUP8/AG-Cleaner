@@ -65,7 +65,7 @@ namespace CCDesk
             _search.SetBounds(0, y, 320, 34);
             _refresh.SetBounds(w - 96, y, 96, 34);
             _bar.SetBounds(0, Height - 58, w, 58);
-            _list.SetBounds(0, y + 46, w, Height - (y + 46) - 92);
+            _list.SetBounds(0, y + 46, w, Height - (y + 46) - 72);
             _spinner.SetBounds(w - 140, y - 6, 44, 44);
         }
 

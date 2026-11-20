@@ -50,7 +50,9 @@ namespace CCDesk
         private Timer _tick;
         private Label _verLabel;
         private Badge _adminBadge;
-        private Btn _themeBtn;
+        private Seg3 _themeSeg;
+        private Timer _sysWatch;
+        private string _themeMode = "dark";
 
         [DllImport("user32.dll")]
         private static extern bool ReleaseCapture();
@@ -82,6 +84,7 @@ namespace CCDesk
                 p.Tick();
             };
             _tick.Start();
+            WatchSystemTheme();
 
             SelectPage(0);
         }
@@ -135,23 +138,50 @@ namespace CCDesk
             close.Click += delegate { Close(); };
             _title.Controls.Add(close);
 
-            _themeBtn = new Btn();
-            _themeBtn.Kind = ButtonKind.Ghost;
-            _themeBtn.Font = Theme.F(8f);
-            _themeBtn.Text = Theme.IsLight ? "深色" : "浅色";
-            _themeBtn.SetBounds(ClientSize.Width - 158, 16, 56, 24);
-            _themeBtn.Click += delegate { ToggleTheme(); };
-            _title.Controls.Add(_themeBtn);
+            _themeSeg = new Seg3();
+            Settings startup = Settings.Load();
+            _themeMode = startup.ThemeMode;
+            if (_themeMode != "light" && _themeMode != "dark" && _themeMode != "system") _themeMode = "dark";
+            _themeSeg.Mode = _themeMode;
+            _themeSeg.SetBounds(ClientSize.Width - 250, 16, 150, 24);
+            _themeSeg.Changed += delegate { SetThemeMode(_themeSeg.Mode); };
+            _title.Controls.Add(_themeSeg);
         }
 
-        private void ToggleTheme()
+        private void SetThemeMode(string mode)
         {
-            Theme.Apply(!Theme.IsLight);
-            _themeBtn.Text = Theme.IsLight ? "深色" : "浅色";
+            _themeMode = mode;
+            bool light = mode == "light" || (mode == "system" && Theme.SystemLight());
+            Theme.Apply(light);
             Settings st = Settings.Load();
-            st.ThemeMode = Theme.IsLight ? "light" : "dark";
+            st.ThemeMode = mode;
             st.Save();
             ApplyTheme();
+            if (_themeSeg != null) { _themeSeg.Mode = mode; _themeSeg.Invalidate(); }
+        }
+
+        // 跟随系统时，Windows 切换深浅色后自动跟着变
+        private void WatchSystemTheme()
+        {
+            _sysWatch = new Timer();
+            _sysWatch.Interval = 3000;
+            _sysWatch.Tick += delegate
+            {
+                if (_themeMode != "system") return;
+                bool light = Theme.SystemLight();
+                if (light == Theme.IsLight) return;
+                Theme.Apply(light);
+                ApplyTheme();
+            };
+            _sysWatch.Start();
+        }
+
+        /// <summary>仅供截图/诊断：让顶栏分段按钮与当前配色一致，不写入配置。</summary>
+        public void SyncThemeVisual(bool light)
+        {
+            if (_themeSeg == null) return;
+            _themeSeg.Mode = light ? "light" : "dark";
+            _themeSeg.Invalidate();
         }
 
         /// <summary>切换配色后统一刷新各控件的底色与文字色。</summary>
@@ -299,7 +329,7 @@ namespace CCDesk
             {
                 _pages[i].SetBounds(28, 18, _content.Width - 56, _content.Height - 36);
             }
-            if (_themeBtn != null) _themeBtn.SetBounds(ClientSize.Width - 158, 16, 56, 24);
+            if (_themeSeg != null) _themeSeg.SetBounds(ClientSize.Width - 250, 16, 150, 24);
             _title.Invalidate();
         }
 

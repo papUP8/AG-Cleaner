@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
@@ -74,7 +74,7 @@ namespace CCDesk
             _export.SetBounds(88, y, 96, 32);
             _clear.SetBounds(186, y + 2, 80, 30);
             _bar.SetBounds(0, Height - 52, w, 52);
-            _list.SetBounds(0, y + 44, w, Height - (y + 44) - 92);
+            _list.SetBounds(0, y + 44, w, Height - (y + 44) - 72);
         }
 
         protected override void OnResize(EventArgs e)
