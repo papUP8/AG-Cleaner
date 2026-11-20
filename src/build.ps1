@@ -1,4 +1,4 @@
-﻿param(
+param(
     [switch]$Icon
 )
 
@@ -12,7 +12,7 @@ $csc = "C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
 if (-not (Test-Path $csc)) { throw "csc.exe not found: $csc" }
 
 $files = @(Get-ChildItem -Path $src -Recurse -Filter *.cs | ForEach-Object { $_.FullName })
-$out = Join-Path $dist "CCDesk.exe"
+$out = Join-Path $dist "CC-Desk.exe"
 
 $opt = @(
     "/nologo",
@@ -27,6 +27,10 @@ $opt = @(
     "/r:System.Windows.Forms.dll"
 )
 
+foreach ($doc in @("README.md", "CHANGES.md", "NOTICE.md", "LICENSE")) {
+    $path = Join-Path $root $doc
+    if (Test-Path $path) { $opt += "/resource:$path" }
+}
 if ($Icon) {
     $ico = Join-Path $root "assets\app.ico"
     if (Test-Path $ico) { $opt += "/win32icon:$ico" }

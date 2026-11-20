@@ -24,6 +24,14 @@ namespace CCDesk
             Dictionary<string, string> d = Make();
             // 窗口与导航
             Add(d, "CC-Desk 桌面清理", "CC-Desk Bereinigung");
+  Add(d, "说明与许可", "Doku & Lizenz");
+  Add(d, "使用说明", "Anleitung");
+  Add(d, "版本更新记录", "Änderungen");
+  Add(d, "版权与署名", "Copyright");
+  Add(d, "开源许可证", "Lizenz");
+  Add(d, "关闭", "Schließen");
+  Add(d, "无法读取内置文档：", "Internes Dokument nicht lesbar: ");
+  Add(d, "全部文档已编译进 CC-Desk.exe，不必附带任何外部文件", "Alle Dokumente sind in CC-Desk.exe eingebettet; keine weiteren Dateien nötig");
   Add(d, "执行 ", "Ausführen ");
   Add(d, "正在统计 ", "Messung ");
   Add(d, "已完成分类列举 ", "Kategorien aufgelistet ");
@@ -697,6 +705,14 @@ namespace CCDesk
         {
             Dictionary<string, string> d = Make();
             Add(d, "CC-Desk 桌面清理", "CC-Desk Nettoyage");
+  Add(d, "说明与许可", "Docs et licence");
+  Add(d, "使用说明", "Guide d'utilisation");
+  Add(d, "版本更新记录", "Journal des versions");
+  Add(d, "版权与署名", "Crédits");
+  Add(d, "开源许可证", "Licence");
+  Add(d, "关闭", "Fermer");
+  Add(d, "无法读取内置文档：", "Document intégré illisible : ");
+  Add(d, "全部文档已编译进 CC-Desk.exe，不必附带任何外部文件", "Tous les documents sont intégrés dans CC-Desk.exe, aucun fichier annexe requis");
   Add(d, "执行 ", "Exécuter ");
   Add(d, "正在统计 ", "Mesure ");
   Add(d, "已完成分类列举 ", "Catégories listées ");
@@ -1357,6 +1373,14 @@ namespace CCDesk
         {
             Dictionary<string, string> d = Make();
             Add(d, "CC-Desk 桌面清理", "CC-Desk Очистка");
+  Add(d, "说明与许可", "Документация и лицензия");
+  Add(d, "使用说明", "Руководство");
+  Add(d, "版本更新记录", "История версий");
+  Add(d, "版权与署名", "Авторство");
+  Add(d, "开源许可证", "Лицензия");
+  Add(d, "关闭", "Закрыть");
+  Add(d, "无法读取内置文档：", "Не удалось прочитать встроенный документ: ");
+  Add(d, "全部文档已编译进 CC-Desk.exe，不必附带任何外部文件", "Все документы встроены в CC-Desk.exe, внешние файлы не нужны");
   Add(d, "执行 ", "Выполнить ");
   Add(d, "正在统计 ", "Подсчёт ");
   Add(d, "已完成分类列举 ", "Категории перечислены ");
@@ -2017,6 +2041,14 @@ namespace CCDesk
         {
             Dictionary<string, string> d = Make();
             Add(d, "CC-Desk 桌面清理", "CC-Desk Limpieza");
+  Add(d, "说明与许可", "Docs y licencia");
+  Add(d, "使用说明", "Guía de uso");
+  Add(d, "版本更新记录", "Historial de versiones");
+  Add(d, "版权与署名", "Créditos");
+  Add(d, "开源许可证", "Licencia");
+  Add(d, "关闭", "Cerrar");
+  Add(d, "无法读取内置文档：", "No se pudo leer el documento integrado: ");
+  Add(d, "全部文档已编译进 CC-Desk.exe，不必附带任何外部文件", "Todos los documentos están integrados en CC-Desk.exe; no hacen falta archivos externos");
   Add(d, "执行 ", "Ejecutar ");
   Add(d, "正在统计 ", "Midiendo ");
   Add(d, "已完成分类列举 ", "Categorías listadas ");

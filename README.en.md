@@ -2,7 +2,7 @@
 
 A native Windows cleanup tool: a single green executable, light / dark / system themes, and a **review-before-delete** workflow. Scan and clean show a percentage progress bar, covering system-level caches, browser and app caches, system traces, event logs, memory dumps and oversized log files, plus a dedicated page for "leftovers of uninstalled apps".
 
-- Single executable, about 370 KB; no .NET SDK, no Node/Electron
+- Single executable, about 620 KB — the download unpacks to one `CC-Desk.exe`; no .NET SDK, no Node/Electron
 - Requires the .NET Framework 4.8 shipped with Windows 10 / 11
 - No network, nothing uploaded; config and logs stay in `%USERPROFILE%\.config\ccdesk`
 - Chinese / English UI, switchable in Settings with one click, and the choice is remembered
@@ -32,7 +32,7 @@ A native Windows cleanup tool: a single green executable, light / dark / system 
 
 ## 1. Getting started
 
-**Run it**: double-click `CCDesk.exe`. System-level cleaning (Windows caches, event logs, update cache, deep clean) needs administrator rights; without them those items are skipped or flagged.
+**Run it**: double-click `CC-Desk.exe`. System-level cleaning (Windows caches, event logs, update cache, deep clean) needs administrator rights; without them those items are skipped or flagged.
 
 **Install locally**:
 
@@ -119,14 +119,14 @@ Judgement is heuristic, so everything is unchecked by default and you confirm it
 ## 6. Command line
 
 ```
-CCDesk.exe                              normal launch
-CCDesk.exe --shot a.png 1 45000 [light|dark|system] [zh|en]    offscreen render for self-checks
-CCDesk.exe --scan scan.txt              dump categorized scan results
-CCDesk.exe --orphans orphans.txt        dump leftover scan results
-CCDesk.exe --selftest s.txt             safety guard and deletion path self-test
-CCDesk.exe --dlgshot d.png              offscreen render of the "clean finished" report
-CCDesk.exe --guard <path...>            path verdict (cleanable / protected / whitelisted / sensitive / trusted / exists)
-CCDesk.exe --startup s.txt              export startup items with per-character codes
+CC-Desk.exe                              normal launch
+CC-Desk.exe --shot a.png 1 45000 [light|dark|system] [zh|en]    offscreen render for self-checks
+CC-Desk.exe --scan scan.txt              dump categorized scan results
+CC-Desk.exe --orphans orphans.txt        dump leftover scan results
+CC-Desk.exe --selftest s.txt             safety guard and deletion path self-test
+CC-Desk.exe --dlgshot d.png              offscreen render of the "clean finished" report
+CC-Desk.exe --guard <path...>            path verdict (cleanable / protected / whitelisted / sensitive / trusted / exists)
+CC-Desk.exe --startup s.txt              export startup items with per-character codes
 ```
 
 ---
@@ -139,7 +139,7 @@ No .NET SDK needed; the bundled `csc.exe` is enough (the sources avoid C# 6+ syn
 powershell -ExecutionPolicy Bypass -File src\build.ps1 -Icon
 ```
 
-The output is `dist\CCDesk.exe`; the icon is generated from `assets\raw.png` into `assets\app.ico` by `src\makeicon.ps1`.
+The output is `dist\CC-Desk.exe`; the icon is generated from `assets\raw.png` into `assets\app.ico` by `src\makeicon.ps1`.
 
 Source layout:
 

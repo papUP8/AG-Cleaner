@@ -1,31 +1,31 @@
 $ErrorActionPreference = "Stop"
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
-$exe = Join-Path $here "CCDesk.exe"
-if (-not (Test-Path $exe)) { Write-Output "找不到 CCDesk.exe，请把安装脚本放在程序同目录再运行"; exit 1 }
+$exe = Join-Path $here "CC-Desk.exe"
+if (-not (Test-Path $exe)) { Write-Output "找不到 CC-Desk.exe，请把安装脚本放在程序同目录再运行"; exit 1 }
 
-$targetDir = Join-Path $env:LOCALAPPDATA "CCDesk"
+$targetDir = Join-Path $env:LOCALAPPDATA "CC-Desk"
 New-Item -ItemType Directory -Force -Path $targetDir | Out-Null
-$targetExe = Join-Path $targetDir "CCDesk.exe"
+$targetExe = Join-Path $targetDir "CC-Desk.exe"
 Copy-Item -LiteralPath $exe -Destination $targetExe -Force
 Copy-Item -LiteralPath (Join-Path $here "README.md") -Destination $targetDir -Force -ErrorAction SilentlyContinue
 
 $shell = New-Object -ComObject WScript.Shell
 $desktop = [Environment]::GetFolderPath("Desktop")
-$lnk1 = Join-Path $desktop "CCDesk.lnk"
+$lnk1 = Join-Path $desktop "CC-Desk.lnk"
 $sc = $shell.CreateShortcut($lnk1)
 $sc.TargetPath = $targetExe
 $sc.WorkingDirectory = $targetDir
 $sc.IconLocation = "$targetExe,0"
-$sc.Description = "CCDesk - Windows 清理与优化"
+$sc.Description = "CC-Desk - Windows 清理与优化"
 $sc.Save()
 
 $startMenu = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs"
-$lnk2 = Join-Path $startMenu "CCDesk.lnk"
+$lnk2 = Join-Path $startMenu "CC-Desk.lnk"
 $sc2 = $shell.CreateShortcut($lnk2)
 $sc2.TargetPath = $targetExe
 $sc2.WorkingDirectory = $targetDir
 $sc2.IconLocation = "$targetExe,0"
-$sc2.Description = "CCDesk - Windows 清理与优化"
+$sc2.Description = "CC-Desk - Windows 清理与优化"
 $sc2.Save()
 
 Copy-Item -LiteralPath (Join-Path $here "uninstall.ps1") -Destination $targetDir -Force -ErrorAction SilentlyContinue

@@ -7,7 +7,7 @@ namespace CCDesk
 {
     public static class Program
     {
-        public static string Version = "1.5.1";
+        public static string Version = "1.5.2";
 
         [STAThread]
         public static void Main(string[] args)
@@ -239,6 +239,25 @@ namespace CCDesk
                 f.Show();
                 Application.DoEvents();
                 System.Threading.Thread.Sleep(200);
+                Application.DoEvents();
+                System.Drawing.Bitmap bmp = new System.Drawing.Bitmap(f.Width, f.Height);
+                f.DrawToBitmap(bmp, new System.Drawing.Rectangle(0, 0, f.Width, f.Height));
+                bmp.Save(args[1], System.Drawing.Imaging.ImageFormat.Png);
+                bmp.Dispose();
+                f.Close();
+                return;
+            }
+
+            if (args.Length >= 2 && args[0] == "--docshot")
+            {
+                // 离屏渲染内置文档窗口，用于自检嵌入资源是否读得到
+                DocForm f = new DocForm();
+                f.StartPosition = FormStartPosition.Manual;
+                f.Location = new System.Drawing.Point(-4000, 0);
+                f.ShowInTaskbar = false;
+                f.Show();
+                Application.DoEvents();
+                System.Threading.Thread.Sleep(300);
                 Application.DoEvents();
                 System.Drawing.Bitmap bmp = new System.Drawing.Bitmap(f.Width, f.Height);
                 f.DrawToBitmap(bmp, new System.Drawing.Rectangle(0, 0, f.Width, f.Height));

@@ -19,6 +19,7 @@ namespace CCDesk
         private Card _proj;
         private Card _about;
         private Btn _langBtn;
+        private Btn _docBtn;
         private List<CheckBox2> _driveChecks = new List<CheckBox2>();
 
         private Toggle _recycle;
@@ -67,6 +68,16 @@ namespace CCDesk
             _langBtn.Click += delegate { OpenLanguageMenu(); };
             _about.Controls.Add(_langBtn);
 
+            _docBtn = new Btn();
+            _docBtn.Kind = ButtonKind.Ghost;
+            _docBtn.Size = new Size(118, 28);
+            _docBtn.Text = Lang.T("说明与许可");
+            _docBtn.Click += delegate
+            {
+                using (DocForm df = new DocForm()) df.ShowDialog(FindForm());
+            };
+            _about.Controls.Add(_docBtn);
+
             _recycle = AddToggle(_pref, 0, _settings.UseRecycleBin, delegate (bool v) { _settings.UseRecycleBin = v; _settings.Save(); });
             _gpu = AddToggle(_pref, 1, _settings.CleanGpuShaders, delegate (bool v) { _settings.CleanGpuShaders = v; _settings.Save(); });
             _projects = AddToggle(_pref, 2, _settings.CleanProjectArtifacts, delegate (bool v) { _settings.CleanProjectArtifacts = v; _settings.Save(); });
@@ -102,7 +113,7 @@ namespace CCDesk
             _whiteDefault = new Btn();
             _whiteDefault.Kind = ButtonKind.Link;
             _whiteDefault.Text = Lang.T("恢复默认");
-            _whiteDefault.Size = new Size(100, 28);
+            _whiteDefault.Size = new Size(112, 28);
             _whiteDefault.Click += delegate
             {
                 StringBuilder sb = new StringBuilder();
@@ -222,7 +233,7 @@ namespace CCDesk
 
             _whiteBox.SetBounds(18, 66, _white.Width - 36, h1 - 120);
             _whiteSave.SetBounds(_white.Width - 154, h1 - 44, 136, 30);
-            _whiteDefault.SetBounds(_white.Width - 266, h1 - 43, 100, 28);
+            _whiteDefault.SetBounds(_white.Width - 278, h1 - 43, 112, 28);
 
             int y2 = y + h1 + gap;
             int hs = 80;
@@ -239,7 +250,8 @@ namespace CCDesk
 
             int y4 = y3 + h2 + gap;
             _about.SetBounds(0, y4, w, Math.Max(86, Height - y4 - 4));
-            _langBtn.SetBounds(_about.Width - 130, 12, 110, 28);
+            _langBtn.SetBounds(_about.Width - 130, 40, 110, 28);
+            _docBtn.SetBounds(_about.Width - 268, 12, 118, 28);
         }
 
         protected override void OnResize(EventArgs e)
@@ -359,7 +371,7 @@ namespace CCDesk
             Theme.Txt(g, Lang.T("许可证：GPL-3.0 · 社区版，代码开源可审计 · 所有配置与日志只保存在本机"),
                 Theme.F(7.9f), Theme.Muted, 20, 62);
             Theme.Txt(g, Lang.T("配置目录：") + Store.RootDir, Theme.F(7.6f), Theme.Hint, 20, 84);
-            Theme.Txt(g, Lang.T("界面语言 / Language"), Theme.F(8.2f), Theme.TextDim, c.Width - 268, 18);
+            Theme.Txt(g, Lang.T("界面语言 / Language"), Theme.F(8.2f), Theme.TextDim, c.Width - 268, 46);
         }
 
         private void OpenLanguageMenu()
