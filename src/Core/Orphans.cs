@@ -52,8 +52,24 @@ namespace CCDesk.Core
             "ebwebview", "webview", "edgeupdate", "edgecore", "microsoft edge", "python"
         };
 
-        private const int MinAgeDays = 180;
-        private const long MinBytes = 30 * 1024 * 1024;
+        private const int MinAgeDays = 90;
+        private const long MinBytes = 20 * 1024 * 1024;
+
+        /// <summary>目录里有卸载程序（uninst*.exe / unins*.exe），说明它原本是一个软件安装目录。</summary>
+        private static bool HasUninstaller(string dir)
+        {
+            string[] files;
+            try { files = Directory.GetFiles(dir, "*.*", SearchOption.TopDirectoryOnly); }
+            catch (Exception) { return false; }
+            for (int i = 0; i < files.Length; i++)
+            {
+                string n = Path.GetFileName(files[i]).ToLowerInvariant();
+                if (!n.EndsWith(".exe")) continue;
+                if (n.StartsWith("uninst") || n.StartsWith("unins") || n.StartsWith("unwise") || n == "uninstall.exe") return true;
+            }
+            return false;
+        }
+
 
         /// <summary>目录里最近一次文件写入时间（只看前两层，够判断有没有人在用）。</summary>
         private static DateTime NewestWrite(string dir)
@@ -101,8 +117,11 @@ namespace CCDesk.Core
             List<Installed> apps = ReadInstalled();
             R(report, "读取已安装程序索引：" + apps.Count + " 条");
             if (prog != null) prog(12, "扫描孤儿安装目录...");
-            groups.Add(ScanDirs(apps, report));
-            if (prog != null) prog(55, "扫描无效卸载注册表项...");
+            OrphanGroup dirs = ScanDirs(apps, report, prog);
+            groups.Add(dirs);
+            if (prog != null) prog(45, "扫描残留注册表键...");
+            groups.Add(ScanRegResidue(dirs, report));
+            if (prog != null) prog(58, "扫描无效卸载注册表项...");
             groups.Add(ScanRegistry(report));
             if (prog != null) prog(72, "扫描失效快捷方式...");
             groups.Add(ScanShortcuts(report));
@@ -171,7 +190,7 @@ namespace CCDesk.Core
 
         // ---------- 孤儿安装目录 ----------
 
-        private static OrphanGroup ScanDirs(List<Installed> apps, Action<string> report)
+        private static OrphanGroup ScanDirs(List<Installed> apps, Action<string> report, StepProgress prog)
         {
             OrphanGroup g = new OrphanGroup();
             g.Id = "dir";
@@ -187,51 +206,190 @@ namespace CCDesk.Core
             string ra = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
             string lap = Path.Combine(la, "Programs");
 
-            ScanRoot(g, apps, pf, 90);
-            ScanRoot(g, apps, pf86, 90);
-            ScanRoot(g, apps, lap, 60);
-            ScanRoot(g, apps, pd, 60);
-            ScanRoot(g, apps, la, 40);
-            ScanRoot(g, apps, ra, 40);
+            // 系统盘上的常规位置
+            int step = 0;
+            step = Step(prog, step, 14, "扫描 Program Files（系统盘）...");
+            ScanRoot(g, apps, pf, 90, false);
+            step = Step(prog, step, 18, "扫描 Program Files (x86)（系统盘）...");
+            ScanRoot(g, apps, pf86, 90, false);
+            step = Step(prog, step, 21, "扫描用户 Programs 目录...");
+            ScanRoot(g, apps, lap, 60, false);
+            step = Step(prog, step, 24, "扫描 ProgramData...");
+            ScanRoot(g, apps, pd, 60, false);
+            step = Step(prog, step, 27, "扫描 LocalAppData...");
+            ScanRoot(g, apps, la, 40, false);
+            step = Step(prog, step, 30, "扫描 Roaming...");
+            ScanRoot(g, apps, ra, 40, false);
+
+            // 其他磁盘上的同类位置（软件常装到 D/E 盘，这里以前漏扫）
+            string[] driveRoots = DriveRoots();
+            for (int i = 0; i < driveRoots.Length; i++)
+            {
+                string dr = driveRoots[i];
+                step = Step(prog, step, 32 + i * 3, "扫描 " + dr + " 下的软件目录...");
+                ScanRoot(g, apps, Path.Combine(dr, "Program Files"), 60, false);
+                ScanRoot(g, apps, Path.Combine(dr, "Program Files (x86)"), 60, false);
+                ScanRoot(g, apps, Path.Combine(dr, "Programs"), 40, false);
+                // 盘根目录下的厂商目录（例如 D:\360、D:\2345Soft），只认带卸载程序的那种
+                ScanRoot(g, apps, dr, 30, true);
+            }
             return g;
         }
 
-        private static void ScanRoot(OrphanGroup g, List<Installed> apps, string root, int max)
+        private static int Step(StepProgress prog, int step, int percent, string msg)
+        {
+            if (percent <= step) percent = step + 1;
+            if (prog != null) prog(percent, msg);
+            return percent;
+        }
+
+        /// <summary>所有固定磁盘的根路径（不含光驱、可移动盘）。</summary>
+        private static string[] DriveRoots()
+        {
+            List<string> list = new List<string>();
+            System.IO.DriveInfo[] all;
+            try { all = System.IO.DriveInfo.GetDrives(); }
+            catch (Exception) { return new string[0]; }
+            for (int i = 0; i < all.Length; i++)
+            {
+                try
+                {
+                    if (all[i].DriveType != System.IO.DriveType.Fixed) continue;
+                    if (!all[i].IsReady) continue;
+                    list.Add(all[i].RootDirectory.FullName);
+                }
+                catch (Exception) { }
+            }
+            return list.ToArray();
+        }
+
+        private static readonly string[] CommonUserDirs = new string[]
+        {
+            "users", "windows", "program files", "program files (x86)", "programdata", "programs",
+            "projects", "project", "downloads", "documents", "desktop", "pictures", "videos", "music",
+            "backup", "backups", "data", "temp", "tmp", "cache", "games", "steam", "steamapps",
+            "tools", "work", "workspace", "code", "src", "iso", "vm", "vms", "movie", "media",
+            "onedrive", "bin", "drivers", "logs", "dump", "dumps", "reference", "release"
+        };
+
+        private static bool IsCommonUserDir(string name)
+        {
+            string low = name.ToLowerInvariant();
+            for (int i = 0; i < CommonUserDirs.Length; i++) if (low == CommonUserDirs[i]) return true;
+            return false;
+        }
+
+        private static void ScanRoot(OrphanGroup g, List<Installed> apps, string root, int max, bool driveRoot)
         {
             if (root.Length == 0 || !Directory.Exists(root)) return;
             string[] dirs;
             try { dirs = Directory.GetDirectories(root); }
             catch (Exception) { return; }
-            DateTime cutoff = DateTime.Now.AddDays(-MinAgeDays);
             int added = 0;
             for (int i = 0; i < dirs.Length; i++)
             {
-                if (added >= max) return;
+                if (g.Items.Count > 90) return;
                 string dir = dirs[i];
                 string name = Path.GetFileName(dir);
                 if (Skip(name)) continue;
                 if (Guard.IsWhitelisted(dir)) continue;
-                if (Referenced(dir, apps)) continue;
-                // 目录时间戳常常滞后，用里面最近一次文件写入时间判断是否还在使用
-                DateTime newest;
-                try { newest = NewestWrite(dir); }
-                catch (Exception) { continue; }
-                if (newest > cutoff) continue;
-                long size = 0;
-                try { size = FileUtil.SizeOf(dir); }
-                catch (Exception) { }
-                if (size < MinBytes) continue;
-                OrphanItem it = new OrphanItem();
-                it.GroupId = g.Id;
-                it.Kind = "dir";
-                it.Name = name;
-                it.Target = dir;
-                it.Detail = root + " 下 · 超过 " + MinAgeDays + " 天未改动 · 无已安装程序引用";
-                it.Bytes = size;
-                it.AdminNeeded = !Native.IsAdmin();
-                g.Items.Add(it);
-                added++;
+                // 盘根目录只处理像软件安装目录的（带卸载程序、非用户常见文件夹）
+                if (driveRoot && IsCommonUserDir(name)) continue;
+
+                if (!Referenced(dir, apps))
+                {
+                    if (!HasUninstaller(dir))
+                    {
+                        // 厂商父目录本身不带卸载程序（例如 D:\360），继续看它的下一层
+                        added += ScanChildren(g, apps, dir, max - added);
+                        continue;
+                    }
+                    if (Evaluate(g, root, dir, name, added)) added++;
+                    continue;
+                }
+
+                // 厂商父目录里混着已安装产品：只挑里面没人引用的子目录再看
+                added += ScanChildren(g, apps, dir, max - added);
+                if (max <= 0) return;
             }
+        }
+
+        private static int ScanChildren(OrphanGroup g, List<Installed> apps, string dir, int max)
+        {
+            if (max <= 0) return 0;
+            string[] subs;
+            try { subs = Directory.GetDirectories(dir); }
+            catch (Exception) { return 0; }
+            int added = 0;
+            for (int i = 0; i < subs.Length && added < max; i++)
+            {
+                string sub = subs[i];
+                string n = Path.GetFileName(sub);
+                if (Skip(n)) continue;
+                if (Guard.IsWhitelisted(sub)) continue;
+                if (Referenced(sub, apps)) continue;
+                if (!HasUninstaller(sub)) continue;
+                string label = Path.GetFileName(dir) + "\\" + n;
+                if (Evaluate(g, dir, sub, label, added)) added++;
+            }
+            return added;
+        }
+
+        /// <summary>只看本层的最近写入时间，用来快速排除明显在用的目录。</summary>
+        private static DateTime ShallowNewest(string dir)
+        {
+            DateTime newest = DateTime.MinValue;
+            try { newest = Directory.GetLastWriteTime(dir); }
+            catch (Exception) { return newest; }
+            string[] entries;
+            try { entries = Directory.GetFileSystemEntries(dir); }
+            catch (Exception) { return newest; }
+            for (int i = 0; i < entries.Length && i < 400; i++)
+            {
+                try
+                {
+                    DateTime t = File.GetLastWriteTime(entries[i]);
+                    if (t > newest) newest = t;
+                }
+                catch (Exception) { }
+            }
+            return newest;
+        }
+
+        /// <summary>判定一个目录是否为残留，命中则加入清单并返回 true。</summary>
+        private static bool Evaluate(OrphanGroup g, string root, string dir, string label, int added)
+        {
+            DateTime cutoff = DateTime.Now.AddDays(-MinAgeDays);
+            bool hasUninst = HasUninstaller(dir);
+            if (!hasUninst && ShallowNewest(dir) >= cutoff) return false;
+            DateTime newest;
+            try { newest = NewestWrite(dir); }
+            catch (Exception) { return false; }
+            bool stale = newest < cutoff;
+            // 高置信：长期无人写入；中置信：确实带卸载程序、注册表也没有引用（可能是刚卸载）
+            if (!stale && !hasUninst) return false;
+            long size = 0;
+            try { size = FileUtil.SizeOf(dir); }
+            catch (Exception) { }
+            if (size < MinBytes) return false;
+
+            string normTarget = Guard.Norm(dir);
+            for (int i = 0; i < g.Items.Count; i++)
+            {
+                if (Guard.Norm(g.Items[i].Target) == normTarget) return false;
+            }
+
+            OrphanItem it = new OrphanItem();
+            it.GroupId = g.Id;
+            it.Kind = "dir";
+            it.Name = label;
+            it.Target = dir;
+            it.Detail = root + " 下 · 无已安装程序引用 · " +
+                (stale ? "超过 " + MinAgeDays + " 天未改动" : "含卸载程序，最近改动 " + newest.ToString("yyyy-MM-dd") + "，请确认该软件确实已卸载");
+            it.Bytes = size;
+            it.AdminNeeded = !Native.IsAdmin();
+            g.Items.Add(it);
+            return true;
         }
 
         private static bool Skip(string name)
@@ -277,6 +435,135 @@ namespace CCDesk.Core
         }
 
         // ---------- 无效卸载注册表项 ----------
+
+        private static readonly string[] SoftRoots = new string[]
+        {
+            @"SOFTWARE",
+            @"SOFTWARE\WOW6432Node"
+        };
+
+        private static readonly string[] SoftSkipKeys = new string[]
+        {
+            "microsoft", "windows", "windows nt", "classes", "policies", "clients",
+            "registeredapplications", "wow6432node", "odbc", "registeredapplications"
+        };
+
+        /// <summary>注册表里仍指向“已不存在目录”的软件键：键值里出现孤儿目录路径即判定。</summary>
+        private static OrphanGroup ScanRegResidue(OrphanGroup dirs, Action<string> report)
+        {
+            OrphanGroup g = new OrphanGroup();
+            g.Id = "regres";
+            g.Name = "残留注册表键";
+            g.Desc = "注册表值里还写着已删软件目录的键（删除前自动导出 .reg 备份）";
+            R(report, "扫描残留注册表键...");
+
+            List<string> targets = new List<string>();
+            for (int i = 0; i < dirs.Items.Count; i++)
+            {
+                OrphanItem d = dirs.Items[i];
+                if (d.Kind != "dir") continue;
+                targets.Add(Guard.Norm(d.Target));
+            }
+            if (targets.Count == 0) return g;
+
+            ScanSoftHive(Registry.LocalMachine, "HKLM", @"SOFTWARE", targets, g);
+            ScanSoftHive(Registry.LocalMachine, "HKLM", @"SOFTWARE\WOW6432Node", targets, g);
+            ScanSoftHive(Registry.CurrentUser, "HKCU", @"SOFTWARE", targets, g);
+            return g;
+        }
+
+        private static void ScanSoftHive(RegistryKey hive, string hiveName, string rootPath, List<string> targets, OrphanGroup g)
+        {
+            try
+            {
+                using (RegistryKey root = hive.OpenSubKey(rootPath))
+                {
+                    if (root == null) return;
+                    string[] vendors = root.GetSubKeyNames();
+                    for (int i = 0; i < vendors.Length && g.Items.Count < 80; i++)
+                    {
+                        string v = vendors[i];
+                        if (IsSoftSkip(v)) continue;
+                        ScanSoftKey(root, hiveName, rootPath, v, targets, g, true);
+                    }
+                }
+            }
+            catch (Exception) { }
+        }
+
+        private static bool IsSoftSkip(string name)
+        {
+            string low = name.ToLowerInvariant();
+            for (int i = 0; i < SoftSkipKeys.Length; i++) if (low == SoftSkipKeys[i]) return true;
+            return false;
+        }
+
+        private static void ScanSoftKey(RegistryKey parent, string hiveName, string rootPath, string name, List<string> targets, OrphanGroup g, bool deep)
+        {
+            string keyPath = rootPath + "\\" + name;
+            try
+            {
+                using (RegistryKey k = parent.OpenSubKey(name))
+                {
+                    if (k == null) return;
+                    string hit = HitValue(k, targets);
+                    if (hit.Length > 0)
+                    {
+                        OrphanItem it = new OrphanItem();
+                        it.GroupId = g.Id;
+                        it.Kind = "reg";
+                        it.Name = name;
+                        it.Target = hiveName + "\\" + keyPath;
+                        it.Detail = "键值指向已不存在的目录：" + hit;
+                        it.Hive = hiveName;
+                        it.KeyPath = keyPath;
+                        it.AdminNeeded = !Native.IsAdmin();
+                        g.Items.Add(it);
+                        return;
+                    }
+                    if (!deep) return;
+                    string[] subs;
+                    try { subs = k.GetSubKeyNames(); }
+                    catch (Exception) { return; }
+                    for (int i = 0; i < subs.Length && g.Items.Count < 80; i++)
+                    {
+                        string sn = subs[i];
+                        if (sn.ToLowerInvariant() == "uninstall") continue;
+                        ScanSoftKey(k, hiveName, keyPath, sn, targets, g, false);
+                    }
+                }
+            }
+            catch (Exception) { }
+        }
+
+        /// <summary>在键值里找孤儿目录路径，返回命中的值片段。</summary>
+        private static string HitValue(RegistryKey k, List<string> targets)
+        {
+            string[] names;
+            try { names = k.GetValueNames(); }
+            catch (Exception) { return ""; }
+            for (int i = 0; i < names.Length; i++)
+            {
+                string s;
+                try
+                {
+                    object val = k.GetValue(names[i]);
+                    if (val == null) continue;
+                    if (!(val is string)) continue;
+                    s = (string)val;
+                }
+                catch (Exception) { continue; }
+                if (s.Length < 4) continue;
+                string norm = Guard.Norm(s);
+                for (int j = 0; j < targets.Count; j++)
+                {
+                    string t = targets[j];
+                    if (t.Length < 4) continue;
+                    if (norm.IndexOf(t, StringComparison.OrdinalIgnoreCase) >= 0) return s;
+                }
+            }
+            return "";
+        }
 
         private static OrphanGroup ScanRegistry(Action<string> report)
         {

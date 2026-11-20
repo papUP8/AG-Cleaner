@@ -34,6 +34,9 @@ namespace CCDesk.Core
             {
                 if (Group == "sys") return "系统组件";
                 if (Group == "task") return "计划任务";
+                if (Group == "plugin") return "自动插件";
+                if (Group == "appsvc") return "应用软件服务";
+                if (Group == "syssvc") return "系统关键服务";
                 if (Group == "service") return "系统服务";
                 return "用户启动项";
             }
@@ -84,6 +87,7 @@ namespace CCDesk.Core
             ReadActiveSetup(items);
             ReadTasks(items);
             ReadServices(items);
+            ReadPlugins(items);
             ReadDisabled(items);
 
             items.Sort(delegate (StartupItem a, StartupItem b)
@@ -101,7 +105,9 @@ namespace CCDesk.Core
             if (g == "user") return 0;
             if (g == "sys") return 1;
             if (g == "task") return 2;
-            return 3;
+            if (g == "plugin") return 3;
+            if (g == "appsvc") return 4;
+            return 5;
         }
 
         private static void ReadRunKey(RegistryKey hive, string hiveName, string keyPath, string group, bool machine, string approvalSub, List<StartupItem> items)
@@ -358,12 +364,25 @@ namespace CCDesk.Core
                                 StartupItem it = new StartupItem();
                                 it.Name = label;
                                 it.Command = subs[i];
-                                it.Group = "service";
+                                object imgObj = k.GetValue("ImagePath");
+                                string img = imgObj == null ? "" : ResolveIndirect(imgObj.ToString());
+                                if (img.Length == 0) img = subs[i];
+                                // 映像在 System32（含 svchost 托管）算系统关键服务，其余算应用软件服务
+                                bool systemOwned = img.IndexOf("system32", StringComparison.OrdinalIgnoreCase) >= 0
+                                                || img.IndexOf("%SystemRoot%", StringComparison.OrdinalIgnoreCase) >= 0;
+                                if (systemOwned && img.IndexOf("svchost", StringComparison.OrdinalIgnoreCase) >= 0)
+                                {
+                                    // 托管服务看 ServiceDll 落在哪里，别把第三方 DLL 算成系统服务
+                                    string dll = ServiceDll(k);
+                                    if (dll.Length > 0) systemOwned = dll.IndexOf("system32", StringComparison.OrdinalIgnoreCase) >= 0
+                                                                  || dll.IndexOf("%SystemRoot%", StringComparison.OrdinalIgnoreCase) >= 0;
+                                }
+                                it.Group = systemOwned ? "syssvc" : "appsvc";
                                 it.IsService = true;
                                 it.Machine = true;
-                                it.Source = "自动启动服务";
+                                it.Source = systemOwned ? "系统关键服务（自动启动）" : "应用软件服务（自动启动）";
                                 it.Enabled = true;
-                                it.Detail = "服务名 " + subs[i];
+                                it.Detail = "服务名 " + subs[i] + " · " + img;
                                 items.Add(it);
                             }
                         }
@@ -372,6 +391,93 @@ namespace CCDesk.Core
                 }
             }
             catch (Exception) { }
+        }
+
+        private static string ServiceDll(RegistryKey svcKey)
+        {
+            try
+            {
+                using (RegistryKey p = svcKey.OpenSubKey("Parameters"))
+                {
+                    if (p == null) return "";
+                    object v = p.GetValue("ServiceDll");
+                    return v == null ? "" : v.ToString();
+                }
+            }
+            catch (Exception) { return ""; }
+        }
+
+        /// <summary>随开机/右键/浏览器自动加载的插件：BHO、图标叠加、右键扩展（只读展示）。</summary>
+        private static void ReadPlugins(List<StartupItem> items)
+        {
+            // 浏览器辅助对象（BHO）
+            AddShellKey(items, Registry.LocalMachine, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Browser Helper Objects", "浏览器插件（BHO）", true);
+            AddShellKey(items, Registry.CurrentUser, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Browser Helper Objects", "浏览器插件（BHO）", false);
+            // 资源管理器图标叠加
+            AddShellKey(items, Registry.LocalMachine, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\ShellIconOverlayIdentifiers", "图标叠加", true);
+            // 右键菜单扩展
+            AddShellKey(items, Registry.ClassesRoot, @"*\shellex\ContextMenuHandlers", "右键菜单扩展", true);
+            AddShellKey(items, Registry.ClassesRoot, @"Directory\shellex\ContextMenuHandlers", "文件夹右键扩展", true);
+        }
+
+        private static void AddShellKey(List<StartupItem> items, RegistryKey hive, string path, string kind, bool machine)
+        {
+            try
+            {
+                using (RegistryKey root = hive.OpenSubKey(path))
+                {
+                    if (root == null) return;
+                    string[] subs = root.GetSubKeyNames();
+                    for (int i = 0; i < subs.Length && items.Count < 700; i++)
+                    {
+                        string clsid = subs[i].Trim();
+                        string label = ClsidName(clsid);
+                        if (label.Length == 0) label = clsid;
+                        if (label.Length == 0) continue;
+                        StartupItem it = new StartupItem();
+                        it.Name = label;
+                        it.Command = clsid;
+                        it.Group = "plugin";
+                        it.IsService = true;            // 复用“只读”标记
+                        it.Machine = machine;
+                        it.Source = kind;
+                        it.Enabled = true;
+                        it.Detail = kind + " · " + ClsidPath(clsid);
+                        items.Add(it);
+                    }
+                }
+            }
+            catch (Exception) { }
+        }
+
+        private static string ClsidName(string clsid)
+        {
+            if (!clsid.StartsWith("{")) return "";
+            try
+            {
+                using (RegistryKey k = Registry.ClassesRoot.OpenSubKey("CLSID\\" + clsid))
+                {
+                    if (k == null) return "";
+                    object v = k.GetValue(null);
+                    return v == null ? "" : v.ToString();
+                }
+            }
+            catch (Exception) { return ""; }
+        }
+
+        private static string ClsidPath(string clsid)
+        {
+            if (!clsid.StartsWith("{")) return "";
+            try
+            {
+                using (RegistryKey k = Registry.ClassesRoot.OpenSubKey("CLSID\\" + clsid + "\\InprocServer32"))
+                {
+                    if (k == null) return "";
+                    object v = k.GetValue(null);
+                    return v == null ? "" : v.ToString();
+                }
+            }
+            catch (Exception) { return ""; }
         }
 
         /// <summary>把本程序此前禁用、仍留在备份里的项也列出来，便于一键还原。</summary>

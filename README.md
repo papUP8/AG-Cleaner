@@ -15,13 +15,13 @@
 | --- | --- |
 | ![深色](docs/screenshots/01-clean-dark.png) | ![浅色](docs/screenshots/02-clean-light.png) |
 
-| 浅色 · 残留清理 | 浅色 · 概览 |
-| --- | --- |
-| ![残留清理](docs/screenshots/03-orphans-light.png) | ![概览](docs/screenshots/04-dashboard-light.png) |
+| 浅色 · 概览 |
+| --- |
+| ![概览](docs/screenshots/04-dashboard-light.png) |
 
-| 启动项管理 · 分类筛选 | 清理完成报告 |
+| 启动项管理 · 五类筛选 | 进度条（列表上方） |
 | --- | --- |
-| ![启动项](docs/screenshots/03-startup-dark.png) | ![报告](docs/screenshots/05-report-dark.png) |
+| ![启动项](docs/screenshots/03-startup-dark.png) | ![进度](docs/screenshots/06-progress-light.png) |
 
 ---
 
@@ -51,9 +51,9 @@ powershell -ExecutionPolicy Bypass -File uninstall.ps1
 | --- | --- |
 | 概览 | 磁盘剩余、可清理空间、内存、CPU 实时卡，健康评分与诊断建议，Top 进程 |
 | 深度清理 | 13 类规则扫描 → 分类筛选 → 逐项勾选审阅 → 确认后执行 → 进度条 → 完整明细报告 |
-| 残留清理 | 孤儿安装目录、无效卸载注册表项、失效快捷方式、失效启动项；删除可恢复；执行带进度条 |
+| 残留清理 | 孤儿安装目录（含 D/E 盘与盘根目录）、残留注册表键、无效卸载项、失效快捷方式、失效启动项；删除可恢复 |
 | 应用卸载 | 注册表枚举已装程序、体积估算、调用官方卸载器、卸载后残留扫描 |
-| 启动项管理 | 用户启动项 / 系统组件 / 计划任务 / 系统服务 / 已禁用 五类筛选，禁用前备份，可一键还原 |
+| 启动项管理 | 用户启动项 / 计划任务 / 自动插件 / 应用软件服务 / 系统关键服务 / 已禁用 六类筛选，禁用前备份，可一键还原 |
 | 磁盘分析 | 逐层下钻、大文件排行、删除进回收站，边扫描边出结果 |
 | 系统优化 | DNS / ARP / TRIM / 更新缓存 / 临时文件 / 回收站 六项，管理员项会标注 |
 | 历史记录 | 操作时间线、导出 CSV、清空 |
@@ -69,9 +69,9 @@ powershell -ExecutionPolicy Bypass -File uninstall.ps1
 | 浏览器缓存 | Chrome / Edge / Brave / Vivaldi / 360 / 夸克 / Firefox 各 Profile 的 Cache、Code Cache、GPU 缓存、ShaderCache、Service Worker 脚本缓存、Crashpad、BrowserMetrics；其余 Chromium 浏览器自动发现 | 勾选 |
 | 应用缓存 | 聊天办公软件缓存、Electron 类应用自动发现、所有 UWP 应用的 LocalCache / TempState、WebView2 缓存 | 勾选 |
 | 系统痕迹缓存 | 缩略图与图标数据库、资源管理器图标缓存、远程桌面缓存、主题缩略图 | 勾选 |
-| 系统缓存与日志 | Windows\Temp、更新下载缓存、Windows\Logs、事件日志、字体缓存、Installer/INF 日志、LogFiles、Minidump、Prefetch、WER、Panther、交付优化缓存与日志、诊断数据、更新协调日志、更新重启缓存、更新数据库日志、DriverStore\Temp、Defender 扫描历史、Intel 驱动安装缓存、零售演示、WDI 启动性能日志、OneDrive 日志、LocalService 临时目录、其他账号 Temp | 勾选（需管理员） |
+| 系统缓存与日志 | Windows\Temp、更新下载缓存、Windows\Logs（含 CBS / DISM / WindowsUpdate）、事件日志、字体缓存、Installer/INF 日志、LogFiles、Minidump、Prefetch、WER、Panther、交付优化缓存与日志、诊断数据、更新协调日志、更新重启缓存、更新数据库日志、DriverStore\Temp、Defender 扫描历史、Intel 驱动安装缓存、零售演示、WDI 启动性能日志、OneDrive 日志、LocalService 临时目录、其他账号 Temp | 勾选（需管理员） |
 | 系统深度清理 | Windows.old、`$WINDOWS.~BT` / `$WINDOWS.~WS`、WinSxS\Temp、搜索索引、Package Cache、MSI `$PatchCache$` | 不勾选 |
-| 日志与错误报告 | 崩溃转储、系统级与用户级错误报告、MEMORY.DMP、Office 文件缓存、若干应用日志 | 勾选 |
+| 日志与错误报告 | 崩溃转储、系统级与用户级错误报告、MEMORY.DMP、Office 文件缓存、IE / INetCache、Adobe Reader 缓存、WPS 缓存、若干应用日志 | 勾选 |
 | 大体积日志与转储 | 单文件大于 48 MB 且 3 天未更新的 .log / .etl / .dmp / .mdmp / .cab / .evtx / .wer，逐条显示最后写入时间与大小 | 不勾选 |
 | 使用痕迹 | 最近使用的文档、通知中心历史 | 不勾选 |
 | GPU 着色器缓存 | NVIDIA / AMD / Intel / DirectX 缓存 | 不勾选（设置开关） |
@@ -85,7 +85,8 @@ powershell -ExecutionPolicy Bypass -File uninstall.ps1
 
 | 类型 | 判定 | 处置 |
 | --- | --- | --- |
-| 孤儿安装目录 | 位于 Program Files / Programs / ProgramData / AppData 下，超过 180 天没有任何文件写入，且没有已安装程序引用（InstallLocation / DisplayIcon / UninstallString / 名称），体积大于 30 MB | 移入回收站 |
+| 孤儿安装目录 | 扫描所有固定磁盘的 Program Files / Program Files (x86) / Programs / 盘根目录与系统盘 AppData、ProgramData；目录无任何已安装程序引用，且满足其一：90 天无文件写入（高置信），或带真实卸载程序 uninst.exe 等（可能是刚卸载，需你确认）；体积大于 20 MB。厂商父目录被引用时往里看一层，只挑没被引用的子目录 | 移入回收站 |
+| 残留注册表键 | HKLM / HKCU 的 SOFTWARE 下两层键，键值里出现已不存在目录的路径 | 导出 .reg 后删除 |
 | 无效卸载项 | 卸载命令指向的 exe 已不存在，InstallLocation 与 DisplayIcon 也都失效（msiexec 项自动跳过） | 导出 .reg 后删除 |
 | 失效快捷方式 | 桌面与开始菜单的 .lnk 目标路径不存在 | 移入回收站 |
 | 失效启动项 | Run 键指向的 exe 不存在 | 备份后禁用 |

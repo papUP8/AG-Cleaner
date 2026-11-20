@@ -10,7 +10,7 @@ namespace CCDesk
     public class StartupPage : PageBase
     {
         public override string PageTitle { get { return "启动项管理"; } }
-        public override string PageSubtitle { get { return "用户启动项、系统组件、计划任务与服务项；禁用前自动备份，可一键还原"; } }
+        public override string PageSubtitle { get { return "用户启动项、计划任务、自动插件、应用软件服务、系统关键服务；禁用前自动备份，可一键还原"; } }
 
         private VList _list;
         private ActionBar _bar;
@@ -72,9 +72,14 @@ namespace CCDesk
                 cx += cw + 8;
             }
             _bar.SetBounds(0, Height - 58, w, 58);
-            _list.SetBounds(0, y + 44, w, Height - (y + 44) - 92);
+            int top = y + 44;
+            if (_prog != null && _prog.Visible)
+            {
+                _prog.SetBounds(0, top, w, 44);
+                top += 52;
+            }
+            _list.SetBounds(0, top, w, Height - top - 92);
             _spinner.SetBounds(w - 40, y + 4, 24, 24);
-            _prog.SetBounds(0, Height - 58 - 32, w, 30);
         }
 
         protected override void OnResize(EventArgs e)
@@ -96,6 +101,7 @@ namespace CCDesk
             _prog.Visible = true;
             _prog.BringToFront();
             _prog.SetProgress(5, "读取注册表与服务列表...");
+            LayoutChildren();
             ThreadPool.QueueUserWorkItem(delegate
             {
                 List<StartupItem> on = null;
@@ -108,6 +114,7 @@ namespace CCDesk
                         _busy = false;
                         _spinner.Spin(false);
                         _prog.Visible = false;
+                        LayoutChildren();
                         _items = on == null ? new List<StartupItem>() : on;
                         BuildChips();
                         Fill();
@@ -123,7 +130,7 @@ namespace CCDesk
             _chips.Clear();
             _filter = "all";
 
-            int user = 0, sys = 0, task = 0, svc = 0, off = 0;
+            int user = 0, sys = 0, task = 0, plugin = 0, appsvc = 0, syssvc = 0, off = 0;
             for (int i = 0; i < _items.Count; i++)
             {
                 StartupItem it = _items[i];
@@ -131,14 +138,17 @@ namespace CCDesk
                 if (it.Group == "user") user++;
                 else if (it.Group == "sys") sys++;
                 else if (it.Group == "task") task++;
-                else svc++;
+                else if (it.Group == "plugin") plugin++;
+                else if (it.Group == "appsvc") appsvc++;
+                else if (it.Group == "syssvc") syssvc++;
             }
 
             Chip all = MakeChip("全部", _items.Count, "all", true);
             MakeChip("用户启动项", user, "user", false);
-            MakeChip("系统组件", sys, "sys", false);
             MakeChip("计划任务", task, "task", false);
-            MakeChip("系统服务", svc, "service", false);
+            MakeChip("自动插件", plugin, "plugin", false);
+            MakeChip("应用软件服务", appsvc, "appsvc", false);
+            MakeChip("系统关键服务", syssvc, "syssvc", false);
             MakeChip("已禁用", off, "disabled", false);
             LayoutChildren();
         }
@@ -212,6 +222,9 @@ namespace CCDesk
         {
             if (g == "sys") return Theme.Danger;
             if (g == "task") return Theme.Warn;
+            if (g == "plugin") return Theme.C(Theme.IsLight ? "#0E7490" : "#38BDF8");
+            if (g == "appsvc") return Theme.C(Theme.IsLight ? "#8B5CF6" : "#8B7CF6");
+            if (g == "syssvc") return Theme.C(Theme.IsLight ? "#B45309" : "#F59E0B");
             if (g == "service") return Theme.C(Theme.IsLight ? "#8B5CF6" : "#8B7CF6");
             return Theme.Accent;
         }

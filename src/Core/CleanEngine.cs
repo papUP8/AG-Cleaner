@@ -672,6 +672,9 @@ namespace CCDesk.Core
             AddDirItem(cat, "WER 临时报告", @"C:\ProgramData\Microsoft\Windows\WER\Temp", CleanKind.DirContents, 0, true);
             AddFileItem(cat, "完整内存转储 MEMORY.DMP", @"C:\Windows\MEMORY.DMP", false);
             AddDirItem(cat, "Office 文件缓存", Path.Combine(la, @"Microsoft\Office\16.0\OfficeFileCache"), CleanKind.DirContents, 0, true);
+            AddDirItem(cat, "IE / INetCache 临时文件", Path.Combine(la, @"Microsoft\Windows\INetCache"), CleanKind.DirContents, 0, true);
+            AddDirItem(cat, "Adobe Reader 缓存", Path.Combine(la, @"Adobe\Acrobat\DC\Cache"), CleanKind.DirContents, 0, true);
+            AddDirItem(cat, "WPS 缓存", Path.Combine(ra, @"Kingsoft\office6\cache"), CleanKind.DirContents, 0, true);
             AddDirItem(cat, "腾讯会议日志", Path.Combine(la, @"Tencent\Wemeet\logs"), CleanKind.OldFilesInDir, 7, true);
             AddDirItem(cat, "百度网盘日志", Path.Combine(ra, @"BaiduYunGuanjia\logs"), CleanKind.OldFilesInDir, 7, true);
             AddDirItem(cat, "Docker 日志", Path.Combine(la, @"Docker\log"), CleanKind.OldFilesInDir, 7, true);
@@ -876,6 +879,9 @@ namespace CCDesk.Core
                 AddDirItem(cat, "Windows 临时目录", @"C:\Windows\Temp", CleanKind.DirContents, 0, false);
                 AddDirItem(cat, "Windows 更新下载缓存", @"C:\Windows\SoftwareDistribution\Download", CleanKind.DirContents, 0, true);
                 AddDirItem(cat, "Windows 系统日志", @"C:\Windows\Logs", CleanKind.DirContents, 0, true);
+                AddDirItem(cat, "组件服务日志 CBS", @"C:\Windows\Logs\CBS", CleanKind.DirContents, 0, false);
+                AddDirItem(cat, "镜像服务日志 DISM", @"C:\Windows\Logs\DISM", CleanKind.DirContents, 0, false);
+                AddDirItem(cat, "Windows 更新日志", @"C:\Windows\Logs\WindowsUpdate", CleanKind.DirContents, 0, false);
                 AddExtItem(cat, "Windows 事件日志", @"C:\Windows\System32\winevt\Logs", ".evtx", 0, true);
                 AddDirItem(cat, "字体缓存（系统）", @"C:\Windows\ServiceProfiles\LocalService\AppData\Local\FontCache", CleanKind.DirContents, 0, false);
                 AddFileItem(cat, "完整内存转储 MEMORY.DMP", @"C:\Windows\MEMORY.DMP", false);

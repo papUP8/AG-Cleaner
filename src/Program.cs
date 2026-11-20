@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
@@ -7,7 +7,7 @@ namespace CCDesk
 {
     public static class Program
     {
-        public static string Version = "1.2.0";
+        public static string Version = "1.3.0";
 
         [STAThread]
         public static void Main(string[] args)
@@ -293,3 +293,4 @@ namespace CCDesk
         }
     }
 }
+

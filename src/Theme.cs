@@ -82,15 +82,15 @@ namespace CCDesk
             }
             else
             {
-                Bg = C("#F3F5F8");
+                Bg = C("#ECEFF4");
                 SidebarBg = C("#FFFFFF");
-                TitleBg = C("#FFFFFF");
+                TitleBg = C("#F7F9FC");
                 Card = C("#FFFFFF");
-                CardHover = C("#F3F6FA");
-                CardSoft = C("#F7F9FC");
-                CardAlt = C("#FBFCFE");
-                Border = C("#DCE3EB");
-                BorderSoft = C("#E8EDF3");
+                CardHover = C("#F4F7FB");
+                CardSoft = C("#F1F4F9");
+                CardAlt = C("#F8FAFC");
+                Border = C("#C8D3E0");
+                BorderSoft = C("#DDE5EE");
                 Text = C("#16202B");
                 TextDim = C("#41505F");
                 Muted = C("#6A7788");

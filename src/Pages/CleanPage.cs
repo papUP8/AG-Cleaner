@@ -131,14 +131,19 @@ namespace CCDesk
         private void ShowProgress(int percent, string caption)
         {
             if (_prog == null) return;
+            bool needLayout = !_prog.Visible;
             _prog.Visible = true;
-            _prog.BringToFront();
             _prog.SetProgress(percent, caption);
+            _prog.BackColor = Theme.Bg;
+            if (needLayout) LayoutChildren();
+            _prog.BringToFront();
         }
 
         private void HideProgress()
         {
-            if (_prog != null) _prog.Visible = false;
+            if (_prog == null || !_prog.Visible) return;
+            _prog.Visible = false;
+            LayoutChildren();
         }
 
         public void LayoutChildren()
@@ -167,9 +172,14 @@ namespace CCDesk
             }
             int listTop = y + 46 + (rows - 1) * 34;
             _bar.SetBounds(0, Height - 58, w, 58);
+            if (_prog != null && _prog.Visible)
+            {
+                // 进度条放在列表上方，扫一眼就能看到，不躲在底部操作栏后
+                _prog.SetBounds(0, listTop, w, 44);
+                listTop += 52;
+            }
             _list.SetBounds(0, listTop, w, Height - listTop - 92);
             _spinner.SetBounds(w - 46, y + 4, 24, 24);
-            _prog.SetBounds(0, Height - 58 - 32, w, 30);
         }
 
         protected override void OnResize(EventArgs e)

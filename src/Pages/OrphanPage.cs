@@ -108,9 +108,13 @@ namespace CCDesk
             }
             int listTop = y + 46 + (rows - 1) * 34;
             _bar.SetBounds(0, Height - 58, w, 58);
+            if (_prog != null && _prog.Visible)
+            {
+                _prog.SetBounds(0, listTop, w, 44);
+                listTop += 52;
+            }
             _list.SetBounds(0, listTop, w, Height - listTop - 92);
             _spinner.SetBounds(w - 46, y + 4, 24, 24);
-            _prog.SetBounds(0, Height - 58 - 32, w, 30);
         }
 
         protected override void OnResize(EventArgs e)
@@ -136,6 +140,7 @@ namespace CCDesk
             _prog.Visible = true;
             _prog.BringToFront();
             _prog.SetProgress(0, "准备扫描残留...");
+            LayoutChildren();
             _bar.Invalidate();
             ThreadPool.QueueUserWorkItem(delegate
             {
@@ -170,6 +175,7 @@ namespace CCDesk
                         _busy = false;
                         _spinner.Spin(false);
                         _prog.Visible = false;
+                        LayoutChildren();
                         _scanBtn.Enabled = true;
                         _cleanBtn.Enabled = true;
                         if (result != null)
@@ -358,6 +364,7 @@ namespace CCDesk
             _prog.Visible = true;
             _prog.BringToFront();
             _prog.SetProgress(0, "准备处理残留...");
+            LayoutChildren();
             _bar.Invalidate();
             ThreadPool.QueueUserWorkItem(delegate
             {
@@ -393,6 +400,7 @@ namespace CCDesk
                         _busy = false;
                         _spinner.Spin(false);
                         _prog.Visible = false;
+                        LayoutChildren();
                         _cleanBtn.Enabled = true;
                         _status = "已处理 " + sel + " 项，回收 " + Byt.Format(f) + (err > 0 ? "，" + err + " 项失败" : "");
                         _bar.Invalidate();
