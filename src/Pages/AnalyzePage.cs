@@ -10,8 +10,8 @@ namespace CCDesk
 {
     public class AnalyzePage : PageBase
     {
-        public override string PageTitle { get { return "磁盘分析"; } }
-        public override string PageSubtitle { get { return "逐层下钻查看目录占用，支持大文件排行；本页只分析不删除，可定位到所在文件夹"; } }
+        public override string PageTitle { get { return Lang.T("磁盘分析"); } }
+        public override string PageSubtitle { get { return Lang.T("逐层下钻查看目录占用，支持大文件排行；本页只分析不删除，可定位到所在文件夹"); } }
 
         private VList _list;
         private ActionBar _bar;
@@ -32,7 +32,7 @@ namespace CCDesk
         private int _liveTotal;
         private int _lastRefresh;
         private bool _bigMode = false;
-        private string _status = "选择一个磁盘开始扫描";
+        private string _status = Lang.T("选择一个磁盘开始扫描");
         private long _totalBytes = 0;
         private int _totalFiles = 0;
 
@@ -57,7 +57,7 @@ namespace CCDesk
 
             _up = new Btn();
             _up.Kind = ButtonKind.Ghost;
-            _up.Text = "上一级";
+            _up.Text = Lang.T("上一级");
             _up.Size = new Size(78, 32);
             _up.Click += delegate
             {
@@ -69,24 +69,24 @@ namespace CCDesk
 
             _reveal = new Btn();
             _reveal.Kind = ButtonKind.Link;
-            _reveal.Text = "打开位置";
+            _reveal.Text = Lang.T("打开位置");
             _reveal.Size = new Size(80, 30);
             _reveal.Click += delegate { Native.RevealInExplorer(_path); };
             Controls.Add(_reveal);
 
             _modeBtn = new Btn();
             _modeBtn.Kind = ButtonKind.Ghost;
-            _modeBtn.Text = "大文件排行";
+            _modeBtn.Text = Lang.T("大文件排行");
             _modeBtn.Size = new Size(110, 32);
             _modeBtn.Click += delegate { _bigMode = !_bigMode; ShowResult(); };
             Controls.Add(_modeBtn);
 
             _list = new VList();
             _list.ShowCheck = false;
-            _list.RightHeader = "占用";
+            _list.RightHeader = Lang.T("占用");
             _list.RowHeight = 56;
-            _list.EmptyText = "尚未扫描";
-            _list.EmptyHint = "点击左侧磁盘按钮选择驱动器";
+            _list.EmptyText = Lang.T("尚未扫描");
+            _list.EmptyHint = Lang.T("点击左侧磁盘按钮选择驱动器");
             _list.RowActivated += delegate { OpenSelected(); };
             _list.ActionClicked += delegate { RevealSelected(); };
             Controls.Add(_list);
@@ -138,7 +138,7 @@ namespace CCDesk
             _liveDone = 0;
             _liveTotal = 0;
             _lastRefresh = 0;
-            _status = "正在扫描 " + path + " ...";
+            _status = Lang.T("正在扫描 ") + path + " ...";
             _list.Clear();
             _bar.Invalidate();
             string target = path;
@@ -175,7 +175,7 @@ namespace CCDesk
                         {
                             _totalBytes = res.Total;
                             _totalFiles = res.Files;
-                            _status = "共 " + Byt.Format(res.Total) + " · " + res.Files + " 个文件";
+                            _status = Lang.T("共 ") + Byt.Format(res.Total) + " · " + res.Files + Lang.T(" 个文件");
                         }
                         ShowResult();
                     });
@@ -188,7 +188,7 @@ namespace CCDesk
         {
             if (_result == null) return;
             List<VRow> rows = new List<VRow>();
-            _modeBtn.Text = _bigMode ? "返回目录" : "大文件排行";
+            _modeBtn.Text = _bigMode ? Lang.T("返回目录") : Lang.T("大文件排行");
             _modeBtn.Invalidate();
             _modeBarInvalidate();
 
@@ -201,22 +201,22 @@ namespace CCDesk
                     r.Title = e.Name;
                     r.Sub = Theme.ShortPath(e.Path, 96);
                     r.Right = Byt.Format(e.Bytes);
-                    r.Tag = "大文件";
+                    r.Tag = Lang.T("大文件");
                     r.TagColor = Theme.Warn;
                     r.Fraction = _totalBytes > 0 ? (double)e.Bytes / _totalBytes : 0;
                     r.BarColor = Theme.Warn;
-                    r.Action = "定位";
+                    r.Action = Lang.T("定位");
                     r.ActionColor = Theme.Blue;
                     r.Data = e;
                     rows.Add(r);
                 }
-                _list.EmptyText = "没有发现 20 MB 以上的大文件";
+                _list.EmptyText = Lang.T("没有发现 20 MB 以上的大文件");
                 _list.EmptyHint = "";
             }
             else
             {
                 _list.SetRows(BuildDirRows(_result.Entries));
-                _list.EmptyText = "空目录";
+                _list.EmptyText = Lang.T("空目录");
                 _list.EmptyHint = "";
             }
             _list.SetRows(rows);
@@ -233,7 +233,7 @@ namespace CCDesk
             lock (_liveLock) { snap.AddRange(_live); }
             long sum = 0;
             for (int i = 0; i < snap.Count; i++) sum += snap[i].Bytes;
-            _status = "已统计 " + _liveDone + "/" + _liveTotal + " 项 · 累计 " + Byt.Format(sum);
+            _status = Lang.T("已统计 ") + _liveDone + "/" + _liveTotal + Lang.T(" 项 · 累计 ") + Byt.Format(sum);
             _list.SetRows(BuildDirRows(snap));
             _bar.Invalidate();
         }
@@ -250,13 +250,13 @@ namespace CCDesk
                 DiskEntry e = sorted[i];
                 VRow r = new VRow();
                 r.Title = e.Name + (e.IsDir ? "\\" : "");
-                r.Sub = e.IsDir ? (e.Files + " 个文件") : "文件";
+                r.Sub = e.IsDir ? (e.Files + Lang.T(" 个文件")) : Lang.T("文件");
                 r.Right = Byt.Format(e.Bytes);
-                r.Tag = e.IsDir ? "文件夹" : "文件";
+                r.Tag = e.IsDir ? Lang.T("文件夹") : Lang.T("文件");
                 r.TagColor = e.IsDir ? Theme.Blue : Theme.Muted;
                 r.Fraction = max > 0 ? (double)e.Bytes / max : 0;
                 r.BarColor = e.Bytes > 1024L * 1024 * 1024 ? Theme.Danger : Theme.Blue;
-                r.Action = "定位";
+                r.Action = Lang.T("定位");
                 r.ActionColor = Theme.Blue;
                 r.Data = e;
                 rows.Add(r);
@@ -277,7 +277,7 @@ namespace CCDesk
             Theme.Txt(g, _status, Theme.F(8f), Theme.Muted, 4, 33);
             using (StringFormat sf = Theme.SF(StringAlignment.Far, StringAlignment.Near))
             {
-                Theme.Txt(g, "双击文件夹下钻 · “定位”在资源管理器中打开所在位置，是否删除由你自行决定", Theme.F(8f), Theme.Hint, new Rectangle(0, 32, _bar.Width - 8, 20), sf);
+                Theme.Txt(g, Lang.T("双击文件夹下钻 · “定位”在资源管理器中打开所在位置，是否删除由你自行决定"), Theme.F(8f), Theme.Hint, new Rectangle(0, 32, _bar.Width - 8, 20), sf);
             }
         }
 
@@ -298,7 +298,7 @@ namespace CCDesk
             DiskEntry e = r.Data as DiskEntry;
             if (e == null) return;
             Native.RevealInExplorer(e.Path);
-            _status = "已在资源管理器中定位：" + e.Path;
+            _status = Lang.T("已在资源管理器中定位：") + e.Path;
             _bar.Invalidate();
         }
     }

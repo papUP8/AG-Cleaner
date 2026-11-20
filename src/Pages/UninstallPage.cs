@@ -9,8 +9,8 @@ namespace CCDesk
 {
     public class UninstallPage : PageBase
     {
-        public override string PageTitle { get { return "应用卸载"; } }
-        public override string PageSubtitle { get { return "按体积排序已安装程序，调用官方卸载器并清理残留目录"; } }
+        public override string PageTitle { get { return Lang.T("应用卸载"); } }
+        public override string PageSubtitle { get { return Lang.T("按体积排序已安装程序，调用官方卸载器并清理残留目录"); } }
 
         private SearchBox _search;
         private Btn _refresh;
@@ -19,29 +19,29 @@ namespace CCDesk
         private List<App> _apps = new List<App>();
         private App _selected;
         private bool _busy;
-        private string _status = "点击“刷新列表”读取已安装程序";
+        private string _status = Lang.T("点击“刷新列表”读取已安装程序");
         private Spinner _spinner;
 
         public UninstallPage()
         {
             _search = new SearchBox();
-            _search.Placeholder = "搜索应用名称或发行商...";
+            _search.Placeholder = Lang.T("搜索应用名称或发行商...");
             _search.Input.TextChanged += delegate { FillList(); };
             Controls.Add(_search);
 
             _refresh = new Btn();
             _refresh.Kind = ButtonKind.Subtle;
-            _refresh.Text = "刷新列表";
+            _refresh.Text = Lang.T("刷新列表");
             _refresh.Size = new Size(96, 34);
             _refresh.Click += delegate { Load(); };
             Controls.Add(_refresh);
 
             _list = new VList();
             _list.ShowCheck = false;
-            _list.RightHeader = "占用";
+            _list.RightHeader = Lang.T("占用");
             _list.RowHeight = 60;
-            _list.EmptyText = "尚未读取应用列表";
-            _list.EmptyHint = "点击右上角“刷新列表”开始";
+            _list.EmptyText = Lang.T("尚未读取应用列表");
+            _list.EmptyHint = Lang.T("点击右上角“刷新列表”开始");
             _list.ActionClicked += delegate { UninstallSelected(); };
             _list.RowActivated += delegate { UninstallSelected(); };
             Controls.Add(_list);
@@ -85,7 +85,7 @@ namespace CCDesk
             if (_busy) return;
             _busy = true;
             _spinner.Spin(true);
-            _status = "正在读取注册表中的已安装程序...";
+            _status = Lang.T("正在读取注册表中的已安装程序...");
             _bar.Invalidate();
             ThreadPool.QueueUserWorkItem(delegate
             {
@@ -110,9 +110,9 @@ namespace CCDesk
                         {
                             _apps = list;
                             FillList();
-                            _status = "共 " + list.Count + " 个已安装程序";
+                            _status = Lang.T("共 ") + list.Count + Lang.T(" 个已安装程序");
                         }
-                        else _status = "读取失败：" + error;
+                        else _status = Lang.T("读取失败：") + error;
                         _bar.Invalidate();
                     });
                 }
@@ -133,14 +133,14 @@ namespace CCDesk
                 }
                 VRow r = new VRow();
                 r.Title = a.Name;
-                string sub = a.Publisher.Length > 0 ? a.Publisher : "未知发行商";
+                string sub = a.Publisher.Length > 0 ? a.Publisher : Lang.T("未知发行商");
                 if (a.Version.Length > 0) sub += "  ·  " + a.Version;
                 if (a.Location.Length > 0) sub += "  ·  " + Theme.ShortPath(a.Location, 60);
                 r.Sub = sub;
                 r.Right = a.SizeText;
-                r.Tag = a.Machine ? "系统级" : "用户级";
+                r.Tag = a.Machine ? Lang.T("系统级") : Lang.T("用户级");
                 r.TagColor = a.Machine ? Theme.Blue : Theme.Accent;
-                r.Action = "卸载";
+                r.Action = Lang.T("卸载");
                 r.ActionColor = Theme.Danger;
                 r.Data = a;
                 rows.Add(r);
@@ -154,7 +154,7 @@ namespace CCDesk
             Theme.Txt(e.Graphics, _status, Theme.F(8.5f), Theme.Muted, 4, 20);
             if (_selected != null)
             {
-                Theme.Txt(e.Graphics, "已选择：" + _selected.Name, Theme.F(8.5f), Theme.TextDim, 4, 40);
+                Theme.Txt(e.Graphics, Lang.T("已选择：") + _selected.Name, Theme.F(8.5f), Theme.TextDim, 4, 40);
             }
         }
 
@@ -167,15 +167,15 @@ namespace CCDesk
             _selected = a;
             _bar.Invalidate();
 
-            bool ok = Dlg.Confirm(FindForm(), "卸载 " + a.Name + "？",
-                "将调用该应用自带的卸载器：\n" + Theme.ShortPath(a.Uninstall, 120) +
-                "\n\n卸载器结束后，可继续扫描并清理残留目录（移入回收站）。" + (a.Machine && !Native.IsAdmin() ? "\n\n系统级程序会请求管理员权限。" : ""),
-                "开始卸载", true);
+            bool ok = Dlg.Confirm(FindForm(), Lang.T("卸载 ") + a.Name + "？",
+                Lang.T("将调用该应用自带的卸载器：\n") + Theme.ShortPath(a.Uninstall, 120) +
+                Lang.T("\n\n卸载器结束后，可继续扫描并清理残留目录（移入回收站）。") + (a.Machine && !Native.IsAdmin() ? Lang.T("\n\n系统级程序会请求管理员权限。") : ""),
+                Lang.T("开始卸载"), true);
             if (!ok) return;
 
             _busy = true;
             _spinner.Spin(true);
-            _status = "正在卸载 " + a.Name + "（请在弹出的卸载窗口中完成操作）...";
+            _status = Lang.T("正在卸载 ") + a.Name + Lang.T("（请在弹出的卸载窗口中完成操作）...");
             _bar.Invalidate();
             ThreadPool.QueueUserWorkItem(delegate
             {
@@ -205,19 +205,19 @@ namespace CCDesk
             List<CleanItem> left = Apps.FindLeftovers(a, null);
             if (left.Count == 0)
             {
-                Dlg.Info(FindForm(), "卸载完成", "没有发现残留目录。");
+                Dlg.Info(FindForm(), Lang.T("卸载完成"), Lang.T("没有发现残留目录。"));
                 return;
             }
             long bytes = 0;
-            string detail = "发现 " + left.Count + " 处残留，可移入回收站：\n";
+            string detail = Lang.T("发现 ") + left.Count + Lang.T(" 处残留，可移入回收站：\n");
             for (int i = 0; i < left.Count && i < 6; i++)
             {
                 detail += "· " + Theme.ShortPath(left[i].Path, 70) + "   " + Byt.Format(left[i].Bytes) + "\n";
                 bytes += left[i].Bytes;
             }
-            if (left.Count > 6) detail += "· 其余 " + (left.Count - 6) + " 处";
-            detail += "\n合计 " + Byt.Format(bytes);
-            bool ok = Dlg.Confirm(FindForm(), "清理残留文件？", detail, "移入回收站", false);
+            if (left.Count > 6) detail += Lang.T("· 其余 ") + (left.Count - 6) + Lang.T(" 处");
+            detail += Lang.T("\n合计 ") + Byt.Format(bytes);
+            bool ok = Dlg.Confirm(FindForm(), Lang.T("清理残留文件？"), detail, Lang.T("移入回收站"), false);
             if (!ok) return;
 
             ThreadPool.QueueUserWorkItem(delegate
@@ -229,9 +229,9 @@ namespace CCDesk
                 {
                     BeginInvoke((MethodInvoker)delegate
                     {
-                        Dlg.Info(FindForm(), "残留清理完成", "释放 " + Byt.Format(freed) + (errors > 0 ? "，" + errors + " 项失败" : ""));
+                        Dlg.Info(FindForm(), Lang.T("残留清理完成"), Lang.T("释放 ") + Byt.Format(freed) + (errors > 0 ? "，" + errors + Lang.T(" 项失败") : ""));
                         OpLog.Write("leftover", a.Name, freed);
-                        _status = "残留已清理 " + Byt.Format(freed);
+                        _status = Lang.T("残留已清理 ") + Byt.Format(freed);
                         _bar.Invalidate();
                         Load();
                     });

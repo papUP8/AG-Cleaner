@@ -9,8 +9,8 @@ namespace CCDesk
 {
     public class StartupPage : PageBase
     {
-        public override string PageTitle { get { return "启动项管理"; } }
-        public override string PageSubtitle { get { return "用户启动项、计划任务、自动插件、应用软件服务、系统关键服务；禁用前自动备份，可一键还原"; } }
+        public override string PageTitle { get { return Lang.T("启动项管理"); } }
+        public override string PageSubtitle { get { return Lang.T("用户启动项、计划任务、自动插件、应用软件服务、系统关键服务；禁用前自动备份，可一键还原"); } }
 
         private VList _list;
         private ActionBar _bar;
@@ -19,7 +19,7 @@ namespace CCDesk
         private List<Chip> _chips = new List<Chip>();
         private bool _busy;
         private string _filter = "all";
-        private string _status = "读取启动项...";
+        private string _status = Lang.T("读取启动项...");
         private Spinner _spinner;
         private ProgressBar2 _prog;
         private CheckBox2 _hide;
@@ -29,13 +29,13 @@ namespace CCDesk
         {
             _refresh = new Btn();
             _refresh.Kind = ButtonKind.Subtle;
-            _refresh.Text = "刷新";
+            _refresh.Text = Lang.T("刷新");
             _refresh.Size = new Size(80, 32);
             _refresh.Click += delegate { Load(); };
             Controls.Add(_refresh);
 
             _hide = new CheckBox2();
-            _hide.Text = "隐藏已禁用项";
+            _hide.Text = Lang.T("隐藏已禁用项");
             _hide.Checked = true;
             _hide.Size = new Size(148, 30);
             _hide.Changed += delegate
@@ -47,10 +47,10 @@ namespace CCDesk
 
             _list = new VList();
             _list.ShowCheck = false;
-            _list.RightHeader = "状态";
+            _list.RightHeader = Lang.T("状态");
             _list.RowHeight = 74;
-            _list.EmptyText = "没有启动项";
-            _list.EmptyHint = "当前分类下没有项目";
+            _list.EmptyText = Lang.T("没有启动项");
+            _list.EmptyHint = Lang.T("当前分类下没有项目");
             _list.ActionClicked += delegate { ToggleSelected(); };
             Controls.Add(_list);
 
@@ -123,7 +123,7 @@ namespace CCDesk
             _spinner.Spin(true);
             _prog.Visible = true;
             _prog.BringToFront();
-            _prog.SetProgress(5, "读取注册表与服务列表...");
+            _prog.SetProgress(5, Lang.T("读取注册表与服务列表..."));
             LayoutChildren();
             ThreadPool.QueueUserWorkItem(delegate
             {
@@ -166,13 +166,13 @@ namespace CCDesk
                 else if (it.Group == "syssvc") syssvc++;
             }
 
-            Chip all = MakeChip("全部", _items.Count, "all", true);
-            MakeChip("用户启动项", user, "user", false);
-            MakeChip("计划任务", task, "task", false);
-            MakeChip("自动插件", plugin, "plugin", false);
-            MakeChip("应用软件服务", appsvc, "appsvc", false);
-            MakeChip("系统关键服务", syssvc, "syssvc", false);
-            MakeChip("已禁用", off, "disabled", false);
+            Chip all = MakeChip(Lang.T("全部"), _items.Count, "all", true);
+            MakeChip(Lang.T("用户启动项"), user, "user", false);
+            MakeChip(Lang.T("计划任务"), task, "task", false);
+            MakeChip(Lang.T("自动插件"), plugin, "plugin", false);
+            MakeChip(Lang.T("应用软件服务"), appsvc, "appsvc", false);
+            MakeChip(Lang.T("系统关键服务"), syssvc, "syssvc", false);
+            MakeChip(Lang.T("已禁用"), off, "disabled", false);
             LayoutChildren();
         }
 
@@ -210,10 +210,10 @@ namespace CCDesk
                 VRow r = new VRow();
                 r.Title = it.Name;
                 ApplyAdvice(it, r);
-                r.Note = "命令：" + Theme.ShortPath(it.Command, 110);
+                r.Note = Lang.T("命令：") + Theme.ShortPath(it.Command, 110);
                 r.Tag = it.GroupText;
                 r.TagColor = GroupColor(it.Group);
-                r.Right = it.Enabled ? "已启用" : "已禁用";
+                r.Right = it.Enabled ? Lang.T("已启用") : Lang.T("已禁用");
                 r.Alarm = !it.Enabled;
                 r.Data = it;
                 if (it.IsService)
@@ -223,7 +223,7 @@ namespace CCDesk
                 }
                 else
                 {
-                    r.Action = it.Enabled ? "禁用" : "启用";
+                    r.Action = it.Enabled ? Lang.T("禁用") : Lang.T("启用");
                     r.ActionColor = it.Enabled ? Theme.Warn : Theme.Accent;
                 }
                 rows.Add(r);
@@ -231,7 +231,7 @@ namespace CCDesk
             _list.SetRows(rows);
             int off = 0;
             for (int i = 0; i < _items.Count; i++) if (!_items[i].Enabled) off++;
-            _status = "当前显示 " + shown + " 项 · 共 " + _items.Count + " 项，其中已禁用 " + off + " 项；服务项仅展示，不做修改";
+            _status = Lang.T("当前显示 ") + shown + Lang.T(" 项 · 共 ") + _items.Count + Lang.T(" 项，其中已禁用 ") + off + Lang.T(" 项；服务项仅展示，不做修改");
             _bar.Invalidate();
         }
 
@@ -248,16 +248,16 @@ namespace CCDesk
         {
             string n = (it.Name ?? "").ToLowerInvariant();
             string c = (it.Command ?? "").ToLowerInvariant();
-            bool isUpdater = Has(n, c, "update", "updater", "upgrade", "自动更新")
+            bool isUpdater = Has(n, c, "update", "updater", "upgrade", Lang.T("自动更新"))
                 || Has(n, c, "googleupdate", "gupdate", "edgeupdate", "adobeupdater", "ccxprocess", "sunjava")
                 || Has(n, c, "updatechecker", "wuauclt", "softwareupdate");
-            bool isSecurity = Has(n, c, "defender", "msmpeng", "securityhealth", "antivirus", "360", "huorong", "火绒", "安全")
+            bool isSecurity = Has(n, c, "defender", "msmpeng", "securityhealth", "antivirus", "360", "huorong", Lang.T("火绒"), Lang.T("安全"))
                 || Has(n, c, "kaspersky", "avast", "avg", "nod32", "eset");
-            bool isSync = Has(n, c, "onedrive", "dropbox", "baidunetdisk", "百度网盘", "阿里云盘", "坚果云", "sync");
-            bool isIme = Has(n, c, "sogou", "搜狗", "qq拼音", "ime", "input");
+            bool isSync = Has(n, c, "onedrive", "dropbox", "baidunetdisk", Lang.T("百度网盘"), Lang.T("阿里云盘"), Lang.T("坚果云"), "sync");
+            bool isIme = Has(n, c, "sogou", Lang.T("搜狗"), Lang.T("qq拼音"), "ime", "input");
             bool isAudio = Has(n, c, "audio", "realtek", "wave", "sound");
-            bool isGpu = Has(n, c, "amd", "nvidia", "nvsvc", "\\ati\\", "catalyst", "igfx", "intel graphics", "显卡");
-            bool isChat = Has(n, c, "wechat", "微信", "qq", "dingtalk", "钉钉", "wxwork", "企业微信", "telegram", "feishu", "飞书");
+            bool isGpu = Has(n, c, "amd", "nvidia", "nvsvc", "\\ati\\", "catalyst", "igfx", "intel graphics", Lang.T("显卡"));
+            bool isChat = Has(n, c, "wechat", Lang.T("微信"), "qq", "dingtalk", Lang.T("钉钉"), "wxwork", Lang.T("企业微信"), "telegram", "feishu", Lang.T("飞书"));
             bool isMsTask = it.IsTask && (c.Contains("\\microsoft\\windows\\") || c.Contains("microsoft\\windows\\")
                 || n.Contains("microsoft") || c.Contains("\\windows\\"));
 
@@ -268,67 +268,67 @@ namespace CCDesk
 
             if (isActiveSetup)
             {
-                text = "首次登录的一次性配置项：只在新建用户首次登录时执行，禁用不影响浏览器或程序正常使用";
+                text = Lang.T("首次登录的一次性配置项：只在新建用户首次登录时执行，禁用不影响浏览器或程序正常使用");
                 color = Theme.Accent;
             }
             else if (it.Group == "syssvc" || it.Group == "sys")
             {
-                text = "系统组件：禁用可能导致系统功能异常，不建议在此关闭";
+                text = Lang.T("系统组件：禁用可能导致系统功能异常，不建议在此关闭");
                 color = Theme.Danger;
             }
             else if (isSecurity)
             {
-                text = "安全防护组件：禁用会降低实时防护能力，不影响其他程序运行，但不建议禁用";
+                text = Lang.T("安全防护组件：禁用会降低实时防护能力，不影响其他程序运行，但不建议禁用");
                 color = Theme.Danger;
             }
             else if (isGpu || isAudio)
             {
-                text = "驱动相关服务：禁用可能影响显示效果或声音输出，不建议禁用，可保留默认";
+                text = Lang.T("驱动相关服务：禁用可能影响显示效果或声音输出，不建议禁用，可保留默认");
                 color = Theme.Warn;
             }
             else if (isMsTask)
             {
-                text = "Windows 自带维护任务：禁用会停止自动更新或诊断维护，一般建议保留";
+                text = Lang.T("Windows 自带维护任务：禁用会停止自动更新或诊断维护，一般建议保留");
                 color = Theme.Warn;
             }
             else if (isUpdater)
             {
-                text = "只负责自动更新：禁用后程序仍可正常手动使用，只是不再自动升级，可放心禁用";
+                text = Lang.T("只负责自动更新：禁用后程序仍可正常手动使用，只是不再自动升级，可放心禁用");
                 color = Theme.Accent;
             }
             else if (isSync)
             {
-                text = "只负责同步与备份：禁用后不再开机自动同步，手动打开程序仍可正常使用";
+                text = Lang.T("只负责同步与备份：禁用后不再开机自动同步，手动打开程序仍可正常使用");
                 color = Theme.Accent;
             }
             else if (isIme)
             {
-                text = "输入法预加载：禁用后仍可正常打字，只是首次切换输入法会稍慢";
+                text = Lang.T("输入法预加载：禁用后仍可正常打字，只是首次切换输入法会稍慢");
                 color = Theme.Accent;
             }
             else if (isChat)
             {
-                text = "通讯软件启动项：禁用后不会开机自动登录，手动打开仍可正常收发消息";
+                text = Lang.T("通讯软件启动项：禁用后不会开机自动登录，手动打开仍可正常收发消息");
                 color = Theme.Accent;
             }
             else if (it.Group == "plugin")
             {
-                text = "插件/右键菜单入口：禁用后对应菜单项消失，不影响程序主体功能";
+                text = Lang.T("插件/右键菜单入口：禁用后对应菜单项消失，不影响程序主体功能");
                 color = Theme.Accent;
             }
             else if (it.IsService)
             {
-                text = "应用后台服务：禁用后该软件的自动更新或托盘功能可能失效，程序主体一般仍可用，按需决定";
+                text = Lang.T("应用后台服务：禁用后该软件的自动更新或托盘功能可能失效，程序主体一般仍可用，按需决定");
                 color = Theme.Warn;
             }
             else if (it.IsTask)
             {
-                text = "计划任务：禁用后不再按计划自动执行，手动使用不受影响";
+                text = Lang.T("计划任务：禁用后不再按计划自动执行，手动使用不受影响");
                 color = Theme.Accent;
             }
             else
             {
-                text = "开机启动项：禁用后不会开机自动运行，程序仍可手动打开，不影响正常使用";
+                text = Lang.T("开机启动项：禁用后不会开机自动运行，程序仍可手动打开，不影响正常使用");
                 color = Theme.Accent;
             }
 
@@ -361,7 +361,7 @@ namespace CCDesk
         private void BarPaint(object sender, PaintEventArgs e)
         {
             Theme.Smooth(e.Graphics);
-            Theme.Txt(e.Graphics, "禁用只影响开机自启，不会删除程序；注册表项与文件均先备份", Theme.F(8.5f), Theme.TextDim, 4, 12);
+            Theme.Txt(e.Graphics, Lang.T("禁用只影响开机自启，不会删除程序；注册表项与文件均先备份"), Theme.F(8.5f), Theme.TextDim, 4, 12);
             Theme.Txt(e.Graphics, _status, Theme.F(8f), Theme.Muted, 4, 34);
         }
 
@@ -373,17 +373,17 @@ namespace CCDesk
             if (it == null) return;
             if (it.IsService)
             {
-                Dlg.Info(FindForm(), "系统服务仅展示", "服务项涉及系统组件，CC-Desk 不在此处启停。\n如需调整，请在“服务”管理器中操作，或使用系统配置工具。");
+                Dlg.Info(FindForm(), Lang.T("系统服务仅展示"), Lang.T("服务项涉及系统组件，CC-Desk 不在此处启停。\n如需调整，请在“服务”管理器中操作，或使用系统配置工具。"));
                 return;
             }
             string message = "";
             bool ok;
             if (it.Enabled)
             {
-                string mode = it.IsTask ? "计划任务" : (it.IsFile ? "启动文件夹项" : "注册表启动项");
-                bool confirm = Dlg.Confirm(FindForm(), "禁用" + mode + " " + it.Name + "？",
-                    "命令：" + Theme.ShortPath(it.Command, 90) + "\n\n禁用只阻止它开机自动运行，不会删除程序本身。原始数据会自动备份，可在此页随时“启用”还原。",
-                    "禁用", false);
+                string mode = it.IsTask ? Lang.T("计划任务") : (it.IsFile ? Lang.T("启动文件夹项") : Lang.T("注册表启动项"));
+                bool confirm = Dlg.Confirm(FindForm(), Lang.T("禁用") + mode + " " + it.Name + "？",
+                    Lang.T("命令：") + Theme.ShortPath(it.Command, 90) + Lang.T("\n\n禁用只阻止它开机自动运行，不会删除程序本身。原始数据会自动备份，可在此页随时“启用”还原。"),
+                    Lang.T("禁用"), false);
                 if (!confirm) return;
                 ok = Startup.Disable(it, out message);
             }

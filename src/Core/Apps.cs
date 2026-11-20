@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -37,7 +37,7 @@ namespace CCDesk.Core
         public static List<App> List(Action<string> report)
         {
             List<App> apps = new List<App>();
-            if (report != null) report("读取已安装程序...");
+            if (report != null) report(Lang.T("读取已安装程序..."));
             foreach (string root in UninstallRoots)
             {
                 ReadHive(Registry.LocalMachine, root, true, apps);
@@ -55,7 +55,7 @@ namespace CCDesk.Core
                 unique.Add(apps[i]);
             }
 
-            if (report != null) report("统计安装体积（约 8 秒）...");
+            if (report != null) report(Lang.T("统计安装体积（约 8 秒）..."));
             Stopwatch sw = Stopwatch.StartNew();
             for (int i = 0; i < unique.Count; i++)
             {
@@ -148,7 +148,7 @@ namespace CCDesk.Core
         {
             message = "";
             string cmd = silent && app.Quiet.Length > 0 ? app.Quiet : app.Uninstall;
-            if (cmd.Length == 0) { message = "找不到卸载命令"; return false; }
+            if (cmd.Length == 0) { message = Lang.T("找不到卸载命令"); return false; }
 
             string lower = cmd.ToLowerInvariant();
             if ((lower.Contains("msiexec") || lower.Contains("msi")) && lower.Contains("/i"))
@@ -174,15 +174,15 @@ namespace CCDesk.Core
                     psi.Verb = "runas";
                 }
                 Process p = Process.Start(psi);
-                if (p == null) { message = "无法启动卸载器"; return false; }
+                if (p == null) { message = Lang.T("无法启动卸载器"); return false; }
                 p.WaitForExit();
-                message = "卸载器已结束 (exit " + p.ExitCode + ")";
+                message = Lang.T("卸载器已结束 (exit ") + p.ExitCode + ")";
                 OpLog.Write("uninstall", app.Name, 0);
                 return true;
             }
             catch (Exception ex)
             {
-                message = "卸载失败：" + ex.Message;
+                message = Lang.T("卸载失败：") + ex.Message;
                 return false;
             }
         }
@@ -231,7 +231,7 @@ namespace CCDesk.Core
                 for (int j = 0; j < items.Count; j++) if (items[j].Path == c) dup = true;
                 if (dup) continue;
                 CleanItem it = new CleanItem();
-                it.Name = app.Name + " 残留";
+                it.Name = app.Name + Lang.T(" 残留");
                 it.Path = c;
                 it.Kind = CleanKind.DirItself;
                 it.Bytes = size;
@@ -239,7 +239,7 @@ namespace CCDesk.Core
                 it.Exists = true;
                 items.Add(it);
             }
-            if (report != null) report("残留扫描完成：" + items.Count + " 项");
+            if (report != null) report(Lang.T("残留扫描完成：") + items.Count + Lang.T(" 项"));
             return items;
         }
     }

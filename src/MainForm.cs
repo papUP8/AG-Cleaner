@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
@@ -49,6 +49,7 @@ namespace CCDesk
         private int _current = 0;
         private Timer _tick;
         private Label _verLabel;
+        private Label _credit;
         private Badge _adminBadge;
         private Seg3 _themeSeg;
         private Timer _sysWatch;
@@ -62,7 +63,7 @@ namespace CCDesk
 
         public MainForm()
         {
-            Text = "CC-Desk 桌面清理";
+            Text = Lang.T("CC-Desk 桌面清理");
             FormBorderStyle = FormBorderStyle.None;
             StartPosition = FormStartPosition.CenterScreen;
             ClientSize = new Size(1200, 788);
@@ -231,9 +232,9 @@ namespace CCDesk
                 Theme.Txt(g, "C", Theme.F(12f, FontStyle.Bold), Theme.AccentFg, logo, sf);
             }
             Theme.Txt(g, "CC-Desk", Theme.F(12f, FontStyle.Bold), Theme.TitleText, 54, 14);
-            Theme.Txt(g, "桌面清理与优化 · Windows", Theme.F(8f), Theme.TitleDim, 54, 34);
+            Theme.Txt(g, Lang.T("桌面清理与优化 · Windows"), Theme.F(8f), Theme.TitleDim, 54, 34);
 
-            string admin = Native.IsAdmin() ? "管理员模式" : "普通用户";
+            string admin = Native.IsAdmin() ? Lang.T("管理员模式") : Lang.T("普通用户");
             Color ac = Native.IsAdmin() ? Theme.Accent : Theme.Warn;
             Font f = Theme.F(8f);
             int w = (int)g.MeasureString(admin, f).Width + 20;
@@ -263,7 +264,7 @@ namespace CCDesk
             };
             Controls.Add(_sidebar);
 
-            string[] names = new string[] { "概览", "深度清理", "残留清理", "应用卸载", "启动项管理", "磁盘分析", "系统优化", "历史记录", "设置" };
+            string[] names = new string[] { Lang.T("概览"), Lang.T("深度清理"), Lang.T("残留清理"), Lang.T("应用卸载"), Lang.T("启动项管理"), Lang.T("磁盘分析"), Lang.T("系统优化"), Lang.T("历史记录"), Lang.T("设置") };
             string[] glyphs = new string[] { "◉", "✦", "⌫", "▣", "⚡", "▤", "⚙", "↺", "☰" };
 
             for (int i = 0; i < names.Length; i++)
@@ -289,13 +290,14 @@ namespace CCDesk
             _sidebar.Controls.Add(_verLabel);
 
             Label credit = new Label();
+            _credit = credit;
             credit.AutoSize = false;
             credit.BackColor = Theme.SidebarBg;
             credit.ForeColor = Theme.Muted;
             credit.Font = Theme.F(7.5f);
             credit.TextAlign = ContentAlignment.MiddleLeft;
-            credit.Text = "社区版 · GPL-3.0 · 代码开源";
-            credit.SetBounds(20, ClientSize.Height - TitleH - 40, SidebarW - 40, 20);
+            credit.Text = Lang.T("社区版 · GPL-3.0 · 代码开源");
+            credit.SetBounds(20, ClientSize.Height - TitleH - 40, SidebarW - 24, 20);
             _sidebar.Controls.Add(credit);
         }
 
@@ -319,6 +321,27 @@ namespace CCDesk
                 new HistoryPage(),
                 new SettingsPage()
             };
+            AddPages(pages);
+        }
+
+        private PageBase[] CreatePages()
+        {
+            return new PageBase[]
+            {
+                new DashboardPage(),
+                new CleanPage(),
+                new OrphanPage(),
+                new UninstallPage(),
+                new StartupPage(),
+                new AnalyzePage(),
+                new OptimizePage(),
+                new HistoryPage(),
+                new SettingsPage()
+            };
+        }
+
+        private void AddPages(PageBase[] pages)
+        {
             for (int i = 0; i < pages.Length; i++)
             {
                 pages[i].SetBounds(28, 18, _content.Width - 56, _content.Height - 36);
@@ -327,6 +350,34 @@ namespace CCDesk
                 pages[i].Visible = false;
                 _pages.Add(pages[i]);
             }
+        }
+
+        /// <summary>切换界面语言后按新文案重建全部页面（页面内的扫描结果会清空）。</summary>
+        public void ReloadPages(int gotoIndex)
+        {
+            for (int i = 0; i < _pages.Count; i++)
+            {
+                _content.Controls.Remove(_pages[i]);
+                _pages[i].Dispose();
+            }
+            _pages.Clear();
+            Text = Lang.T("CC-Desk 桌面清理");
+            RetranslateChrome();
+            AddPages(CreatePages());
+            SelectPage(gotoIndex < 0 || gotoIndex >= _pages.Count ? 0 : gotoIndex);
+        }
+
+        private void RetranslateChrome()
+        {
+            string[] keys = new string[] { "概览", "深度清理", "残留清理", "应用卸载", "启动项管理", "磁盘分析", "系统优化", "历史记录", "设置" };
+            for (int i = 0; i < _navs.Count && i < keys.Length; i++)
+            {
+                _navs[i].Text = Lang.T(keys[i]);
+                _navs[i].Invalidate();
+            }
+            if (_credit != null) _credit.Text = Lang.T("社区版 · GPL-3.0 · 代码开源");
+            if (_verLabel != null) _verLabel.Text = "v" + Program.Version + "  · GPL-3.0";
+            Invalidate(true);
         }
 
         protected override void OnResize(EventArgs e)

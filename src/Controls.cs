@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
@@ -386,7 +386,7 @@ namespace CCDesk
         public int RowHeight = 54;
         public bool ShowCheck = true;
         public string RightHeader = "";
-        public string EmptyText = "暂无内容";
+        public string EmptyText = Lang.T("暂无内容");
         public string EmptyHint = "";
         public bool NormalizeTags = false;
 
@@ -565,7 +565,7 @@ namespace CCDesk
             {
                 using (StringFormat sf = Theme.SF(StringAlignment.Near, StringAlignment.Near))
                 {
-                    Theme.Txt(g, "项目", Theme.F(8.5f), Theme.Muted, new Rectangle(20, 6, 200, 20), sf);
+                    Theme.Txt(g, Lang.T("项目"), Theme.F(8.5f), Theme.Muted, new Rectangle(20, 6, 200, 20), sf);
                 }
                 using (StringFormat sf = Theme.SF(StringAlignment.Far, StringAlignment.Near))
                 {
@@ -712,7 +712,7 @@ namespace CCDesk
     /// <summary>三档分段选择器：系统 / 浅色 / 深色。</summary>
     public class Seg3 : Control
     {
-        public string[] Labels = new string[] { "系统", "浅色", "深色" };
+        public string[] Labels = new string[] { Lang.T("系统"), Lang.T("浅色"), Lang.T("深色") };
         public string[] Modes = new string[] { "system", "light", "dark" };
         public string Mode = "dark";
         private int _hover = -1;
@@ -901,7 +901,7 @@ namespace CCDesk
     public class SearchBox : Control
     {
         public TextBox Input;
-        private string _placeholder = "搜索...";
+        private string _placeholder = Lang.T("搜索...");
 
         [System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
         private static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, string lParam);
@@ -977,7 +977,7 @@ namespace CCDesk
     public class Ring : Control
     {
         public int Score = 0;
-        public string Caption = "健康评分";
+        public string Caption = Lang.T("健康评分");
         private double _anim = 0;
 
         public Ring()
@@ -1093,7 +1093,7 @@ namespace CCDesk
 
             using (StringFormat sf = Theme.SF(StringAlignment.Near, StringAlignment.Near))
             {
-                Theme.Txt(g, Caption.Length == 0 ? "准备中..." : Caption, capFont, Theme.TextDim,
+                Theme.Txt(g, Caption.Length == 0 ? Lang.T("准备中...") : Caption, capFont, Theme.TextDim,
                           new Rectangle(pad, 6, Width - pad * 2 - percentW, 18), sf);
             }
             using (StringFormat sf = Theme.SF(StringAlignment.Far, StringAlignment.Near))

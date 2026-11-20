@@ -10,8 +10,8 @@ namespace CCDesk
 {
     public class HistoryPage : PageBase
     {
-        public override string PageTitle { get { return "历史记录"; } }
-        public override string PageSubtitle { get { return "每次清理、卸载、启动项改动都会写入本地操作日志"; } }
+        public override string PageTitle { get { return Lang.T("历史记录"); } }
+        public override string PageSubtitle { get { return Lang.T("每次清理、卸载、启动项改动都会写入本地操作日志"); } }
 
         private VList _list;
         private ActionBar _bar;
@@ -25,25 +25,25 @@ namespace CCDesk
         {
             _refresh = new Btn();
             _refresh.Kind = ButtonKind.Subtle;
-            _refresh.Text = "刷新";
+            _refresh.Text = Lang.T("刷新");
             _refresh.Size = new Size(80, 32);
             _refresh.Click += delegate { Load(); };
             Controls.Add(_refresh);
 
             _export = new Btn();
             _export.Kind = ButtonKind.Ghost;
-            _export.Text = "导出 CSV";
+            _export.Text = Lang.T("导出 CSV");
             _export.Size = new Size(96, 32);
             _export.Click += delegate { Export(); };
             Controls.Add(_export);
 
             _clear = new Btn();
             _clear.Kind = ButtonKind.Link;
-            _clear.Text = "清空日志";
+            _clear.Text = Lang.T("清空日志");
             _clear.Size = new Size(80, 30);
             _clear.Click += delegate
             {
-                if (Dlg.Confirm(FindForm(), "清空操作日志？", "历史记录将被删除，不影响已执行的操作。", "清空", true))
+                if (Dlg.Confirm(FindForm(), Lang.T("清空操作日志？"), Lang.T("历史记录将被删除，不影响已执行的操作。"), Lang.T("清空"), true))
                 {
                     OpLog.Clear();
                     Load();
@@ -53,10 +53,10 @@ namespace CCDesk
 
             _list = new VList();
             _list.ShowCheck = false;
-            _list.RightHeader = "释放";
+            _list.RightHeader = Lang.T("释放");
             _list.RowHeight = 52;
-            _list.EmptyText = "暂无操作记录";
-            _list.EmptyHint = "执行清理或卸载后，这里会留下审计记录";
+            _list.EmptyText = Lang.T("暂无操作记录");
+            _list.EmptyHint = Lang.T("执行清理或卸载后，这里会留下审计记录");
             Controls.Add(_list);
 
             _bar = new ActionBar();
@@ -106,7 +106,7 @@ namespace CCDesk
                 total += e.Bytes;
             }
             _list.SetRows(rows);
-            _status = "共 " + _entries.Count + " 条记录 · 累计释放 " + Byt.Format(total) + " · 日志文件 " + Store.OpLogFile;
+            _status = Lang.T("共 ") + _entries.Count + Lang.T(" 条记录 · 累计释放 ") + Byt.Format(total) + Lang.T(" · 日志文件 ") + Store.OpLogFile;
             _bar.Invalidate();
         }
 
@@ -120,20 +120,20 @@ namespace CCDesk
         {
             try
             {
-                string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "CCDesk-历史记录.csv");
+                string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "CCDesk-history.csv");
                 StringBuilder sb = new StringBuilder();
-                sb.AppendLine("时间,操作,释放字节,路径");
+                sb.AppendLine(Lang.T("时间,操作,释放字节,路径"));
                 for (int i = 0; i < _entries.Count; i++)
                 {
                     OpLog.Entry e = _entries[i];
                     sb.AppendLine(e.Time.ToString("yyyy-MM-dd HH:mm:ss") + "," + OpLog.ActionLabel(e.Action) + "," + e.Bytes + ",\"" + e.Path.Replace("\"", "\"\"") + "\"");
                 }
                 File.WriteAllText(path, sb.ToString(), Encoding.UTF8);
-                Dlg.Info(FindForm(), "已导出", path);
+                Dlg.Info(FindForm(), Lang.T("已导出"), path);
             }
             catch (Exception ex)
             {
-                Dlg.Info(FindForm(), "导出失败", ex.Message);
+                Dlg.Info(FindForm(), Lang.T("导出失败"), ex.Message);
             }
         }
     }

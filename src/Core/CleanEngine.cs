@@ -262,7 +262,7 @@ namespace CCDesk.Core
             public int Total = 13;
             public void Begin(string text) { Report(P, 4 + Step * 32 / Total, text); }
             public Action<string> Msg(string text) { return delegate (string m) { Report(P, 4 + Step * 32 / Total, text); }; }
-            public void Next() { Step++; Report(P, 4 + Step * 32 / Total, "已完成分类列举 " + Step + "/" + Total); }
+            public void Next() { Step++; Report(P, 4 + Step * 32 / Total, Lang.T("已完成分类列举 ") + Step + "/" + Total); }
         }
 
         public static string LocalAppData { get { return Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData); } }
@@ -280,21 +280,21 @@ namespace CCDesk.Core
             List<CleanCategory> cats = new List<CleanCategory>();
             ScanCtx c = new ScanCtx();
             c.P = prog;
-            Report(prog, 3, "正在列举可清理目录...");
+            Report(prog, 3, Lang.T("正在列举可清理目录..."));
 
-            cats.Add(ScanUserTemp(s, c.Msg("扫描临时文件与临时目录..."))); c.Next();
-            cats.Add(ScanBrowser(s, c.Msg("扫描浏览器缓存..."))); c.Next();
-            cats.Add(ScanApps(s, c.Msg("扫描应用缓存与 UWP 缓存..."))); c.Next();
-            cats.Add(ScanTraces(s, c.Msg("扫描缩略图与图标数据库..."))); c.Next();
-            cats.Add(ScanSystem(s, c.Msg("扫描系统缓存与日志..."))); c.Next();
-            cats.Add(ScanDeep(s, c.Msg("扫描旧系统备份与组件缓存..."))); c.Next();
-            if (s.CleanGpuShaders) cats.Add(ScanGpu(c.Msg("扫描显卡着色器缓存...")));
-            cats.Add(ScanLogsReports(c.Msg("扫描崩溃转储与错误报告..."))); c.Next();
-            cats.Add(ScanUsage(s, c.Msg("扫描使用痕迹..."))); c.Next();
-            if (s.DeleteOldInstallers) cats.Add(ScanInstallers(c.Msg("扫描下载目录的旧安装包...")));
-            if (s.CleanProjectArtifacts) cats.Add(ScanProjects(s, c.Msg("扫描项目构建产物...")));
-            cats.Add(ScanBigLogs(c.Msg("扫描大体积日志与转储文件..."))); c.Next();
-            cats.Add(ScanRecycleBin(c.Msg("检查回收站..."))); c.Next();
+            cats.Add(ScanUserTemp(s, c.Msg(Lang.T("扫描临时文件与临时目录...")))); c.Next();
+            cats.Add(ScanBrowser(s, c.Msg(Lang.T("扫描浏览器缓存...")))); c.Next();
+            cats.Add(ScanApps(s, c.Msg(Lang.T("扫描应用缓存与 UWP 缓存...")))); c.Next();
+            cats.Add(ScanTraces(s, c.Msg(Lang.T("扫描缩略图与图标数据库...")))); c.Next();
+            cats.Add(ScanSystem(s, c.Msg(Lang.T("扫描系统缓存与日志...")))); c.Next();
+            cats.Add(ScanDeep(s, c.Msg(Lang.T("扫描旧系统备份与组件缓存...")))); c.Next();
+            if (s.CleanGpuShaders) cats.Add(ScanGpu(c.Msg(Lang.T("扫描显卡着色器缓存..."))));
+            cats.Add(ScanLogsReports(c.Msg(Lang.T("扫描崩溃转储与错误报告...")))); c.Next();
+            cats.Add(ScanUsage(s, c.Msg(Lang.T("扫描使用痕迹...")))); c.Next();
+            if (s.DeleteOldInstallers) cats.Add(ScanInstallers(c.Msg(Lang.T("扫描下载目录的旧安装包..."))));
+            if (s.CleanProjectArtifacts) cats.Add(ScanProjects(s, c.Msg(Lang.T("扫描项目构建产物..."))));
+            cats.Add(ScanBigLogs(c.Msg(Lang.T("扫描大体积日志与转储文件...")))); c.Next();
+            cats.Add(ScanRecycleBin(c.Msg(Lang.T("检查回收站...")))); c.Next();
 
             List<CleanItem> all = new List<CleanItem>();
             for (int i = 0; i < cats.Count; i++)
@@ -309,7 +309,7 @@ namespace CCDesk.Core
 
             if (all.Count > 0)
             {
-                Report(prog, 36, "正在统计 " + all.Count + " 个项目的体积...");
+                Report(prog, 36, Lang.T("正在统计 ") + all.Count + Lang.T(" 个项目的体积..."));
                 int done = 0;
                 int lastPct = 36;
                 System.Threading.Tasks.Parallel.For(0, all.Count, delegate (int idx)
@@ -324,7 +324,7 @@ namespace CCDesk.Core
                         System.Threading.Interlocked.Exchange(ref lastPct, pct);
                         string label = it.Name;
                         if (label.Length > 26) label = label.Substring(0, 26) + "…";
-                        Report(prog, pct, "统计体积 " + d + "/" + all.Count + " · " + label);
+                        Report(prog, pct, Lang.T("统计体积 ") + d + "/" + all.Count + " · " + label);
                     }
                 });
             }
@@ -339,8 +339,8 @@ namespace CCDesk.Core
                 }
                 cats[i].Items = keep;
             }
-            Report(prog, 99, "整理清单...");
-            Report(prog, 100, "扫描完成");
+            Report(prog, 99, Lang.T("整理清单..."));
+            Report(prog, 100, Lang.T("扫描完成"));
             return cats;
         }
 
@@ -483,16 +483,16 @@ namespace CCDesk.Core
         private static CleanCategory ScanUserTemp(Settings s, Action<string> report)
         {
             string desc = s.TempDays <= 0
-                ? "系统与用户临时目录里未被占用的全部文件"
-                : "系统与用户临时目录中 " + s.TempDays + " 天前的文件";
-            CleanCategory cat = NewCat("temp", "临时文件", desc, "🕒", true);
-            R(report, "扫描临时文件...");
-            string tn = s.TempDays <= 0 ? "用户临时目录" : "用户临时目录（" + s.TempDays + " 天前）";
+                ? Lang.T("系统与用户临时目录里未被占用的全部文件")
+                : Lang.T("系统与用户临时目录中 ") + s.TempDays + Lang.T(" 天前的文件");
+            CleanCategory cat = NewCat("temp", Lang.T("临时文件"), desc, "🕒", true);
+            R(report, Lang.T("扫描临时文件..."));
+            string tn = s.TempDays <= 0 ? Lang.T("用户临时目录") : Lang.T("用户临时目录（") + s.TempDays + Lang.T(" 天前）");
             AddDirItem(cat, tn, Temp, CleanKind.OldFilesInDir, s.TempDays, s.UseRecycleBin);
             string localTemp = Path.Combine(LocalAppData, "Temp");
             if (Guard.Norm(localTemp) != Guard.Norm(Temp))
             {
-                AddDirItem(cat, "本地临时目录", localTemp, CleanKind.OldFilesInDir, s.TempDays, s.UseRecycleBin);
+                AddDirItem(cat, Lang.T("本地临时目录"), localTemp, CleanKind.OldFilesInDir, s.TempDays, s.UseRecycleBin);
             }
             return cat;
         }
@@ -530,8 +530,8 @@ namespace CCDesk.Core
 
         private static CleanCategory ScanBrowser(Settings s, Action<string> report)
         {
-            CleanCategory cat = NewCat("browser", "浏览器缓存", "网页缓存、着色器缓存与代码缓存，不影响书签与登录状态", "🌐", true);
-            R(report, "扫描浏览器缓存...");
+            CleanCategory cat = NewCat("browser", Lang.T("浏览器缓存"), Lang.T("网页缓存、着色器缓存与代码缓存，不影响书签与登录状态"), "🌐", true);
+            R(report, Lang.T("扫描浏览器缓存..."));
             string la = LocalAppData;
 
             string[] rootLeaves = new string[] { "ShaderCache", "GrShaderCache", "Crashpad", "BrowserMetrics" };
@@ -542,8 +542,8 @@ namespace CCDesk.Core
             ScanChromium(cat, s, "Edge Dev", Path.Combine(la, @"Microsoft\Edge Dev\User Data"), rootLeaves);
             ScanChromium(cat, s, "Brave", Path.Combine(la, @"BraveSoftware\Brave-Browser\User Data"), null);
             ScanChromium(cat, s, "Vivaldi", Path.Combine(la, @"Vivaldi\User Data"), null);
-            ScanChromium(cat, s, "360 极速浏览器", Path.Combine(la, @"360Chrome\Chrome\User Data"), rootLeaves);
-            ScanChromium(cat, s, "夸克浏览器", Path.Combine(la, @"Quark\User Data"), rootLeaves);
+            ScanChromium(cat, s, Lang.T("360 极速浏览器"), Path.Combine(la, @"360Chrome\Chrome\User Data"), rootLeaves);
+            ScanChromium(cat, s, Lang.T("夸克浏览器"), Path.Combine(la, @"Quark\User Data"), rootLeaves);
             ScanChromiumGeneric(cat, s);
 
             // WebView2（Edge 内核嵌入控件）缓存
@@ -570,7 +570,7 @@ namespace CCDesk.Core
                 for (int i = 0; i < profiles.Length; i++)
                 {
                     AddDirItem(cat, "Firefox · " + Path.GetFileName(profiles[i]) + "\\cache2", Path.Combine(profiles[i], "cache2"), CleanKind.DirContents, 0, s.UseRecycleBin);
-                    AddDirItem(cat, "Firefox · 启动缓存", Path.Combine(profiles[i], "startupCache"), CleanKind.DirContents, 0, s.UseRecycleBin);
+                    AddDirItem(cat, Lang.T("Firefox · 启动缓存"), Path.Combine(profiles[i], "startupCache"), CleanKind.DirContents, 0, s.UseRecycleBin);
                 }
             }
             return cat;
@@ -587,8 +587,8 @@ namespace CCDesk.Core
 
         private static CleanCategory ScanApps(Settings s, Action<string> report)
         {
-            CleanCategory cat = NewCat("apps", "应用缓存", "聊天、办公、剪辑类应用的缓存，保留账号与本地文件", "📦", true);
-            R(report, "扫描应用缓存...");
+            CleanCategory cat = NewCat("apps", Lang.T("应用缓存"), Lang.T("聊天、办公、剪辑类应用的缓存，保留账号与本地文件"), "📦", true);
+            R(report, Lang.T("扫描应用缓存..."));
             string ra = RoamingAppData;
             string la = LocalAppData;
             string[] electron = new string[] { "Cache", "Code Cache", "GPUCache" };
@@ -603,25 +603,25 @@ namespace CCDesk.Core
             AddAppLeaves(cat, s, "Obsidian", Path.Combine(ra, "Obsidian"), electron);
             AddAppLeaves(cat, s, "Notion", Path.Combine(ra, "Notion"), electron);
             AddAppLeaves(cat, s, "QQ", Path.Combine(ra, "QQ"), new string[] { "Cache", "Code Cache" });
-            AddAppLeaves(cat, s, "飞书 Feishu", Path.Combine(ra, "LarkShell"), new string[] { @"aha\users\global\profile_global\Cache", @"aha\users\global\profile_global\Code Cache", @"aha\users\global\profile_global\GPUCache", "ShaderCache", "GrShaderCache" });
+            AddAppLeaves(cat, s, Lang.T("飞书 Feishu"), Path.Combine(ra, "LarkShell"), new string[] { @"aha\users\global\profile_global\Cache", @"aha\users\global\profile_global\Code Cache", @"aha\users\global\profile_global\GPUCache", "ShaderCache", "GrShaderCache" });
             AddAppLeaves(cat, s, "Lark", Path.Combine(ra, "LarkInternational"), new string[] { @"aha\users\global\profile_global\Cache", @"aha\users\global\profile_global\Code Cache", @"aha\users\global\profile_global\GPUCache", "ShaderCache", "GrShaderCache" });
-            AddAppLeaves(cat, s, "剪映 JianyingPro", Path.Combine(la, @"JianyingPro\User Data\CEF"), new string[] { @"Cache\Cache", @"Cache\Code Cache", @"Cache\GPUCache", "ShaderCache", "GrShaderCache" });
+            AddAppLeaves(cat, s, Lang.T("剪映 JianyingPro"), Path.Combine(la, @"JianyingPro\User Data\CEF"), new string[] { @"Cache\Cache", @"Cache\Code Cache", @"Cache\GPUCache", "ShaderCache", "GrShaderCache" });
             AddAppLeaves(cat, s, "CapCut", Path.Combine(la, @"CapCut\User Data\CEF"), new string[] { @"Cache\Cache", @"Cache\Code Cache", @"Cache\GPUCache", "ShaderCache" });
             AddAppLeaves(cat, s, "Epic Games", Path.Combine(la, @"EpicGamesLauncher\Saved\webcache"), new string[] { "" });
-            AddAppLeaves(cat, s, "WPS Office 缓存", Path.Combine(ra, @"Kingsoft\office6\cache"), new string[] { "" });
-            AddAppLeaves(cat, s, "Office 文件缓存", Path.Combine(la, @"Microsoft\Office\16.0\OfficeFileCache"), new string[] { "" });
-            AddAppLeaves(cat, s, "Office 未保存文件", Path.Combine(la, @"Microsoft\Office\UnsavedFiles"), new string[] { "" });
-            AddAppLeaves(cat, s, "Adobe 媒体缓存", Path.Combine(ra, @"Adobe\Common\Media Cache Files"), new string[] { "" });
-            AddAppLeaves(cat, s, "Adobe 媒体缓存数据库", Path.Combine(ra, @"Adobe\Common\Media Cache"), new string[] { "" });
-            AddAppLeaves(cat, s, "Steam 网页缓存", Path.Combine(la, @"Steam\htmlcache"), new string[] { "" });
-            AddAppLeaves(cat, s, "Steam 着色器缓存", Path.Combine(la, @"Steam\steamapps\shadercache"), new string[] { "" });
-            AddAppLeaves(cat, s, "网易云音乐缓存", Path.Combine(la, @"Netease\CloudMusic\Cache"), new string[] { "" });
-            AddAppLeaves(cat, s, "企业微信缓存", Path.Combine(ra, @"Tencent\WXWork\Global\Cache"), new string[] { "" });
-            AddAppLeaves(cat, s, "微信开发者工具缓存", Path.Combine(la, @"微信开发者工具\User Data"), new string[] { @"Default\Cache", @"Default\Code Cache", @"Default\GPUCache" });
-            AddAppLeaves(cat, s, "钉钉缓存", Path.Combine(la, @"DingTalk\cache"), new string[] { "" });
-            AddAppLeaves(cat, s, "腾讯会议缓存", Path.Combine(la, @"Tencent\WeMeet\Cache"), new string[] { "" });
-            AddAppLeaves(cat, s, "QQ音乐缓存", Path.Combine(la, @"Tencent\QQMusic\Cache"), new string[] { "" });
-            AddAppLeaves(cat, s, "百度网盘缓存", Path.Combine(la, @"baidu\BaiduNetdisk\Cache"), new string[] { "" });
+            AddAppLeaves(cat, s, Lang.T("WPS Office 缓存"), Path.Combine(ra, @"Kingsoft\office6\cache"), new string[] { "" });
+            AddAppLeaves(cat, s, Lang.T("Office 文件缓存"), Path.Combine(la, @"Microsoft\Office\16.0\OfficeFileCache"), new string[] { "" });
+            AddAppLeaves(cat, s, Lang.T("Office 未保存文件"), Path.Combine(la, @"Microsoft\Office\UnsavedFiles"), new string[] { "" });
+            AddAppLeaves(cat, s, Lang.T("Adobe 媒体缓存"), Path.Combine(ra, @"Adobe\Common\Media Cache Files"), new string[] { "" });
+            AddAppLeaves(cat, s, Lang.T("Adobe 媒体缓存数据库"), Path.Combine(ra, @"Adobe\Common\Media Cache"), new string[] { "" });
+            AddAppLeaves(cat, s, Lang.T("Steam 网页缓存"), Path.Combine(la, @"Steam\htmlcache"), new string[] { "" });
+            AddAppLeaves(cat, s, Lang.T("Steam 着色器缓存"), Path.Combine(la, @"Steam\steamapps\shadercache"), new string[] { "" });
+            AddAppLeaves(cat, s, Lang.T("网易云音乐缓存"), Path.Combine(la, @"Netease\CloudMusic\Cache"), new string[] { "" });
+            AddAppLeaves(cat, s, Lang.T("企业微信缓存"), Path.Combine(ra, @"Tencent\WXWork\Global\Cache"), new string[] { "" });
+            AddAppLeaves(cat, s, Lang.T("微信开发者工具缓存"), Path.Combine(la, @"微信开发者工具\User Data"), new string[] { @"Default\Cache", @"Default\Code Cache", @"Default\GPUCache" });
+            AddAppLeaves(cat, s, Lang.T("钉钉缓存"), Path.Combine(la, @"DingTalk\cache"), new string[] { "" });
+            AddAppLeaves(cat, s, Lang.T("腾讯会议缓存"), Path.Combine(la, @"Tencent\WeMeet\Cache"), new string[] { "" });
+            AddAppLeaves(cat, s, Lang.T("QQ音乐缓存"), Path.Combine(la, @"Tencent\QQMusic\Cache"), new string[] { "" });
+            AddAppLeaves(cat, s, Lang.T("百度网盘缓存"), Path.Combine(la, @"baidu\BaiduNetdisk\Cache"), new string[] { "" });
             // 自动发现其余 Electron 应用（VS Code 类、Slack 类、各类客户端）的标准缓存目录
             ScanElectronGeneric(cat, s);
 
@@ -645,8 +645,8 @@ namespace CCDesk.Core
 
         private static CleanCategory ScanGpu(Action<string> report)
         {
-            CleanCategory cat = NewCat("gpu", "GPU 着色器缓存", "显卡编译缓存，删除后游戏与应用首次启动会重新编译", "🎮", false);
-            R(report, "扫描着色器缓存...");
+            CleanCategory cat = NewCat("gpu", Lang.T("GPU 着色器缓存"), Lang.T("显卡编译缓存，删除后游戏与应用首次启动会重新编译"), "🎮", false);
+            R(report, Lang.T("扫描着色器缓存..."));
             string la = LocalAppData;
             string ra = RoamingAppData;
             AddDirItem(cat, "NVIDIA DXCache", Path.Combine(la, @"NVIDIA\DXCache"), CleanKind.DirContents, 0, false);
@@ -654,39 +654,39 @@ namespace CCDesk.Core
             AddDirItem(cat, "AMD DXCache", Path.Combine(la, @"AMD\DXCache"), CleanKind.DirContents, 0, false);
             AddDirItem(cat, "AMD VkCache", Path.Combine(la, @"AMD\VkCache"), CleanKind.DirContents, 0, false);
             AddDirItem(cat, "Intel ShaderCache", Path.Combine(la, @"Intel\ShaderCache"), CleanKind.DirContents, 0, false);
-            AddDirItem(cat, "DirectX 着色器缓存", Path.Combine(la, @"D3DSCache"), CleanKind.DirContents, 0, false);
-            AddDirItem(cat, "DirectX 管道缓存", Path.Combine(la, @"Microsoft\DirectX Shader Cache"), CleanKind.DirContents, 0, false);
+            AddDirItem(cat, Lang.T("DirectX 着色器缓存"), Path.Combine(la, @"D3DSCache"), CleanKind.DirContents, 0, false);
+            AddDirItem(cat, Lang.T("DirectX 管道缓存"), Path.Combine(la, @"Microsoft\DirectX Shader Cache"), CleanKind.DirContents, 0, false);
             return cat;
         }
 
         private static CleanCategory ScanLogsReports(Action<string> report)
         {
-            CleanCategory cat = NewCat("logs", "日志与错误报告", "崩溃转储、错误报告与 7 天前的应用日志", "🧾", true);
-            R(report, "扫描日志与崩溃报告...");
+            CleanCategory cat = NewCat("logs", Lang.T("日志与错误报告"), Lang.T("崩溃转储、错误报告与 7 天前的应用日志"), "🧾", true);
+            R(report, Lang.T("扫描日志与崩溃报告..."));
             string la = LocalAppData;
             string ra = RoamingAppData;
-            AddDirItem(cat, "Windows 错误报告归档", Path.Combine(la, @"Microsoft\Windows\WER\ReportArchive"), CleanKind.DirContents, 0, true);
-            AddDirItem(cat, "Windows 错误报告队列", Path.Combine(la, @"Microsoft\Windows\WER\ReportQueue"), CleanKind.DirContents, 0, true);
-            AddDirItem(cat, "崩溃转储 CrashDumps", Path.Combine(la, "CrashDumps"), CleanKind.DirContents, 0, true);
-            AddDirItem(cat, "错误报告归档（系统级）", @"C:\ProgramData\Microsoft\Windows\WER\ReportArchive", CleanKind.DirContents, 0, true);
-            AddDirItem(cat, "错误报告队列（系统级）", @"C:\ProgramData\Microsoft\Windows\WER\ReportQueue", CleanKind.DirContents, 0, true);
-            AddDirItem(cat, "WER 临时报告", @"C:\ProgramData\Microsoft\Windows\WER\Temp", CleanKind.DirContents, 0, true);
-            AddFileItem(cat, "完整内存转储 MEMORY.DMP", @"C:\Windows\MEMORY.DMP", false);
-            AddDirItem(cat, "Office 文件缓存", Path.Combine(la, @"Microsoft\Office\16.0\OfficeFileCache"), CleanKind.DirContents, 0, true);
-            AddDirItem(cat, "IE / INetCache 临时文件", Path.Combine(la, @"Microsoft\Windows\INetCache"), CleanKind.DirContents, 0, true);
-            AddDirItem(cat, "Adobe Reader 缓存", Path.Combine(la, @"Adobe\Acrobat\DC\Cache"), CleanKind.DirContents, 0, true);
-            AddDirItem(cat, "WPS 缓存", Path.Combine(ra, @"Kingsoft\office6\cache"), CleanKind.DirContents, 0, true);
-            AddDirItem(cat, "腾讯会议日志", Path.Combine(la, @"Tencent\Wemeet\logs"), CleanKind.OldFilesInDir, 7, true);
-            AddDirItem(cat, "百度网盘日志", Path.Combine(ra, @"BaiduYunGuanjia\logs"), CleanKind.OldFilesInDir, 7, true);
-            AddDirItem(cat, "Docker 日志", Path.Combine(la, @"Docker\log"), CleanKind.OldFilesInDir, 7, true);
-            AddDirItem(cat, "WPS 日志", Path.Combine(ra, @"Kingsoft\office6\log"), CleanKind.OldFilesInDir, 7, true);
+            AddDirItem(cat, Lang.T("Windows 错误报告归档"), Path.Combine(la, @"Microsoft\Windows\WER\ReportArchive"), CleanKind.DirContents, 0, true);
+            AddDirItem(cat, Lang.T("Windows 错误报告队列"), Path.Combine(la, @"Microsoft\Windows\WER\ReportQueue"), CleanKind.DirContents, 0, true);
+            AddDirItem(cat, Lang.T("崩溃转储 CrashDumps"), Path.Combine(la, "CrashDumps"), CleanKind.DirContents, 0, true);
+            AddDirItem(cat, Lang.T("错误报告归档（系统级）"), @"C:\ProgramData\Microsoft\Windows\WER\ReportArchive", CleanKind.DirContents, 0, true);
+            AddDirItem(cat, Lang.T("错误报告队列（系统级）"), @"C:\ProgramData\Microsoft\Windows\WER\ReportQueue", CleanKind.DirContents, 0, true);
+            AddDirItem(cat, Lang.T("WER 临时报告"), @"C:\ProgramData\Microsoft\Windows\WER\Temp", CleanKind.DirContents, 0, true);
+            AddFileItem(cat, Lang.T("完整内存转储 MEMORY.DMP"), @"C:\Windows\MEMORY.DMP", false);
+            AddDirItem(cat, Lang.T("Office 文件缓存"), Path.Combine(la, @"Microsoft\Office\16.0\OfficeFileCache"), CleanKind.DirContents, 0, true);
+            AddDirItem(cat, Lang.T("IE / INetCache 临时文件"), Path.Combine(la, @"Microsoft\Windows\INetCache"), CleanKind.DirContents, 0, true);
+            AddDirItem(cat, Lang.T("Adobe Reader 缓存"), Path.Combine(la, @"Adobe\Acrobat\DC\Cache"), CleanKind.DirContents, 0, true);
+            AddDirItem(cat, Lang.T("WPS 缓存"), Path.Combine(ra, @"Kingsoft\office6\cache"), CleanKind.DirContents, 0, true);
+            AddDirItem(cat, Lang.T("腾讯会议日志"), Path.Combine(la, @"Tencent\Wemeet\logs"), CleanKind.OldFilesInDir, 7, true);
+            AddDirItem(cat, Lang.T("百度网盘日志"), Path.Combine(ra, @"BaiduYunGuanjia\logs"), CleanKind.OldFilesInDir, 7, true);
+            AddDirItem(cat, Lang.T("Docker 日志"), Path.Combine(la, @"Docker\log"), CleanKind.OldFilesInDir, 7, true);
+            AddDirItem(cat, Lang.T("WPS 日志"), Path.Combine(ra, @"Kingsoft\office6\log"), CleanKind.OldFilesInDir, 7, true);
             return cat;
         }
 
         private static CleanCategory ScanInstallers(Action<string> report)
         {
-            CleanCategory cat = NewCat("installer", "旧安装包", "下载目录中 14 天前的 msi/exe 安装包", "💿", true);
-            R(report, "扫描旧安装包...");
+            CleanCategory cat = NewCat("installer", Lang.T("旧安装包"), Lang.T("下载目录中 14 天前的 msi/exe 安装包"), "💿", true);
+            R(report, Lang.T("扫描旧安装包..."));
             string dl = Downloads;
             if (!Directory.Exists(dl)) return cat;
             long total = 0;
@@ -716,7 +716,7 @@ namespace CCDesk.Core
             {
                 CleanItem it = new CleanItem();
                 it.CategoryId = cat.Id;
-                it.Name = "下载目录中的旧安装包";
+                it.Name = Lang.T("下载目录中的旧安装包");
                 it.Path = dl;
                 it.Kind = CleanKind.OldFilesExt;
                 it.Ext = ".msi,.exe,.msix,.appx";
@@ -726,7 +726,7 @@ namespace CCDesk.Core
                 it.Files = count;
                 it.Recycle = true;
                 it.Exists = true;
-                it.Note = "仅处理大于 5 MB 的安装包";
+                it.Note = Lang.T("仅处理大于 5 MB 的安装包");
                 cat.Items.Add(it);
             }
             return cat;
@@ -736,8 +736,8 @@ namespace CCDesk.Core
 
         private static CleanCategory ScanProjects(Settings s, Action<string> report)
         {
-            CleanCategory cat = NewCat("projects", "项目构建产物", "项目目录中的 node_modules、target、dist 等可重建产物", "🧱", false);
-            R(report, "扫描项目构建产物...");
+            CleanCategory cat = NewCat("projects", Lang.T("项目构建产物"), Lang.T("项目目录中的 node_modules、target、dist 等可重建产物"), "🧱", false);
+            R(report, Lang.T("扫描项目构建产物..."));
             for (int d = 0; d < s.ProjectDirs.Count; d++)
             {
                 string root = s.ProjectDirs[d];
@@ -843,75 +843,75 @@ namespace CCDesk.Core
         /// <summary>系统痕迹缓存：缩略图、图标、通知、远程桌面等，删除后系统自动重建。</summary>
         private static CleanCategory ScanTraces(Settings s, Action<string> report)
         {
-            CleanCategory cat = NewCat("traces", "系统痕迹缓存", "缩略图与图标数据库、远程桌面缓存、主题缩略图；删除后由系统自动重建", "", true);
-            R(report, "扫描系统痕迹缓存...");
+            CleanCategory cat = NewCat("traces", Lang.T("系统痕迹缓存"), Lang.T("缩略图与图标数据库、远程桌面缓存、主题缩略图；删除后由系统自动重建"), "", true);
+            R(report, Lang.T("扫描系统痕迹缓存..."));
             string la = LocalAppData;
             string ra = RoamingAppData;
-            AddExtItem(cat, "缩略图与图标缓存", Path.Combine(la, @"Microsoft\Windows\Explorer"), ".db", 0, false);
-            AddDirItem(cat, "资源管理器图标缓存", Path.Combine(la, @"Microsoft\Windows\Caches"), CleanKind.DirContents, 0, false);
-            AddDirItem(cat, "远程桌面连接缓存", Path.Combine(la, @"Microsoft\Terminal Server Client\Cache"), CleanKind.DirContents, 0, true);
-            AddDirItem(cat, "主题缩略图缓存", Path.Combine(ra, @"Microsoft\Windows\Themes\CachedFiles"), CleanKind.DirContents, 0, true);
-            AddDirItem(cat, "缩略图缓存目录(旧版)", Path.Combine(la, @"Microsoft\Windows\Explorer\ThumbCacheToDelete"), CleanKind.DirContents, 0, false);
+            AddExtItem(cat, Lang.T("缩略图与图标缓存"), Path.Combine(la, @"Microsoft\Windows\Explorer"), ".db", 0, false);
+            AddDirItem(cat, Lang.T("资源管理器图标缓存"), Path.Combine(la, @"Microsoft\Windows\Caches"), CleanKind.DirContents, 0, false);
+            AddDirItem(cat, Lang.T("远程桌面连接缓存"), Path.Combine(la, @"Microsoft\Terminal Server Client\Cache"), CleanKind.DirContents, 0, true);
+            AddDirItem(cat, Lang.T("主题缩略图缓存"), Path.Combine(ra, @"Microsoft\Windows\Themes\CachedFiles"), CleanKind.DirContents, 0, true);
+            AddDirItem(cat, Lang.T("缩略图缓存目录(旧版)"), Path.Combine(la, @"Microsoft\Windows\Explorer\ThumbCacheToDelete"), CleanKind.DirContents, 0, false);
             return cat;
         }
 
         /// <summary>使用痕迹：会清掉“最近用过什么”，默认不勾选。</summary>
         private static CleanCategory ScanUsage(Settings s, Action<string> report)
         {
-            CleanCategory cat = NewCat("usage", "使用痕迹（可选）", "最近使用的文档、通知历史；清掉后相关列表为空，默认不勾选", "", false);
-            R(report, "扫描使用痕迹...");
+            CleanCategory cat = NewCat("usage", Lang.T("使用痕迹（可选）"), Lang.T("最近使用的文档、通知历史；清掉后相关列表为空，默认不勾选"), "", false);
+            R(report, Lang.T("扫描使用痕迹..."));
             string la = LocalAppData;
             string ra = RoamingAppData;
-            AddDirItem(cat, "最近使用的文档", Path.Combine(ra, @"Microsoft\Windows\Recent"), CleanKind.DirContents, 0, true);
-            AddDirItem(cat, "通知中心历史", Path.Combine(la, @"Microsoft\Windows\Notifications"), CleanKind.DirContents, 0, true);
+            AddDirItem(cat, Lang.T("最近使用的文档"), Path.Combine(ra, @"Microsoft\Windows\Recent"), CleanKind.DirContents, 0, true);
+            AddDirItem(cat, Lang.T("通知中心历史"), Path.Combine(la, @"Microsoft\Windows\Notifications"), CleanKind.DirContents, 0, true);
             return cat;
         }
 
         /// <summary>系统级缓存与日志：Windows 临时、更新缓存、事件日志、字体缓存、转储、旧系统备份等。</summary>
         private static CleanCategory ScanSystem(Settings s, Action<string> report)
         {
-            CleanCategory cat = NewCat("sys", "系统缓存与日志", "Windows 临时文件、更新下载缓存、事件日志、字体缓存、内存转储与旧系统备份", "", true);
+            CleanCategory cat = NewCat("sys", Lang.T("系统缓存与日志"), Lang.T("Windows 临时文件、更新下载缓存、事件日志、字体缓存、内存转储与旧系统备份"), "", true);
             cat.AdminOnly = true;
-            R(report, "扫描系统级缓存...");
+            R(report, Lang.T("扫描系统级缓存..."));
             bool admin = Native.IsAdmin();
 
             if (admin)
             {
-                AddDirItem(cat, "Windows 临时目录", @"C:\Windows\Temp", CleanKind.DirContents, 0, false);
-                AddDirItem(cat, "Windows 更新下载缓存", @"C:\Windows\SoftwareDistribution\Download", CleanKind.DirContents, 0, true);
-                AddDirItem(cat, "Windows 系统日志", @"C:\Windows\Logs", CleanKind.DirContents, 0, true);
-                AddDirItem(cat, "组件服务日志 CBS", @"C:\Windows\Logs\CBS", CleanKind.DirContents, 0, false);
-                AddDirItem(cat, "镜像服务日志 DISM", @"C:\Windows\Logs\DISM", CleanKind.DirContents, 0, false);
-                AddDirItem(cat, "Windows 更新日志", @"C:\Windows\Logs\WindowsUpdate", CleanKind.DirContents, 0, false);
-                AddExtItem(cat, "Windows 事件日志", @"C:\Windows\System32\winevt\Logs", ".evtx", 0, true);
-                AddDirItem(cat, "字体缓存（系统）", @"C:\Windows\ServiceProfiles\LocalService\AppData\Local\FontCache", CleanKind.DirContents, 0, false);
-                AddFileItem(cat, "完整内存转储 MEMORY.DMP", @"C:\Windows\MEMORY.DMP", false);
-                AddDirItem(cat, "小型内存转储 Minidump", @"C:\Windows\Minidump", CleanKind.DirContents, 0, false);
-                AddExtItem(cat, "预读取 Prefetch", @"C:\Windows\Prefetch", ".pf", 0, false);
-                AddDirItem(cat, "系统错误报告 WER", @"C:\ProgramData\Microsoft\Windows\WER\ReportArchive", CleanKind.DirContents, 0, false);
-                AddDirItem(cat, "系统错误报告队列", @"C:\ProgramData\Microsoft\Windows\WER\ReportQueue", CleanKind.DirContents, 0, false);
-                AddExtItem(cat, "系统安装日志 Panther", @"C:\Windows\Panther", ".log,.etl,.xml", 0, false);
-                AddExtItem(cat, "Windows 安装器日志", @"C:\Windows\Installer", ".log", 7, true);
-                AddExtItem(cat, "驱动安装日志 setupapi", @"C:\Windows\INF", ".log", 7, true);
-                AddDirItem(cat, "系统服务日志 LogFiles", @"C:\Windows\System32\LogFiles", CleanKind.DirContents, 0, false);
-                AddDirItem(cat, "网络服务临时目录", @"C:\Windows\ServiceProfiles\NetworkService\AppData\Local\Temp", CleanKind.DirContents, 0, false);
-                AddDirItem(cat, "NVIDIA 驱动安装包缓存", @"C:\ProgramData\NVIDIA Corporation\Downloader", CleanKind.DirContents, 0, false);
-                AddDirItem(cat, "LocalService 临时目录", @"C:\Windows\ServiceProfiles\LocalService\AppData\Local\Temp", CleanKind.DirContents, 0, false);
-                AddDirItem(cat, "内核报告 LiveKernelReports", @"C:\Windows\LiveKernelReports", CleanKind.DirContents, 0, false);
-                AddDirItem(cat, "交付优化缓存", @"C:\ProgramData\Microsoft\Network\Downloader", CleanKind.DirContents, 0, false);
-                AddDirItem(cat, "更新协调日志", @"C:\ProgramData\USOShared\Logs", CleanKind.DirContents, 0, true);
-                AddDirItem(cat, "诊断数据缓存", @"C:\ProgramData\Microsoft\Diagnosis", CleanKind.DirContents, 0, false);
-                AddDirItem(cat, "零售演示内容", @"C:\ProgramData\Microsoft\Windows\RetailDemo", CleanKind.DirContents, 0, false);
-                AddDirItem(cat, "驱动仓库临时文件", @"C:\Windows\System32\DriverStore\Temp", CleanKind.DirContents, 0, false);
-                AddDirItem(cat, "Defender 扫描历史", @"C:\ProgramData\Microsoft\Windows Defender\Scans\History\Results", CleanKind.DirContents, 0, false);
-                AddDirItem(cat, "错误报告临时目录", @"C:\ProgramData\Microsoft\Windows\WER\Temp", CleanKind.DirContents, 0, false);
-                AddDirItem(cat, "更新重启缓存", @"C:\Windows\SoftwareDistribution\PostRebootEventCache", CleanKind.DirContents, 0, false);
-                AddDirItem(cat, "更新数据库日志", @"C:\Windows\SoftwareDistribution\DataStore\Logs", CleanKind.DirContents, 0, true);
-                AddDirItem(cat, "Intel 驱动安装缓存", @"C:\ProgramData\Intel\Package Cache", CleanKind.DirContents, 0, false);
-                AddDirItem(cat, "Windows 升级临时目录", @"C:\Windows\SoftwareDistribution\Download\SharedFileCache", CleanKind.DirContents, 0, false);
-                AddDirItem(cat, "传递优化缓存", @"C:\Windows\ServiceProfiles\NetworkService\AppData\Local\Microsoft\Windows\DeliveryOptimization\Cache", CleanKind.DirContents, 0, false);
-                AddDirItem(cat, "传递优化日志", @"C:\Windows\ServiceProfiles\NetworkService\AppData\Local\Microsoft\Windows\DeliveryOptimization\Logs", CleanKind.DirContents, 0, false);
-                AddDirItem(cat, "OneDrive 日志", Path.Combine(LocalAppData, @"Microsoft\OneDrive\logs"), CleanKind.OldFilesInDir, 7, true);
+                AddDirItem(cat, Lang.T("Windows 临时目录"), @"C:\Windows\Temp", CleanKind.DirContents, 0, false);
+                AddDirItem(cat, Lang.T("Windows 更新下载缓存"), @"C:\Windows\SoftwareDistribution\Download", CleanKind.DirContents, 0, true);
+                AddDirItem(cat, Lang.T("Windows 系统日志"), @"C:\Windows\Logs", CleanKind.DirContents, 0, true);
+                AddDirItem(cat, Lang.T("组件服务日志 CBS"), @"C:\Windows\Logs\CBS", CleanKind.DirContents, 0, false);
+                AddDirItem(cat, Lang.T("镜像服务日志 DISM"), @"C:\Windows\Logs\DISM", CleanKind.DirContents, 0, false);
+                AddDirItem(cat, Lang.T("Windows 更新日志"), @"C:\Windows\Logs\WindowsUpdate", CleanKind.DirContents, 0, false);
+                AddExtItem(cat, Lang.T("Windows 事件日志"), @"C:\Windows\System32\winevt\Logs", ".evtx", 0, true);
+                AddDirItem(cat, Lang.T("字体缓存（系统）"), @"C:\Windows\ServiceProfiles\LocalService\AppData\Local\FontCache", CleanKind.DirContents, 0, false);
+                AddFileItem(cat, Lang.T("完整内存转储 MEMORY.DMP"), @"C:\Windows\MEMORY.DMP", false);
+                AddDirItem(cat, Lang.T("小型内存转储 Minidump"), @"C:\Windows\Minidump", CleanKind.DirContents, 0, false);
+                AddExtItem(cat, Lang.T("预读取 Prefetch"), @"C:\Windows\Prefetch", ".pf", 0, false);
+                AddDirItem(cat, Lang.T("系统错误报告 WER"), @"C:\ProgramData\Microsoft\Windows\WER\ReportArchive", CleanKind.DirContents, 0, false);
+                AddDirItem(cat, Lang.T("系统错误报告队列"), @"C:\ProgramData\Microsoft\Windows\WER\ReportQueue", CleanKind.DirContents, 0, false);
+                AddExtItem(cat, Lang.T("系统安装日志 Panther"), @"C:\Windows\Panther", ".log,.etl,.xml", 0, false);
+                AddExtItem(cat, Lang.T("Windows 安装器日志"), @"C:\Windows\Installer", ".log", 7, true);
+                AddExtItem(cat, Lang.T("驱动安装日志 setupapi"), @"C:\Windows\INF", ".log", 7, true);
+                AddDirItem(cat, Lang.T("系统服务日志 LogFiles"), @"C:\Windows\System32\LogFiles", CleanKind.DirContents, 0, false);
+                AddDirItem(cat, Lang.T("网络服务临时目录"), @"C:\Windows\ServiceProfiles\NetworkService\AppData\Local\Temp", CleanKind.DirContents, 0, false);
+                AddDirItem(cat, Lang.T("NVIDIA 驱动安装包缓存"), @"C:\ProgramData\NVIDIA Corporation\Downloader", CleanKind.DirContents, 0, false);
+                AddDirItem(cat, Lang.T("LocalService 临时目录"), @"C:\Windows\ServiceProfiles\LocalService\AppData\Local\Temp", CleanKind.DirContents, 0, false);
+                AddDirItem(cat, Lang.T("内核报告 LiveKernelReports"), @"C:\Windows\LiveKernelReports", CleanKind.DirContents, 0, false);
+                AddDirItem(cat, Lang.T("交付优化缓存"), @"C:\ProgramData\Microsoft\Network\Downloader", CleanKind.DirContents, 0, false);
+                AddDirItem(cat, Lang.T("更新协调日志"), @"C:\ProgramData\USOShared\Logs", CleanKind.DirContents, 0, true);
+                AddDirItem(cat, Lang.T("诊断数据缓存"), @"C:\ProgramData\Microsoft\Diagnosis", CleanKind.DirContents, 0, false);
+                AddDirItem(cat, Lang.T("零售演示内容"), @"C:\ProgramData\Microsoft\Windows\RetailDemo", CleanKind.DirContents, 0, false);
+                AddDirItem(cat, Lang.T("驱动仓库临时文件"), @"C:\Windows\System32\DriverStore\Temp", CleanKind.DirContents, 0, false);
+                AddDirItem(cat, Lang.T("Defender 扫描历史"), @"C:\ProgramData\Microsoft\Windows Defender\Scans\History\Results", CleanKind.DirContents, 0, false);
+                AddDirItem(cat, Lang.T("错误报告临时目录"), @"C:\ProgramData\Microsoft\Windows\WER\Temp", CleanKind.DirContents, 0, false);
+                AddDirItem(cat, Lang.T("更新重启缓存"), @"C:\Windows\SoftwareDistribution\PostRebootEventCache", CleanKind.DirContents, 0, false);
+                AddDirItem(cat, Lang.T("更新数据库日志"), @"C:\Windows\SoftwareDistribution\DataStore\Logs", CleanKind.DirContents, 0, true);
+                AddDirItem(cat, Lang.T("Intel 驱动安装缓存"), @"C:\ProgramData\Intel\Package Cache", CleanKind.DirContents, 0, false);
+                AddDirItem(cat, Lang.T("Windows 升级临时目录"), @"C:\Windows\SoftwareDistribution\Download\SharedFileCache", CleanKind.DirContents, 0, false);
+                AddDirItem(cat, Lang.T("传递优化缓存"), @"C:\Windows\ServiceProfiles\NetworkService\AppData\Local\Microsoft\Windows\DeliveryOptimization\Cache", CleanKind.DirContents, 0, false);
+                AddDirItem(cat, Lang.T("传递优化日志"), @"C:\Windows\ServiceProfiles\NetworkService\AppData\Local\Microsoft\Windows\DeliveryOptimization\Logs", CleanKind.DirContents, 0, false);
+                AddDirItem(cat, Lang.T("OneDrive 日志"), Path.Combine(LocalAppData, @"Microsoft\OneDrive\logs"), CleanKind.OldFilesInDir, 7, true);
 
                 // 多用户临时目录（只清其他账号的 Temp，自己那份已在“临时文件”里）
                 string usersRoot = Path.Combine(Path.GetPathRoot(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)), "Users");
@@ -924,33 +924,33 @@ namespace CCDesk.Core
                     string t2 = Path.Combine(userDirs[i], "AppData", "Local", "Temp");
                     if (Guard.Norm(t2) == ownTemp) continue;
                     if (!Directory.Exists(t2)) continue;
-                    AddDirItem(cat, "其他账号临时目录 · " + Path.GetFileName(userDirs[i]), t2, CleanKind.DirContents, 0, false);
+                    AddDirItem(cat, Lang.T("其他账号临时目录 · ") + Path.GetFileName(userDirs[i]), t2, CleanKind.DirContents, 0, false);
                 }
             }
 
             // 不需要管理员的部分
-            AddDirItem(cat, "字体缓存（当前用户）", Path.Combine(LocalAppData, "FontCache"), CleanKind.DirContents, 0, false);
-            AddDirItem(cat, "Windows 安装缓存 Panther(用户)", Path.Combine(LocalAppData, "Panther"), CleanKind.DirContents, 0, false);
+            AddDirItem(cat, Lang.T("字体缓存（当前用户）"), Path.Combine(LocalAppData, "FontCache"), CleanKind.DirContents, 0, false);
+            AddDirItem(cat, Lang.T("Windows 安装缓存 Panther(用户)"), Path.Combine(LocalAppData, "Panther"), CleanKind.DirContents, 0, false);
             return cat;
         }
 
         /// <summary>深度清理：体积大但影响系统功能的项目，默认不勾选，需要手动开启。</summary>
         private static CleanCategory ScanDeep(Settings s, Action<string> report)
         {
-            CleanCategory cat = NewCat("deep", "系统深度清理", "旧系统备份、搜索索引等大体积项，删除后相关功能会重建索引（默认不勾选）", "", false);
+            CleanCategory cat = NewCat("deep", Lang.T("系统深度清理"), Lang.T("旧系统备份、搜索索引等大体积项，删除后相关功能会重建索引（默认不勾选）"), "", false);
             cat.AdminOnly = true;
-            R(report, "扫描深度清理项...");
+            R(report, Lang.T("扫描深度清理项..."));
             if (Native.IsAdmin())
             {
                 string sysDrive = Environment.GetEnvironmentVariable("SystemDrive");
                 if (sysDrive == null || sysDrive.Length == 0) sysDrive = "C:";
-                AddDirItem(cat, "Windows.old 旧系统备份", @"C:\Windows.old", CleanKind.DirItself, 0, false);
-                AddDirItem(cat, "系统升级镜像 $WINDOWS.~BT", sysDrive + @"\$WINDOWS.~BT", CleanKind.DirItself, 0, false);
-                AddDirItem(cat, "系统升级临时 $WINDOWS.~WS", sysDrive + @"\$WINDOWS.~WS", CleanKind.DirItself, 0, false);
-                AddDirItem(cat, "系统组件缓存 WinSxS", @"C:\Windows\WinSxS\Temp", CleanKind.DirContents, 0, false);
-                AddDirItem(cat, "搜索索引数据库", @"C:\ProgramData\Microsoft\Search\Data", CleanKind.DirContents, 0, false);
-                AddDirItem(cat, "安装包缓存 Package Cache", @"C:\ProgramData\Package Cache", CleanKind.DirContents, 0, false);
-                AddDirItem(cat, "MSI 补丁缓存 $PatchCache$", @"C:\Windows\Installer\$PatchCache$", CleanKind.DirContents, 0, false);
+                AddDirItem(cat, Lang.T("Windows.old 旧系统备份"), @"C:\Windows.old", CleanKind.DirItself, 0, false);
+                AddDirItem(cat, Lang.T("系统升级镜像 $WINDOWS.~BT"), sysDrive + @"\$WINDOWS.~BT", CleanKind.DirItself, 0, false);
+                AddDirItem(cat, Lang.T("系统升级临时 $WINDOWS.~WS"), sysDrive + @"\$WINDOWS.~WS", CleanKind.DirItself, 0, false);
+                AddDirItem(cat, Lang.T("系统组件缓存 WinSxS"), @"C:\Windows\WinSxS\Temp", CleanKind.DirContents, 0, false);
+                AddDirItem(cat, Lang.T("搜索索引数据库"), @"C:\ProgramData\Microsoft\Search\Data", CleanKind.DirContents, 0, false);
+                AddDirItem(cat, Lang.T("安装包缓存 Package Cache"), @"C:\ProgramData\Package Cache", CleanKind.DirContents, 0, false);
+                AddDirItem(cat, Lang.T("MSI 补丁缓存 $PatchCache$"), @"C:\Windows\Installer\$PatchCache$", CleanKind.DirContents, 0, false);
             }
             return cat;
         }
@@ -961,8 +961,8 @@ namespace CCDesk.Core
         /// </summary>
         private static CleanCategory ScanBigLogs(Action<string> report)
         {
-            CleanCategory cat = NewCat("biglog", "大体积日志与转储", "单文件大于 48 MB、3 天未更新的日志/转储；逐条审阅，默认不勾选", "", false);
-            R(report, "扫描大体积日志文件...");
+            CleanCategory cat = NewCat("biglog", Lang.T("大体积日志与转储"), Lang.T("单文件大于 48 MB、3 天未更新的日志/转储；逐条审阅，默认不勾选"), "", false);
+            R(report, Lang.T("扫描大体积日志文件..."));
             AddBigFiles(cat, @"C:\Windows\Logs", 3);
             AddBigFiles(cat, @"C:\Windows\System32\WDI", 2);
             AddBigFiles(cat, @"C:\Windows\Temp", 2);
@@ -1007,7 +1007,7 @@ namespace CCDesk.Core
                     it.Files = 1;
                     it.Recycle = false;
                     it.Exists = true;
-                    it.Note = "最后写入 " + fi.LastWriteTime.ToString("yyyy-MM-dd") + "，大小 " + Byt.Format(fi.Length);
+                    it.Note = Lang.T("最后写入 ") + fi.LastWriteTime.ToString("yyyy-MM-dd") + Lang.T("，大小 ") + Byt.Format(fi.Length);
                     cat.Items.Add(it);
                     if (cat.Items.Count > 60) return;
                 }
@@ -1032,15 +1032,15 @@ namespace CCDesk.Core
 
         private static CleanCategory ScanRecycleBin(Action<string> report)
         {
-            CleanCategory cat = NewCat("recycle", "回收站", "回收站中已删除的文件（确认后彻底清空）", "🗑", false);
-            R(report, "检查回收站...");
+            CleanCategory cat = NewCat("recycle", Lang.T("回收站"), Lang.T("回收站中已删除的文件（确认后彻底清空）"), "🗑", false);
+            R(report, Lang.T("检查回收站..."));
             long size = 0;
             int count = 0;
             if (Shell.RecycleBinInfo(ref size, ref count) && size > 0)
             {
                 CleanItem it = new CleanItem();
                 it.CategoryId = cat.Id;
-                it.Name = "回收站";
+                it.Name = Lang.T("回收站");
                 it.Path = "recycle:";
                 it.Kind = CleanKind.RecycleBin;
                 it.Bytes = size;
@@ -1070,7 +1070,7 @@ namespace CCDesk.Core
                 {
                     string label = it.Name;
                     if (label.Length > 24) label = label.Substring(0, 24) + "…";
-                    Report(prog, 1 + ((i * 96) / Math.Max(1, items.Count)), "正在清理 " + (i + 1) + "/" + items.Count + " · " + label);
+                    Report(prog, 1 + ((i * 96) / Math.Max(1, items.Count)), Lang.T("正在清理 ") + (i + 1) + "/" + items.Count + " · " + label);
                 }
                 if (!it.Exists) continue;
                 if (it.Kind == CleanKind.RecycleBin)
@@ -1078,19 +1078,19 @@ namespace CCDesk.Core
                     if (Shell.EmptyRecycleBin())
                     {
                         freed += it.Bytes;
-                        log.Add("已清空回收站 " + Theme_Size(it.Bytes));
+                        log.Add(Lang.T("已清空回收站 ") + Theme_Size(it.Bytes));
                         OpLog.Write("emptied", it.Path, it.Bytes);
                     }
                     else
                     {
                         errors++;
-                        log.Add("回收站清空失败");
+                        log.Add(Lang.T("回收站清空失败"));
                     }
                     continue;
                 }
                 if (!Guard.CanDelete(it.Path, true) && it.Kind != CleanKind.OldFilesExt)
                 {
-                    log.Add("已跳过（受保护）：" + it.Path);
+                    log.Add(Lang.T("已跳过（受保护）：") + it.Path);
                     continue;
                 }
                 long before = 0;
@@ -1130,7 +1130,7 @@ namespace CCDesk.Core
                     OpLog.Write("clean", it.Path, before);
                 }
             }
-            Report(prog, 100, "清理完成");
+            Report(prog, 100, Lang.T("清理完成"));
             return freed;
         }
 

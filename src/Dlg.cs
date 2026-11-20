@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
@@ -104,8 +104,8 @@ namespace CCDesk
             list.ShowCheck = false;
             list.RightHeader = "";
             list.RowHeight = 28;
-            list.EmptyText = "没有明细记录";
-            list.EmptyHint = "选中的项目可能都不需要实际删除";
+            list.EmptyText = Lang.T("没有明细记录");
+            list.EmptyHint = Lang.T("选中的项目可能都不需要实际删除");
             list.SetBounds(20, 76, 660 - 40, 500 - 76 - 124);
             List<VRow> rows = new List<VRow>();
             if (lines != null)
@@ -123,7 +123,7 @@ namespace CCDesk
 
             Btn logBtn = new Btn();
             logBtn.Kind = ButtonKind.Subtle;
-            logBtn.Text = "打开操作日志";
+            logBtn.Text = Lang.T("打开操作日志");
             logBtn.Size = new Size(112, 34);
             logBtn.Location = new Point(20, 500 - 52);
             logBtn.Click += delegate
@@ -135,7 +135,7 @@ namespace CCDesk
 
             Btn ok = new Btn();
             ok.Kind = ButtonKind.Accent;
-            ok.Text = "完成";
+            ok.Text = Lang.T("完成");
             ok.Size = new Size(96, 34);
             ok.Location = new Point(660 - 24 - 96, 500 - 52);
             // 在 MouseDown 就关闭：避免对话框销毁后同一次点击的 MouseUp 落到主窗口按钮上，
@@ -155,7 +155,7 @@ namespace CCDesk
 
             Btn cancel = new Btn();
             cancel.Kind = ButtonKind.Subtle;
-            cancel.Text = "取消";
+            cancel.Text = Lang.T("取消");
             cancel.Size = new Size(84, 34);
             cancel.Location = new Point(460 - 24 - 84, 210 - 58);
             cancel.Click += delegate { f.Close(); };
@@ -202,7 +202,7 @@ namespace CCDesk
 
             Btn cancel = new Btn();
             cancel.Kind = ButtonKind.Subtle;
-            cancel.Text = "取消";
+            cancel.Text = Lang.T("取消");
             cancel.Size = new Size(84, 34);
             cancel.Location = new Point(520 - 24 - 84, 230 - 56);
             cancel.Click += delegate { f.Close(); };
@@ -210,7 +210,7 @@ namespace CCDesk
 
             Btn ok = new Btn();
             ok.Kind = ButtonKind.Accent;
-            ok.Text = "确定";
+            ok.Text = Lang.T("确定");
             ok.Size = new Size(96, 34);
             ok.Location = new Point(520 - 24 - 84 - 12 - 96, 230 - 56);
             ok.MouseDown += delegate { f.Result = true; f.Close(); };
@@ -228,7 +228,7 @@ namespace CCDesk
             f.ClientSize = new Size(460, 200);
             Btn ok = new Btn();
             ok.Kind = ButtonKind.Accent;
-            ok.Text = "知道了";
+            ok.Text = Lang.T("知道了");
             ok.Size = new Size(96, 34);
             ok.Location = new Point(460 - 24 - 96, 200 - 58);
             ok.Click += delegate { f.Close(); };

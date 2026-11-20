@@ -10,8 +10,8 @@ namespace CCDesk
     /// <summary>残留清理页：孤儿目录、无效卸载项、失效快捷方式、失效启动项。</summary>
     public class OrphanPage : PageBase
     {
-        public override string PageTitle { get { return "残留清理"; } }
-        public override string PageSubtitle { get { return "专治已卸载软件留下的空壳：旧目录、旧注册表项、失效快捷方式；删除可恢复"; } }
+        public override string PageTitle { get { return Lang.T("残留清理"); } }
+        public override string PageSubtitle { get { return Lang.T("专治已卸载软件留下的空壳：旧目录、旧注册表项、失效快捷方式；删除可恢复"); } }
 
         private VList _list;
         private ActionBar _bar;
@@ -25,16 +25,16 @@ namespace CCDesk
         private List<Chip> _chips = new List<Chip>();
         private List<OrphanGroup> _groups = new List<OrphanGroup>();
         private string _filter = "all";
-        private string _status = "正在查找残留，首次扫描会统计目录体积，需要一会儿";
+        private string _status = Lang.T("正在查找残留，首次扫描会统计目录体积，需要一会儿");
         private bool _busy;
 
         public OrphanPage()
         {
             _list = new VList();
             _list.ShowCheck = true;
-            _list.RightHeader = "体积";
-            _list.EmptyText = "没有发现残留";
-            _list.EmptyHint = "干净的系统里通常只剩零星快捷方式，扫描结果为空也是正常的";
+            _list.RightHeader = Lang.T("体积");
+            _list.EmptyText = Lang.T("没有发现残留");
+            _list.EmptyHint = Lang.T("干净的系统里通常只剩零星快捷方式，扫描结果为空也是正常的");
             _list.CheckChanged += delegate { UpdateSummary(); };
             Controls.Add(_list);
 
@@ -44,28 +44,28 @@ namespace CCDesk
 
             _scanBtn = new Btn();
             _scanBtn.Kind = ButtonKind.Subtle;
-            _scanBtn.Text = "重新扫描";
+            _scanBtn.Text = Lang.T("重新扫描");
             _scanBtn.Size = new Size(96, 32);
             _scanBtn.Click += delegate { StartScan(); };
             Controls.Add(_scanBtn);
 
             _allBtn = new Btn();
             _allBtn.Kind = ButtonKind.Link;
-            _allBtn.Text = "全选";
+            _allBtn.Text = Lang.T("全选");
             _allBtn.Size = new Size(52, 30);
             _allBtn.Click += delegate { _list.CheckAll(true); UpdateSummary(); };
             Controls.Add(_allBtn);
 
             _invBtn = new Btn();
             _invBtn.Kind = ButtonKind.Link;
-            _invBtn.Text = "反选";
+            _invBtn.Text = Lang.T("反选");
             _invBtn.Size = new Size(52, 30);
             _invBtn.Click += delegate { _list.InvertChecks(); UpdateSummary(); };
             Controls.Add(_invBtn);
 
             _cleanBtn = new Btn();
             _cleanBtn.Kind = ButtonKind.Accent;
-            _cleanBtn.Text = "清理所选";
+            _cleanBtn.Text = Lang.T("清理所选");
             _cleanBtn.Size = new Size(128, 38);
             _cleanBtn.Click += delegate { Execute(); };
             _bar.Controls.Add(_cleanBtn);
@@ -88,8 +88,8 @@ namespace CCDesk
             int w = Width;
             int y = HeaderH + 2;
             _scanBtn.SetBounds(0, y, 96, 32);
-            _allBtn.SetBounds(104, y + 1, 52, 30);
-            _invBtn.SetBounds(156, y + 1, 52, 30);
+            _allBtn.SetBounds(104, y + 1, 96, 30);
+            _invBtn.SetBounds(206, y + 1, 64, 30);
             int cx = 216;
             int cy = y + 2;
             int rows = 1;
@@ -133,16 +133,16 @@ namespace CCDesk
         {
             if (_busy) return;
             _doneClean = false;
-            _list.EmptyText = "没有发现残留";
+            _list.EmptyText = Lang.T("没有发现残留");
             _busy = true;
-            _status = "正在扫描...";
+            _status = Lang.T("正在扫描...");
             _list.Clear();
             _spinner.Spin(true);
             _scanBtn.Enabled = false;
             _cleanBtn.Enabled = false;
             _prog.Visible = true;
             _prog.BringToFront();
-            _prog.SetProgress(0, "准备扫描残留...");
+            _prog.SetProgress(0, Lang.T("准备扫描残留..."));
             LayoutChildren();
             _bar.Invalidate();
             ThreadPool.QueueUserWorkItem(delegate
@@ -193,9 +193,9 @@ namespace CCDesk
                                 count += _groups[i].Items.Count;
                                 for (int j = 0; j < _groups[i].Items.Count; j++) bytes += _groups[i].Items[j].Bytes;
                             }
-                            _status = count == 0 ? "扫描完成：没有发现残留" : "扫描完成：共 " + count + " 项，目录体积 " + Byt.Format(bytes);
+                            _status = count == 0 ? Lang.T("扫描完成：没有发现残留") : Lang.T("扫描完成：共 ") + count + Lang.T(" 项，目录体积 ") + Byt.Format(bytes);
                         }
-                        else _status = "扫描失败：" + error;
+                        else _status = Lang.T("扫描失败：") + error;
                         _bar.Invalidate();
                         LayoutChildren();
                         UpdateSummary();
@@ -212,7 +212,7 @@ namespace CCDesk
             _filter = "all";
             int total = 0;
             for (int i = 0; i < _groups.Count; i++) total += _groups[i].Items.Count;
-            Chip all = MakeChip("全部", total, "all");
+            Chip all = MakeChip(Lang.T("全部"), total, "all");
             all.Active = true;
             _chips.Add(all);
             for (int i = 0; i < _groups.Count; i++)
@@ -273,7 +273,7 @@ namespace CCDesk
                     r.Checked = false;
                     r.Checkable = true;
                     r.Data = it;
-                    if (it.AdminNeeded) r.Sub = r.Sub + "（需要管理员）";
+                    if (it.AdminNeeded) r.Sub = r.Sub + Lang.T("（需要管理员）");
                     rows.Add(r);
                 }
             }
@@ -320,9 +320,9 @@ namespace CCDesk
             long b = 0;
             int c = 0, rc = 0;
             Selected(out b, out c, out rc);
-            string head = "已选 " + c + " 项";
-            if (b > 0) head += " · 目录 " + Byt.Format(b);
-            if (rc > 0) head += " · 注册表/快捷方式 " + rc + " 条";
+            string head = Lang.T("已选 ") + c + Lang.T(" 项");
+            if (b > 0) head += Lang.T(" · 目录 ") + Byt.Format(b);
+            if (rc > 0) head += Lang.T(" · 注册表/快捷方式 ") + rc + Lang.T(" 条");
             Theme.Txt(g, head, Theme.F(9.5f, FontStyle.Bold), Theme.Text, 4, 12);
             Theme.Txt(g, _status, Theme.F(8f), Theme.Muted, 4, 34);
             _cleanBtn.SetBounds(_bar.Width - 148, 10, 128, 38);
@@ -340,7 +340,7 @@ namespace CCDesk
             }
             if (selected.Count == 0)
             {
-                Dlg.Info(FindForm(), "没有选中的项目", "请先勾选要清理的残留项。默认不勾选，就是为了让你逐条确认。");
+                Dlg.Info(FindForm(), Lang.T("没有选中的项目"), Lang.T("请先勾选要清理的残留项。默认不勾选，就是为了让你逐条确认。"));
                 return;
             }
 
@@ -354,19 +354,19 @@ namespace CCDesk
                 if (selected[i].AdminNeeded) admin = true;
             }
 
-            string text = "目录会移入回收站，可随时还原；注册表项会先导出 .reg 备份到配置目录，再删除；启动项会备份后禁用。\n已选 " + selected.Count + " 项（注册表/快捷方式 " + rc + " 条），目录体积约 " + Byt.Format(b) + "。";
-            if (admin) text += "\n其中部分项目需要管理员权限，当前不是管理员，可能失败。";
-            bool ok = Dlg.Confirm(FindForm(), "确认清理这些残留？", text, "开始清理", true);
+            string text = Lang.T("目录会移入回收站，可随时还原；注册表项会先导出 .reg 备份到配置目录，再删除；启动项会备份后禁用。\n已选 ") + selected.Count + Lang.T(" 项（注册表/快捷方式 ") + rc + Lang.T(" 条），目录体积约 ") + Byt.Format(b) + "。";
+            if (admin) text += Lang.T("\n其中部分项目需要管理员权限，当前不是管理员，可能失败。");
+            bool ok = Dlg.Confirm(FindForm(), Lang.T("确认清理这些残留？"), text, Lang.T("开始清理"), true);
             if (!ok) return;
 
             _busy = true;
             _spinner.Spin(true);
             _scanBtn.Enabled = false;
             _cleanBtn.Enabled = false;
-            _status = "正在清理...";
+            _status = Lang.T("正在清理...");
             _prog.Visible = true;
             _prog.BringToFront();
-            _prog.SetProgress(0, "准备处理残留...");
+            _prog.SetProgress(0, Lang.T("准备处理残留..."));
             LayoutChildren();
             _bar.Invalidate();
             ThreadPool.QueueUserWorkItem(delegate
@@ -391,7 +391,7 @@ namespace CCDesk
                         catch (Exception) { }
                     });
                 }
-                catch (Exception ex) { log = new List<string>(new string[] { "执行失败：" + ex.Message }); }
+                catch (Exception ex) { log = new List<string>(new string[] { Lang.T("执行失败：") + ex.Message }); }
                 long f = freed;
                 List<string> lg = log;
                 int err = errors;
@@ -405,19 +405,19 @@ namespace CCDesk
                         _prog.Visible = false;
                         LayoutChildren();
                         _cleanBtn.Enabled = true;
-                        _status = "已处理 " + sel + " 项，回收 " + Byt.Format(f) + (err > 0 ? "，" + err + " 项失败" : "");
+                        _status = Lang.T("已处理 ") + sel + Lang.T(" 项，回收 ") + Byt.Format(f) + (err > 0 ? "，" + err + Lang.T(" 项失败") : "");
                         _bar.Invalidate();
                         List<string> lines = new List<string>();
                         if (lg != null) { for (int i = 0; i < lg.Count; i++) lines.Add(lg[i]); }
-                        string summary = "回收空间 " + Byt.Format(f) + " · 处理 " + sel + " 项 · 明细 " + lines.Count + " 条";
-                        string hint = err > 0 ? "有 " + err + " 项未能处理，通常是被进程占用或权限不足，可重启后重试" : "目录已进回收站、注册表已导出 .reg 备份，均可在需要时还原";
-                        Dlg.Report(FindForm(), "残留清理完成", summary, lines, hint);
+                        string summary = Lang.T("回收空间 ") + Byt.Format(f) + Lang.T(" · 处理 ") + sel + Lang.T(" 项 · 明细 ") + lines.Count + Lang.T(" 条");
+                        string hint = err > 0 ? Lang.T("有 ") + err + Lang.T(" 项未能处理，通常是被进程占用或权限不足，可重启后重试") : Lang.T("目录已进回收站、注册表已导出 .reg 备份，均可在需要时还原");
+                        Dlg.Report(FindForm(), Lang.T("残留清理完成"), summary, lines, hint);
                         _groups.Clear();
                         _list.Clear();
                         _doneClean = true;
-                        _list.EmptyText = "本次残留清理已完成";
-                        _list.EmptyHint = "如需重新检查，请点击上方“重新扫描”";
-                        _status = "处理完成，本次回收 " + Byt.Format(f) + "；已回到概览页";
+                        _list.EmptyText = Lang.T("本次残留清理已完成");
+                        _list.EmptyHint = Lang.T("如需重新检查，请点击上方“重新扫描”");
+                        _status = Lang.T("处理完成，本次回收 ") + Byt.Format(f) + Lang.T("；已回到概览页");
                         _bar.Invalidate();
                         MainForm mf2 = FindForm() as MainForm;
                         if (mf2 != null) mf2.SelectPage(0);
@@ -431,7 +431,7 @@ namespace CCDesk
         {
             string s = "";
             for (int i = 0; i < list.Count && i < max; i++) s += "· " + list[i] + "\n";
-            if (list.Count > max) s += "· 其余 " + (list.Count - max) + " 条已写入操作日志";
+            if (list.Count > max) s += Lang.T("· 其余 ") + (list.Count - max) + Lang.T(" 条已写入操作日志");
             return s;
         }
     }

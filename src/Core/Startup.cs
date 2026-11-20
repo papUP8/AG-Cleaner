@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -32,13 +32,13 @@ namespace CCDesk.Core
         {
             get
             {
-                if (Group == "sys") return "系统组件";
-                if (Group == "task") return "计划任务";
-                if (Group == "plugin") return "自动插件";
-                if (Group == "appsvc") return "应用软件服务";
-                if (Group == "syssvc") return "系统关键服务";
-                if (Group == "service") return "系统服务";
-                return "用户启动项";
+                if (Group == "sys") return Lang.T("系统组件");
+                if (Group == "task") return Lang.T("计划任务");
+                if (Group == "plugin") return Lang.T("自动插件");
+                if (Group == "appsvc") return Lang.T("应用软件服务");
+                if (Group == "syssvc") return Lang.T("系统关键服务");
+                if (Group == "service") return Lang.T("系统服务");
+                return Lang.T("用户启动项");
             }
         }
     }
@@ -160,7 +160,7 @@ namespace CCDesk.Core
                             it.ApprovalPath = @"Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\" + approvalSub;
                             it.ApprovalName = names[i];
                             it.Enabled = !ApprovalDisabled(machine, it.ApprovalPath, it.ApprovalName);
-                            if (it.Name.Length == 0) it.Name = "未命名启动项";
+                            if (it.Name.Length == 0) it.Name = Lang.T("未命名启动项");
                             items.Add(it);
                         }
                         catch (Exception) { }
@@ -174,7 +174,7 @@ namespace CCDesk.Core
         {
             int i = keyPath.LastIndexOf('\\');
             string tail = i >= 0 ? keyPath.Substring(i + 1) : keyPath;
-            if (keyPath.IndexOf("WOW6432Node", StringComparison.OrdinalIgnoreCase) >= 0) return tail + " (32位)";
+            if (keyPath.IndexOf("WOW6432Node", StringComparison.OrdinalIgnoreCase) >= 0) return tail + Lang.T(" (32位)");
             return tail;
         }
 
@@ -222,7 +222,7 @@ namespace CCDesk.Core
                     it.FilePath = files[i];
                     it.Machine = f == 1;
                     it.Group = f == 0 ? "user" : "sys";
-                    it.Source = f == 0 ? "用户启动文件夹" : "公共启动文件夹";
+                    it.Source = f == 0 ? Lang.T("用户启动文件夹") : Lang.T("公共启动文件夹");
                     it.ApprovalPath = @"Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\StartupFolder";
                     it.ApprovalName = n;
                     it.Enabled = !ApprovalDisabled(it.Machine, it.ApprovalPath, it.ApprovalName);
@@ -306,7 +306,7 @@ namespace CCDesk.Core
                 it.IsTask = true;
                 it.TaskPath = taskPath;
                 it.Group = "task";
-                it.Source = logon ? "登录时触发" : "开机时触发";
+                it.Source = logon ? Lang.T("登录时触发") : Lang.T("开机时触发");
                 it.Machine = true;
                 it.Command = TaskCommand(xml);
                 it.Enabled = TaskEnabled(taskPath, xml);
@@ -325,10 +325,10 @@ namespace CCDesk.Core
         private static string TaskCommand(string xml)
         {
             int a = xml.IndexOf("<Command>", StringComparison.OrdinalIgnoreCase);
-            if (a < 0) return "（任务定义见任务计划程序）";
+            if (a < 0) return Lang.T("（任务定义见任务计划程序）");
             a += "<Command>".Length;
             int b = xml.IndexOf("</Command>", a, StringComparison.OrdinalIgnoreCase);
-            if (b <= a) return "（任务定义见任务计划程序）";
+            if (b <= a) return Lang.T("（任务定义见任务计划程序）");
             string cmd = xml.Substring(a, b - a).Trim();
             int argA = xml.IndexOf("<Arguments>", StringComparison.OrdinalIgnoreCase);
             if (argA > 0)
@@ -353,7 +353,7 @@ namespace CCDesk.Core
             string output;
             RunTool("schtasks.exe", "/Query /TN \"" + taskPath + "\" /FO LIST", out output);
             if (output == null) return true;
-            if (output.IndexOf("已禁用", StringComparison.OrdinalIgnoreCase) >= 0) return false;
+            if (output.IndexOf(Lang.T("已禁用"), StringComparison.OrdinalIgnoreCase) >= 0) return false;
             if (output.IndexOf("Disabled", StringComparison.OrdinalIgnoreCase) >= 0) return false;
             return true;
         }
@@ -404,9 +404,9 @@ namespace CCDesk.Core
                                 it.Group = systemOwned ? "syssvc" : "appsvc";
                                 it.IsService = true;
                                 it.Machine = true;
-                                it.Source = systemOwned ? "系统关键服务（自动启动）" : "应用软件服务（自动启动）";
+                                it.Source = systemOwned ? Lang.T("系统关键服务（自动启动）") : Lang.T("应用软件服务（自动启动）");
                                 it.Enabled = true;
-                                it.Detail = "服务名 " + subs[i] + " · " + img;
+                                it.Detail = Lang.T("服务名 ") + subs[i] + " · " + img;
                                 items.Add(it);
                             }
                         }
@@ -435,13 +435,13 @@ namespace CCDesk.Core
         private static void ReadPlugins(List<StartupItem> items)
         {
             // 浏览器辅助对象（BHO）
-            AddShellKey(items, Registry.LocalMachine, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Browser Helper Objects", "浏览器插件（BHO）", true);
-            AddShellKey(items, Registry.CurrentUser, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Browser Helper Objects", "浏览器插件（BHO）", false);
+            AddShellKey(items, Registry.LocalMachine, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Browser Helper Objects", Lang.T("浏览器插件（BHO）"), true);
+            AddShellKey(items, Registry.CurrentUser, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Browser Helper Objects", Lang.T("浏览器插件（BHO）"), false);
             // 资源管理器图标叠加
-            AddShellKey(items, Registry.LocalMachine, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\ShellIconOverlayIdentifiers", "图标叠加", true);
+            AddShellKey(items, Registry.LocalMachine, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\ShellIconOverlayIdentifiers", Lang.T("图标叠加"), true);
             // 右键菜单扩展
-            AddShellKey(items, Registry.ClassesRoot, @"*\shellex\ContextMenuHandlers", "右键菜单扩展", true);
-            AddShellKey(items, Registry.ClassesRoot, @"Directory\shellex\ContextMenuHandlers", "文件夹右键扩展", true);
+            AddShellKey(items, Registry.ClassesRoot, @"*\shellex\ContextMenuHandlers", Lang.T("右键菜单扩展"), true);
+            AddShellKey(items, Registry.ClassesRoot, @"Directory\shellex\ContextMenuHandlers", Lang.T("文件夹右键扩展"), true);
         }
 
         private static void AddShellKey(List<StartupItem> items, RegistryKey hive, string path, string kind, bool machine)
@@ -532,7 +532,7 @@ namespace CCDesk.Core
                     it.FilePath = p[5];
                     it.Enabled = false;
                     it.Group = it.IsFile ? (it.Machine ? "sys" : "user") : "user";
-                    it.Source = it.IsFile ? "启动文件夹（已备份）" : (p[2] + " " + ShortKey(p[3]) + "（已备份）");
+                    it.Source = it.IsFile ? Lang.T("启动文件夹（已备份）") : (p[2] + " " + ShortKey(p[3]) + Lang.T("（已备份）"));
                     items.Add(it);
                 }
             }
@@ -553,7 +553,7 @@ namespace CCDesk.Core
                     StartupItem it = new StartupItem();
                     it.Name = p[1];
                     it.Command = Encoding.UTF8.GetString(Convert.FromBase64String(p[6]));
-                    it.Source = p[0] == "file" ? "启动文件夹（已备份）" : (p[2] + " Run（已备份）");
+                    it.Source = p[0] == "file" ? Lang.T("启动文件夹（已备份）") : (p[2] + Lang.T(" Run（已备份）"));
                     it.Enabled = false;
                     it.IsFile = p[0] == "file";
                     it.Machine = p[2] == "HKLM";
@@ -573,7 +573,7 @@ namespace CCDesk.Core
             message = "";
             if (it.IsService)
             {
-                message = "系统服务不在此处停用，请在“服务”管理器或系统配置中操作";
+                message = Lang.T("系统服务不在此处停用，请在“服务”管理器或系统配置中操作");
                 return false;
             }
             if (it.IsTask)
@@ -582,11 +582,11 @@ namespace CCDesk.Core
                 bool ok = RunTool("schtasks.exe", "/Change /TN \"" + it.TaskPath + "\" /Disable", out output);
                 if (ok)
                 {
-                    OpLog.Write("startup", "禁用任务 " + it.Name, 0);
-                    message = "计划任务已禁用，可在本页一键启用";
+                    OpLog.Write("startup", Lang.T("禁用任务 ") + it.Name, 0);
+                    message = Lang.T("计划任务已禁用，可在本页一键启用");
                     return true;
                 }
-                message = "任务禁用失败：" + (output == null ? "需要管理员权限" : output.Trim());
+                message = Lang.T("任务禁用失败：") + (output == null ? Lang.T("需要管理员权限") : output.Trim());
                 return false;
             }
             if (it.IsFile)
@@ -597,18 +597,18 @@ namespace CCDesk.Core
                     if (File.Exists(dest)) dest = dest + "." + DateTime.Now.Ticks;
                     File.Move(it.FilePath, dest);
                     AppendBackup("file", it.HiveName, "", "", dest, it.FilePath, Encoding.UTF8.GetBytes(it.FilePath));
-                    OpLog.Write("startup", "禁用 " + it.Name, 0);
-                    message = "已从启动文件夹移除（文件已备份）";
+                    OpLog.Write("startup", Lang.T("禁用 ") + it.Name, 0);
+                    message = Lang.T("已从启动文件夹移除（文件已备份）");
                     return true;
                 }
-                catch (Exception ex) { message = "操作失败：" + ex.Message; return false; }
+                catch (Exception ex) { message = Lang.T("操作失败：") + ex.Message; return false; }
             }
             try
             {
                 RegistryKey hive = it.HiveName == "HKCU" ? Registry.CurrentUser : Registry.LocalMachine;
                 using (RegistryKey k = hive.OpenSubKey(it.KeyPath, true))
                 {
-                    if (k == null) { message = "无法打开注册表项"; return false; }
+                    if (k == null) { message = Lang.T("无法打开注册表项"); return false; }
                     object val = k.GetValue(it.ValueName);
                     RegistryValueKind kind = k.GetValueKind(it.ValueName);
                     byte[] data;
@@ -617,12 +617,12 @@ namespace CCDesk.Core
                     else data = Encoding.UTF8.GetBytes(val == null ? "" : val.ToString());
                     AppendBackup("reg", it.HiveName, it.KeyPath, it.ValueName, kind.ToString(), "", data);
                     k.DeleteValue(it.ValueName, false);
-                    OpLog.Write("startup", "禁用 " + it.Name, 0);
-                    message = "已禁用（已备份，可随时还原）";
+                    OpLog.Write("startup", Lang.T("禁用 ") + it.Name, 0);
+                    message = Lang.T("已禁用（已备份，可随时还原）");
                     return true;
                 }
             }
-            catch (Exception ex) { message = "操作失败：" + ex.Message; return false; }
+            catch (Exception ex) { message = Lang.T("操作失败：") + ex.Message; return false; }
         }
 
         public static bool Enable(StartupItem it, out string message)
@@ -630,7 +630,7 @@ namespace CCDesk.Core
             message = "";
             if (it.IsService)
             {
-                message = "系统服务不在此处启用，请在“服务”管理器操作";
+                message = Lang.T("系统服务不在此处启用，请在“服务”管理器操作");
                 return false;
             }
             if (it.IsTask)
@@ -639,24 +639,24 @@ namespace CCDesk.Core
                 bool ok = RunTool("schtasks.exe", "/Change /TN \"" + it.TaskPath + "\" /Enable", out output);
                 if (ok)
                 {
-                    OpLog.Write("startup", "启用任务 " + it.Name, 0);
-                    message = "计划任务已重新启用";
+                    OpLog.Write("startup", Lang.T("启用任务 ") + it.Name, 0);
+                    message = Lang.T("计划任务已重新启用");
                     return true;
                 }
-                message = "任务启用失败：" + (output == null ? "需要管理员权限" : output.Trim());
+                message = Lang.T("任务启用失败：") + (output == null ? Lang.T("需要管理员权限") : output.Trim());
                 return false;
             }
             try
             {
-                if (it.IsFile && File.Exists(it.FilePath)) { message = "已存在"; return true; }
+                if (it.IsFile && File.Exists(it.FilePath)) { message = Lang.T("已存在"); return true; }
                 if (it.IsFile)
                 {
                     string src = Path.Combine(BackupDir, Path.GetFileName(it.FilePath));
-                    if (!File.Exists(src)) { message = "备份文件不存在"; return false; }
+                    if (!File.Exists(src)) { message = Lang.T("备份文件不存在"); return false; }
                     File.Copy(src, it.FilePath, true);
                     RemoveBackup("file", it.FilePath, "");
-                    OpLog.Write("startup", "启用 " + it.Name, 0);
-                    message = "已恢复到启动文件夹";
+                    OpLog.Write("startup", Lang.T("启用 ") + it.Name, 0);
+                    message = Lang.T("已恢复到启动文件夹");
                     return true;
                 }
                 if (it.ApprovalPath.Length > 0 && ApprovalDisabled(it.Machine, it.ApprovalPath, it.ApprovalName))
@@ -666,16 +666,16 @@ namespace CCDesk.Core
                     {
                         if (ka != null) ka.DeleteValue(it.ApprovalName, false);
                     }
-                    OpLog.Write("startup", "启用 " + it.Name, 0);
-                    message = "已解除系统禁用标记";
+                    OpLog.Write("startup", Lang.T("启用 ") + it.Name, 0);
+                    message = Lang.T("已解除系统禁用标记");
                     return true;
                 }
                 RegistryKey hive = it.HiveName == "HKCU" ? Registry.CurrentUser : Registry.LocalMachine;
                 using (RegistryKey k = hive.OpenSubKey(it.KeyPath, true))
                 {
-                    if (k == null) { message = "无法打开注册表项"; return false; }
+                    if (k == null) { message = Lang.T("无法打开注册表项"); return false; }
                     byte[] data = ReadBackupData(it.ValueName, it.FilePath, it.KeyPath);
-                    if (data == null) { message = "找不到备份数据"; return false; }
+                    if (data == null) { message = Lang.T("找不到备份数据"); return false; }
                     RegistryValueKind kind = ReadBackupKind(it.ValueName, it.KeyPath);
                     if (kind == RegistryValueKind.Binary) k.SetValue(it.ValueName, data, kind);
                     else if (kind == RegistryValueKind.MultiString) k.SetValue(it.ValueName, Encoding.UTF8.GetString(data).Split('\n'), kind);
@@ -686,12 +686,12 @@ namespace CCDesk.Core
                     }
                     else k.SetValue(it.ValueName, Encoding.UTF8.GetString(data), kind);
                     RemoveBackup("reg", it.ValueName, it.KeyPath);
-                    OpLog.Write("startup", "启用 " + it.Name, 0);
-                    message = "已重新启用";
+                    OpLog.Write("startup", Lang.T("启用 ") + it.Name, 0);
+                    message = Lang.T("已重新启用");
                     return true;
                 }
             }
-            catch (Exception ex) { message = "操作失败：" + ex.Message; return false; }
+            catch (Exception ex) { message = Lang.T("操作失败：") + ex.Message; return false; }
         }
 
         [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
@@ -750,7 +750,7 @@ namespace CCDesk.Core
                     {
                         try { p.Kill(); }
                         catch (Exception) { }
-                        output = "命令执行超时";
+                        output = Lang.T("命令执行超时");
                         return false;
                     }
                     output = (o + e).Trim();

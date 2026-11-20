@@ -10,14 +10,15 @@ namespace CCDesk
 {
     public class SettingsPage : PageBase
     {
-        public override string PageTitle { get { return "设置"; } }
-        public override string PageSubtitle { get { return "清理偏好、白名单与项目目录；所有配置保存在本地"; } }
+        public override string PageTitle { get { return Lang.T("设置"); } }
+        public override string PageSubtitle { get { return Lang.T("清理偏好、白名单与项目目录；所有配置保存在本地"); } }
 
         private Card _pref;
         private Card _white;
         private Card _scope;
         private Card _proj;
         private Card _about;
+        private Btn _langBtn;
         private List<CheckBox2> _driveChecks = new List<CheckBox2>();
 
         private Toggle _recycle;
@@ -59,6 +60,13 @@ namespace CCDesk
             _about.Paint += AboutPaint;
             Controls.Add(_about);
 
+            _langBtn = new Btn();
+            _langBtn.Kind = ButtonKind.Ghost;
+            _langBtn.Size = new Size(110, 28);
+            _langBtn.Text = Lang.Cur == "en" ? Lang.T("中文") : "English";
+            _langBtn.Click += delegate { ToggleLanguage(); };
+            _about.Controls.Add(_langBtn);
+
             _recycle = AddToggle(_pref, 0, _settings.UseRecycleBin, delegate (bool v) { _settings.UseRecycleBin = v; _settings.Save(); });
             _gpu = AddToggle(_pref, 1, _settings.CleanGpuShaders, delegate (bool v) { _settings.CleanGpuShaders = v; _settings.Save(); });
             _projects = AddToggle(_pref, 2, _settings.CleanProjectArtifacts, delegate (bool v) { _settings.CleanProjectArtifacts = v; _settings.Save(); });
@@ -86,14 +94,14 @@ namespace CCDesk
 
             _whiteSave = new Btn();
             _whiteSave.Kind = ButtonKind.Ghost;
-            _whiteSave.Text = "保存白名单";
+            _whiteSave.Text = Lang.T("保存白名单");
             _whiteSave.Size = new Size(100, 30);
             _whiteSave.Click += delegate { SaveWhite(); };
             _white.Controls.Add(_whiteSave);
 
             _whiteDefault = new Btn();
             _whiteDefault.Kind = ButtonKind.Link;
-            _whiteDefault.Text = "恢复默认";
+            _whiteDefault.Text = Lang.T("恢复默认");
             _whiteDefault.Size = new Size(76, 28);
             _whiteDefault.Click += delegate
             {
@@ -109,7 +117,7 @@ namespace CCDesk
 
             _projSave = new Btn();
             _projSave.Kind = ButtonKind.Ghost;
-            _projSave.Text = "保存目录";
+            _projSave.Text = Lang.T("保存目录");
             _projSave.Size = new Size(100, 30);
             _projSave.Click += delegate { SaveProjects(); };
             _proj.Controls.Add(_projSave);
@@ -122,7 +130,7 @@ namespace CCDesk
 
         private static string DayText(int days)
         {
-            return days <= 0 ? "全部" : days + " 天";
+            return days <= 0 ? Lang.T("全部") : days + Lang.T(" 天");
         }
 
         private Toggle AddToggle(Card card, int row, bool value, Action<bool> onChange)
@@ -231,6 +239,7 @@ namespace CCDesk
 
             int y4 = y3 + h2 + gap;
             _about.SetBounds(0, y4, w, Math.Max(86, Height - y4 - 4));
+            _langBtn.SetBounds(_about.Width - 130, 12, 110, 28);
         }
 
         protected override void OnResize(EventArgs e)
@@ -264,7 +273,7 @@ namespace CCDesk
                 if (t.Length > 0) list.Add(t);
             }
             Guard.SaveWhiteList(list);
-            Dlg.Info(FindForm(), "已保存", "白名单共 " + list.Count + " 条，命中的路径不会被清理。");
+            Dlg.Info(FindForm(), Lang.T("已保存"), Lang.T("白名单共 ") + list.Count + Lang.T(" 条，命中的路径不会被清理。"));
         }
 
         private void SaveProjects()
@@ -279,7 +288,7 @@ namespace CCDesk
             }
             _settings.ProjectDirs = dirs;
             _settings.Save();
-            Dlg.Info(FindForm(), "已保存", "项目扫描目录共 " + dirs.Count + " 个。");
+            Dlg.Info(FindForm(), Lang.T("已保存"), Lang.T("项目扫描目录共 ") + dirs.Count + Lang.T(" 个。"));
         }
 
         private void ScopePaint(object sender, PaintEventArgs e)
@@ -287,8 +296,8 @@ namespace CCDesk
             Graphics g = e.Graphics;
             Theme.Smooth(g);
             Card c = (Card)sender;
-            Theme.Txt(g, "残留扫描范围", Theme.F(10.5f, FontStyle.Bold), Theme.Text, 20, 14);
-            Theme.Txt(g, "勾选要扫描的磁盘（只影响“残留清理”）；全部勾选或全部取消都表示全部固定盘",
+            Theme.Txt(g, Lang.T("残留扫描范围"), Theme.F(10.5f, FontStyle.Bold), Theme.Text, 20, 14);
+            Theme.Txt(g, Lang.T("勾选要扫描的磁盘（只影响“残留清理”）；全部勾选或全部取消都表示全部固定盘"),
                 Theme.F(7.8f), Theme.Muted, 20, 33);
         }
 
@@ -297,22 +306,22 @@ namespace CCDesk
             Graphics g = e.Graphics;
             Theme.Smooth(g);
             Card c = (Card)sender;
-            Theme.Txt(g, "清理偏好", Theme.F(10.5f, FontStyle.Bold), Theme.Text, 20, 18);
-            string[] titles = new string[] { "删除时移入回收站（更安全）", "扫描 GPU 着色器缓存", "扫描项目构建产物", "扫描下载目录中的旧安装包" };
+            Theme.Txt(g, Lang.T("清理偏好"), Theme.F(10.5f, FontStyle.Bold), Theme.Text, 20, 18);
+            string[] titles = new string[] { Lang.T("删除时移入回收站（更安全）"), Lang.T("扫描 GPU 着色器缓存"), Lang.T("扫描项目构建产物"), Lang.T("扫描下载目录中的旧安装包") };
             string[] descs = new string[]
             {
-                "关闭则永久删除，缓存类项目默认永久删除更省空间",
-                "删除后游戏与应用首次启动需重新编译着色器",
-                "扫描 node_modules、target、dist 等可重建目录",
-                "仅处理 14 天前且大于 5 MB 的 msi / exe"
+                Lang.T("关闭则永久删除，缓存类项目默认永久删除更省空间"),
+                Lang.T("删除后游戏与应用首次启动需重新编译着色器"),
+                Lang.T("扫描 node_modules、target、dist 等可重建目录"),
+                Lang.T("仅处理 14 天前且大于 5 MB 的 msi / exe")
             };
             for (int i = 0; i < 4; i++)
             {
                 Theme.Txt(g, titles[i], Theme.F(8.8f), Theme.Text, 20, 52 + i * 46);
                 Theme.Txt(g, descs[i], Theme.F(7.8f), Theme.Muted, 20, 70 + i * 46);
             }
-            Theme.Txt(g, "临时文件保留天数", Theme.F(8.8f), Theme.Text, 20, 224);
-            Theme.Txt(g, "“全部”表示清空临时目录里未被占用的文件；也可以只清若干天前的文件", Theme.F(7.6f), Theme.Muted, 20, 242);
+            Theme.Txt(g, Lang.T("临时文件保留天数"), Theme.F(8.8f), Theme.Text, 20, 224);
+            Theme.Txt(g, Lang.T("“全部”表示清空临时目录里未被占用的文件；也可以只清若干天前的文件"), Theme.F(7.6f), Theme.Muted, 20, 242);
         }
 
         private void WhitePaint(object sender, PaintEventArgs e)
@@ -320,16 +329,16 @@ namespace CCDesk
             Graphics g = e.Graphics;
             Theme.Smooth(g);
             Card c = (Card)sender;
-            Theme.Txt(g, "白名单", Theme.F(10.5f, FontStyle.Bold), Theme.Text, 18, 18);
-            Theme.Txt(g, "每行一个路径，支持 %LOCALAPPDATA% 等环境变量，命中即跳过", Theme.F(7.8f), Theme.Muted, 18, 42);
+            Theme.Txt(g, Lang.T("白名单"), Theme.F(10.5f, FontStyle.Bold), Theme.Text, 18, 18);
+            Theme.Txt(g, Lang.T("每行一个路径，支持 %LOCALAPPDATA% 等环境变量，命中即跳过"), Theme.F(7.8f), Theme.Muted, 18, 42);
         }
 
         private void ProjPaint(object sender, PaintEventArgs e)
         {
             Graphics g = e.Graphics;
             Theme.Smooth(g);
-            Theme.Txt(g, "项目扫描目录", Theme.F(10.5f, FontStyle.Bold), Theme.Text, 18, 16);
-            Theme.Txt(g, "每行一个目录，用于查找可重建的构建产物（需开启上方开关）", Theme.F(7.8f), Theme.Muted, 18, 40);
+            Theme.Txt(g, Lang.T("项目扫描目录"), Theme.F(10.5f, FontStyle.Bold), Theme.Text, 18, 16);
+            Theme.Txt(g, Lang.T("每行一个目录，用于查找可重建的构建产物（需开启上方开关）"), Theme.F(7.8f), Theme.Muted, 18, 40);
         }
 
         private void AboutPaint(object sender, PaintEventArgs e)
@@ -337,12 +346,23 @@ namespace CCDesk
             Graphics g = e.Graphics;
             Theme.Smooth(g);
             Card c = (Card)sender;
-            Theme.Txt(g, "关于 CC-Desk", Theme.F(10.5f, FontStyle.Bold), Theme.Text, 20, 14);
-            Theme.Txt(g, "CC-Desk " + Program.Version + "  ·  Windows 图形桌面清理与优化工具",
+            Theme.Txt(g, Lang.T("关于 CC-Desk"), Theme.F(10.5f, FontStyle.Bold), Theme.Text, 20, 14);
+            Theme.Txt(g, "CC-Desk " + Program.Version + Lang.T("  ·  Windows 图形桌面清理与优化工具"),
                 Theme.F(8.2f), Theme.TextDim, 20, 40);
-            Theme.Txt(g, "许可证：GPL-3.0 · 社区版，代码开源可审计 · 所有配置与日志只保存在本机",
+            Theme.Txt(g, Lang.T("许可证：GPL-3.0 · 社区版，代码开源可审计 · 所有配置与日志只保存在本机"),
                 Theme.F(7.9f), Theme.Muted, 20, 62);
-            Theme.Txt(g, "配置目录：" + Store.RootDir, Theme.F(7.6f), Theme.Hint, 20, 84);
+            Theme.Txt(g, Lang.T("配置目录：") + Store.RootDir, Theme.F(7.6f), Theme.Hint, 20, 84);
+            Theme.Txt(g, Lang.T("界面语言 / Language"), Theme.F(8.2f), Theme.TextDim, c.Width - 268, 18);
+        }
+
+        private void ToggleLanguage()
+        {
+            string next = Lang.Cur == "en" ? "zh" : "en";
+            Lang.Set(next);
+            _settings.Language = next;
+            _settings.Save();
+            MainForm mf = FindForm() as MainForm;
+            if (mf != null) mf.ReloadPages(8);
         }
     }
 }

@@ -7,7 +7,7 @@ namespace CCDesk
 {
     public static class Program
     {
-        public static string Version = "1.3.4";
+        public static string Version = "1.4.0";
 
         [STAThread]
         public static void Main(string[] args)
@@ -17,6 +17,7 @@ namespace CCDesk
             Application.AddMessageFilter(new WheelRouter());
 
             Core.Settings startSettings = Core.Settings.Load();
+            Lang.Set(startSettings.Language);
             Theme.ApplyMode(startSettings.ThemeMode, Theme.SystemLight());
 
             if (args.Length >= 1 && args[0] == "--selftest")
@@ -133,7 +134,7 @@ namespace CCDesk
                     System.Collections.Generic.List<Core.OrphanGroup> gs = Core.Orphans.Scan(null);
                     for (int i = 0; i < gs.Count; i++)
                     {
-                        sb.AppendLine("[" + gs[i].Name + "] " + gs[i].Items.Count + " 项");
+                        sb.AppendLine("[" + gs[i].Name + "] " + gs[i].Items.Count + Lang.T(" 项"));
                         for (int j = 0; j < gs[i].Items.Count && j < 40; j++)
                         {
                             sb.AppendLine("    " + gs[i].Items[j].Kind + " | " + Core.Byt.Format(gs[i].Items[j].Bytes) + " | " + gs[i].Items[j].Name + " | " + gs[i].Items[j].Target);
@@ -185,9 +186,9 @@ namespace CCDesk
             {
                 // 离屏渲染“清理完成”报告框，用于自检排版
                 ReportForm f = new ReportForm();
-                f.Headline = "清理完成";
-                f.Summary = "释放空间 1.73 GB · 处理 42 项 · 明细 42 条";
-                f.Hint = "全部处理完成；来源路径与体积已写入操作日志，可在历史记录页导出 CSV";
+                f.Headline = Lang.T("清理完成");
+                f.Summary = Lang.T("释放空间 1.73 GB · 处理 42 项 · 明细 42 条");
+                f.Hint = Lang.T("全部处理完成；来源路径与体积已写入操作日志，可在历史记录页导出 CSV");
                 f.ClientSize = new System.Drawing.Size(660, 500);
                 f.StartPosition = FormStartPosition.Manual;
                 f.Location = new System.Drawing.Point(-4000, 0);
@@ -200,10 +201,10 @@ namespace CCDesk
                 System.Collections.Generic.List<CCDesk.VRow> rows = new System.Collections.Generic.List<CCDesk.VRow>();
                 string[] demo = new string[]
                 {
-                    "用户临时目录  55.4 MB", "Windows 更新下载缓存  346 MB", "事件日志  172 MB",
-                    "字体缓存  48.8 MB", "搜索索引数据库  454 MB", "安装包缓存 Package Cache  493 MB",
+                    Lang.T("用户临时目录  55.4 MB"), Lang.T("Windows 更新下载缓存  346 MB"), Lang.T("事件日志  172 MB"),
+                    Lang.T("字体缓存  48.8 MB"), Lang.T("搜索索引数据库  454 MB"), Lang.T("安装包缓存 Package Cache  493 MB"),
                     "Chrome · Profile 5\\Cache  67.3 MB", "Chrome · Profile 5\\Code Cache  844 KB",
-                    "Edge · Default\\Cache  22.6 MB", "系统日志 Logs  13 MB", "交付优化缓存  6.27 MB"
+                    "Edge · Default\\Cache  22.6 MB", Lang.T("系统日志 Logs  13 MB"), Lang.T("交付优化缓存  6.27 MB")
                 };
                 for (int i = 0; i < demo.Length; i++)
                 {
@@ -215,13 +216,13 @@ namespace CCDesk
                 f.Controls.Add(list);
                 CCDesk.Btn b1 = new CCDesk.Btn();
                 b1.Kind = CCDesk.ButtonKind.Subtle;
-                b1.Text = "打开操作日志";
+                b1.Text = Lang.T("打开操作日志");
                 b1.Size = new System.Drawing.Size(112, 34);
                 b1.Location = new System.Drawing.Point(20, 448);
                 f.Controls.Add(b1);
                 CCDesk.Btn b2 = new CCDesk.Btn();
                 b2.Kind = CCDesk.ButtonKind.Accent;
-                b2.Text = "完成";
+                b2.Text = Lang.T("完成");
                 b2.Size = new System.Drawing.Size(96, 34);
                 b2.Location = new System.Drawing.Point(540, 448);
                 f.Controls.Add(b2);
@@ -247,6 +248,11 @@ namespace CCDesk
                     if (args[i] == "light" || args[i] == "dark" || args[i] == "system") themeMode = args[i];
                 }
                 if (themeMode.Length > 0) Theme.ApplyMode(themeMode, Theme.SystemLight());
+                for (int i = 0; i < args.Length; i++)
+                {
+                    if (args[i] == "en") Lang.Set("en");
+                    else if (args[i] == "zh") Lang.Set("zh");
+                }
                 MainForm f = new MainForm();
                 if (themeMode.Length > 0) f.SyncThemeVisualMode(themeMode);
                 f.StartPosition = FormStartPosition.Manual;
@@ -255,6 +261,10 @@ namespace CCDesk
                 f.Show();
                 f.SelectPage(page);
                 Application.DoEvents();
+                for (int i = 0; i < args.Length; i++)
+                {
+                    if (args[i] == "reload") { f.ReloadPages(page); Application.DoEvents(); }
+                }
                 for (int i = 0; i < args.Length; i++)
                 {
                     if (args[i] == "toggle") { Theme.ApplySkin(Theme.Skin.SystemLight); f.ApplyTheme(); }

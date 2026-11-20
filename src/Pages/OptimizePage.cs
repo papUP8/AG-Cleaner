@@ -10,8 +10,8 @@ namespace CCDesk
 {
     public class OptimizePage : PageBase
     {
-        public override string PageTitle { get { return "系统优化"; } }
-        public override string PageSubtitle { get { return "网络缓存刷新、磁盘 TRIM 与更新缓存清理，安全可控"; } }
+        public override string PageTitle { get { return Lang.T("系统优化"); } }
+        public override string PageSubtitle { get { return Lang.T("网络缓存刷新、磁盘 TRIM 与更新缓存清理，安全可控"); } }
 
         private VList _list;
         private Card _logCard;
@@ -29,7 +29,7 @@ namespace CCDesk
             _list.ShowCheck = false;
             _list.RightHeader = "";
             _list.RowHeight = 64;
-            _list.EmptyText = "没有可用的优化项";
+            _list.EmptyText = Lang.T("没有可用的优化项");
             _list.ActionClicked += delegate { RunSelected(); };
             Controls.Add(_list);
 
@@ -50,18 +50,18 @@ namespace CCDesk
 
             _logClear = new Btn();
             _logClear.Kind = ButtonKind.Link;
-            _logClear.Text = "清空";
+            _logClear.Text = Lang.T("清空");
             _logClear.Size = new Size(48, 24);
             _logClear.Click += delegate { _log.Text = ""; };
             _logCard.Controls.Add(_logClear);
 
             _adminBtn = new Btn();
             _adminBtn.Kind = ButtonKind.Ghost;
-            _adminBtn.Text = "以管理员身份重启";
+            _adminBtn.Text = Lang.T("以管理员身份重启");
             _adminBtn.Size = new Size(150, 32);
             _adminBtn.Click += delegate
             {
-                if (Dlg.Confirm(FindForm(), "以管理员身份重启？", "将以 UAC 提权方式重新启动 CC-Desk，解锁 ARP 缓存、磁盘 TRIM 与 Windows 更新缓存清理。当前窗口会关闭。", "重启", false))
+                if (Dlg.Confirm(FindForm(), Lang.T("以管理员身份重启？"), Lang.T("将以 UAC 提权方式重新启动 CC-Desk，解锁 ARP 缓存、磁盘 TRIM 与 Windows 更新缓存清理。当前窗口会关闭。"), Lang.T("重启"), false))
                 {
                     if (Native.RelaunchAsAdmin()) Application.Exit();
                 }
@@ -70,7 +70,7 @@ namespace CCDesk
 
             Fill();
             LayoutChildren();
-            Append("CC-Desk 系统优化 · " + (Native.IsAdmin() ? "当前为管理员权限" : "当前为普通用户权限，标记“需要管理员”的项目会被拦截"));
+            Append(Lang.T("CC-Desk 系统优化 · ") + (Native.IsAdmin() ? Lang.T("当前为管理员权限") : Lang.T("当前为普通用户权限，标记“需要管理员”的项目会被拦截")));
         }
 
         private void Fill()
@@ -83,8 +83,8 @@ namespace CCDesk
                 r.Title = a.Name;
                 r.Sub = a.Desc;
                 r.Right = "";
-                if (a.AdminOnly) { r.Tag = "需要管理员"; r.TagColor = Theme.Warn; }
-                r.Action = "执行";
+                if (a.AdminOnly) { r.Tag = Lang.T("需要管理员"); r.TagColor = Theme.Warn; }
+                r.Action = Lang.T("执行");
                 r.ActionColor = Theme.Accent;
                 r.Data = a;
                 rows.Add(r);
@@ -118,7 +118,7 @@ namespace CCDesk
         private void LogPaint(object sender, PaintEventArgs e)
         {
             Theme.Smooth(e.Graphics);
-            Theme.Txt(e.Graphics, "执行日志", Theme.F(9.5f, FontStyle.Bold), Theme.Text, 18, 18);
+            Theme.Txt(e.Graphics, Lang.T("执行日志"), Theme.F(9.5f, FontStyle.Bold), Theme.Text, 18, 18);
         }
 
         private void Append(string line)
@@ -135,12 +135,12 @@ namespace CCDesk
             if (a == null) return;
             if (_busy)
             {
-                Append("已有任务在执行，请稍候");
+                Append(Lang.T("已有任务在执行，请稍候"));
                 return;
             }
             if (a.AdminOnly && !Native.IsAdmin())
             {
-                Dlg.Info(FindForm(), "需要管理员权限", "该操作需要管理员权限，请点击右上角“以管理员身份重启”后再执行。");
+                Dlg.Info(FindForm(), Lang.T("需要管理员权限"), Lang.T("该操作需要管理员权限，请点击右上角“以管理员身份重启”后再执行。"));
                 return;
             }
             if (a.Id == "recycle")
@@ -148,15 +148,15 @@ namespace CCDesk
                 long size = 0;
                 int items = 0;
                 Shell.RecycleBinInfo(ref size, ref items);
-                if (!Dlg.Confirm(FindForm(), "清空回收站？", "将删除回收站中的 " + items + " 项文件（" + Byt.Format(size) + "），此操作不可恢复。", "清空", true)) return;
+                if (!Dlg.Confirm(FindForm(), Lang.T("清空回收站？"), Lang.T("将删除回收站中的 ") + items + Lang.T(" 项文件（") + Byt.Format(size) + Lang.T("），此操作不可恢复。"), Lang.T("清空"), true)) return;
             }
             if (a.LongRunning)
             {
-                if (!Dlg.Confirm(FindForm(), "执行 " + a.Name + "？", a.Desc + "\n\n可能需要数分钟，期间请勿关闭窗口。", "开始执行", false)) return;
+                if (!Dlg.Confirm(FindForm(), Lang.T("执行 ") + a.Name + "？", a.Desc + Lang.T("\n\n可能需要数分钟，期间请勿关闭窗口。"), Lang.T("开始执行"), false)) return;
             }
 
             _busy = true;
-            Append("▶ 开始：" + a.Name);
+            Append(Lang.T("▶ 开始：") + a.Name);
             ThreadPool.QueueUserWorkItem(delegate
             {
                 string summary = "";

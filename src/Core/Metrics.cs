@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net.NetworkInformation;
@@ -152,20 +152,20 @@ namespace CCDesk.Core
             notes = new List<string>();
             int score = 100;
             double freePct = 100 - s.DiskPercent;
-            if (s.DiskPercent > 90) { score -= 25; notes.Add("系统盘剩余空间不足 10%，建议立即清理"); }
-            else if (s.DiskPercent > 80) { score -= 12; notes.Add("系统盘使用率超过 80%，建议清理缓存"); }
+            if (s.DiskPercent > 90) { score -= 25; notes.Add(Lang.T("系统盘剩余空间不足 10%，建议立即清理")); }
+            else if (s.DiskPercent > 80) { score -= 12; notes.Add(Lang.T("系统盘使用率超过 80%，建议清理缓存")); }
             else if (s.DiskPercent > 70) { score -= 5; }
 
-            if (s.MemPercent > 90) { score -= 15; notes.Add("内存占用超过 90%，请关闭后台程序"); }
-            else if (s.MemPercent > 80) { score -= 8; notes.Add("内存占用偏高"); }
+            if (s.MemPercent > 90) { score -= 15; notes.Add(Lang.T("内存占用超过 90%，请关闭后台程序")); }
+            else if (s.MemPercent > 80) { score -= 8; notes.Add(Lang.T("内存占用偏高")); }
 
-            if (s.CpuPercent > 85) { score -= 10; notes.Add("CPU 负载很高，检查占用最高的进程"); }
+            if (s.CpuPercent > 85) { score -= 10; notes.Add(Lang.T("CPU 负载很高，检查占用最高的进程")); }
             else if (s.CpuPercent > 70) { score -= 4; }
 
-            if (startupCount > 20) { score -= 8; notes.Add("开机启动项偏多（" + startupCount + " 项），建议精简"); }
-            else if (startupCount > 10) { score -= 4; notes.Add("开机启动项较多（" + startupCount + " 项）"); }
+            if (startupCount > 20) { score -= 8; notes.Add(Lang.T("开机启动项偏多（") + startupCount + Lang.T(" 项），建议精简")); }
+            else if (startupCount > 10) { score -= 4; notes.Add(Lang.T("开机启动项较多（") + startupCount + Lang.T(" 项）")); }
 
-            if (notes.Count == 0) notes.Add("系统状态良好，保持定期清理即可");
+            if (notes.Count == 0) notes.Add(Lang.T("系统状态良好，保持定期清理即可"));
             if (score < 0) score = 0;
             if (score > 100) score = 100;
             return score;

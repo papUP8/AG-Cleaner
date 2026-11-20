@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
@@ -59,8 +59,8 @@ namespace CCDesk
 
     public class DashboardPage : PageBase
     {
-        public override string PageTitle { get { return "概览"; } }
-        public override string PageSubtitle { get { return "系统健康、占用与可释放空间一览，可一键开始智能清理"; } }
+        public override string PageTitle { get { return Lang.T("概览"); } }
+        public override string PageSubtitle { get { return Lang.T("系统健康、占用与可释放空间一览，可一键开始智能清理"); } }
 
         private StatCard[] _cards = new StatCard[4];
         private Card _healthCard;
@@ -75,7 +75,7 @@ namespace CCDesk
         private int _score = 100;
         private bool _scanning;
         private long _cleanable = -1;
-        private string _scanMsg = "正在统计可清理空间...";
+        private string _scanMsg = Lang.T("正在统计可清理空间...");
         private DateTime _lastScan = DateTime.MinValue;
 
         public DashboardPage()
@@ -86,16 +86,16 @@ namespace CCDesk
                 _cards[i] = c;
                 Controls.Add(c);
             }
-            _cards[0].Title = "系统盘剩余";
+            _cards[0].Title = Lang.T("系统盘剩余");
             _cards[0].Glyph = "▤";
             _cards[0].BarColor = Theme.Blue;
-            _cards[1].Title = "可清理空间";
+            _cards[1].Title = Lang.T("可清理空间");
             _cards[1].Glyph = "✦";
             _cards[1].BarColor = Theme.Accent;
-            _cards[2].Title = "内存占用";
+            _cards[2].Title = Lang.T("内存占用");
             _cards[2].Glyph = "▮";
             _cards[2].BarColor = Theme.C("#8B7CF6");
-            _cards[3].Title = "CPU 使用";
+            _cards[3].Title = Lang.T("CPU 使用");
             _cards[3].Glyph = "◉";
             _cards[3].BarColor = Theme.Warn;
 
@@ -113,7 +113,7 @@ namespace CCDesk
 
             _scanBtn = new Btn();
             _scanBtn.Kind = ButtonKind.Accent;
-            _scanBtn.Text = "开始智能清理";
+            _scanBtn.Text = Lang.T("开始智能清理");
             _scanBtn.Glyph = "";
             _scanBtn.Height = 40;
             _scanBtn.Click += delegate
@@ -187,9 +187,9 @@ namespace CCDesk
         {
             if (_scanning) return;
             _scanning = true;
-            _scanMsg = "正在统计可清理空间...";
+            _scanMsg = Lang.T("正在统计可清理空间...");
             _cards[1].Value = "...";
-            _cards[1].Sub = "扫描缓存与临时文件";
+            _cards[1].Sub = Lang.T("扫描缓存与临时文件");
             _cards[1].Invalidate();
             ThreadPool.QueueUserWorkItem(delegate
             {
@@ -212,9 +212,9 @@ namespace CCDesk
                         _scanning = false;
                         _cleanable = total;
                         _lastScan = DateTime.Now;
-                        _scanMsg = "已扫描：" + Byt.Format(total);
+                        _scanMsg = Lang.T("已扫描：") + Byt.Format(total);
                         _cards[1].Value = Byt.Format(total);
-                        _cards[1].Sub = "临时 / 缓存 / 日志文件";
+                        _cards[1].Sub = Lang.T("临时 / 缓存 / 日志文件");
                         _cards[1].Fraction = total > 0 ? Math.Min(1.0, (double)total / (12.0 * 1024 * 1024 * 1024)) : 0;
                         _cards[1].Invalidate();
                     });
@@ -230,17 +230,17 @@ namespace CCDesk
             long free = Disk.FreeSpace(sysDrive);
             long total = Disk.TotalSpace(sysDrive);
             _cards[0].Value = Byt.Format(free);
-            _cards[0].Sub = "共 " + Byt.Format(total) + " · " + sysDrive.TrimEnd('\\');
+            _cards[0].Sub = Lang.T("共 ") + Byt.Format(total) + " · " + sysDrive.TrimEnd('\\');
             _cards[0].Fraction = total > 0 ? (double)(total - free) / total : 0;
             _cards[0].Invalidate();
 
             _cards[2].Value = ((int)_sample.MemPercent).ToString() + "%";
-            _cards[2].Sub = "已用 " + Byt.Format(_sample.MemUsed) + " / " + Byt.Format(_sample.MemTotal);
+            _cards[2].Sub = Lang.T("已用 ") + Byt.Format(_sample.MemUsed) + " / " + Byt.Format(_sample.MemTotal);
             _cards[2].Fraction = _sample.MemPercent / 100.0;
             _cards[2].Invalidate();
 
             _cards[3].Value = ((int)_sample.CpuPercent).ToString() + "%";
-            _cards[3].Sub = "进程 " + _sample.ProcCount + " 个 · 网络 ↓ " + Byt.Format(_sample.NetDown) + "/s";
+            _cards[3].Sub = Lang.T("进程 ") + _sample.ProcCount + Lang.T(" 个 · 网络 ↓ ") + Byt.Format(_sample.NetDown) + "/s";
             _cards[3].Fraction = _sample.CpuPercent / 100.0;
             _cards[3].Invalidate();
         }
@@ -262,20 +262,20 @@ namespace CCDesk
             Graphics g = e.Graphics;
             Theme.Smooth(g);
             Card c = (Card)sender;
-            Theme.Txt(g, "系统健康", Theme.F(10.5f, FontStyle.Bold), Theme.Text, 26, 22);
-            Theme.Txt(g, "评分由磁盘、内存、CPU 与启动项综合计算", Theme.F(8f), Theme.Muted, 26, 46);
+            Theme.Txt(g, Lang.T("系统健康"), Theme.F(10.5f, FontStyle.Bold), Theme.Text, 26, 22);
+            Theme.Txt(g, Lang.T("评分由磁盘、内存、CPU 与启动项综合计算"), Theme.F(8f), Theme.Muted, 26, 46);
 
             int x = 214;
             int w = c.Width - x - 26;
             if (w < 120) return;
             DrawMetric(g, x, 92, w, "CPU", _sample == null ? 0 : _sample.CpuPercent / 100.0,
                 _sample == null ? "—" : ((int)_sample.CpuPercent).ToString() + "%", Theme.Warn);
-            DrawMetric(g, x, 132, w, "内存", _sample == null ? 0 : _sample.MemPercent / 100.0,
+            DrawMetric(g, x, 132, w, Lang.T("内存"), _sample == null ? 0 : _sample.MemPercent / 100.0,
                 _sample == null ? "—" : ((int)_sample.MemPercent).ToString() + "%", Theme.C("#8B7CF6"));
-            DrawMetric(g, x, 172, w, "磁盘", _sample == null ? 0 : _sample.DiskPercent / 100.0,
+            DrawMetric(g, x, 172, w, Lang.T("磁盘"), _sample == null ? 0 : _sample.DiskPercent / 100.0,
                 _sample == null ? "—" : ((int)_sample.DiskPercent).ToString() + "%", Theme.Blue);
 
-            Theme.Txt(g, "诊断建议", Theme.F(8.3f), Theme.Muted, 214, 204);
+            Theme.Txt(g, Lang.T("诊断建议"), Theme.F(8.3f), Theme.Muted, 214, 204);
             int y = 224;
             if (_notes != null)
             {
@@ -311,19 +311,19 @@ namespace CCDesk
             Graphics g = e.Graphics;
             Theme.Smooth(g);
             Card c = (Card)sender;
-            Theme.Txt(g, "智能清理", Theme.F(10.5f, FontStyle.Bold), Theme.Text, 22, 22);
+            Theme.Txt(g, Lang.T("智能清理"), Theme.F(10.5f, FontStyle.Bold), Theme.Text, 22, 22);
             using (StringFormat sf = Theme.SF(StringAlignment.Near, StringAlignment.Near, true))
             {
-                Theme.Txt(g, "按安全目录扫描临时文件、浏览器与应用缓存，先审阅清单再删除。",
+                Theme.Txt(g, Lang.T("按安全目录扫描临时文件、浏览器与应用缓存，先审阅清单再删除。"),
                     Theme.F(8.3f), Theme.Muted, new Rectangle(22, 50, c.Width - 44, 60), sf);
             }
 
             int y = 112;
             string[] lines = new string[]
             {
-                "· 受保护目录与白名单自动跳过",
-                "· 默认把删除项移入回收站",
-                "· 每一步写入操作日志可追溯"
+                Lang.T("· 受保护目录与白名单自动跳过"),
+                Lang.T("· 默认把删除项移入回收站"),
+                Lang.T("· 每一步写入操作日志可追溯")
             };
             for (int i = 0; i < lines.Length; i++)
             {
@@ -333,7 +333,7 @@ namespace CCDesk
             Theme.Txt(g, _scanMsg, Theme.F(8f), Theme.Accent, 22, c.Height - 108);
             if (_cleanable >= 0)
             {
-                Theme.Txt(g, "预计可释放 " + Byt.Format(_cleanable), Theme.F(9.5f, FontStyle.Bold), Theme.Text, 22, c.Height - 86);
+                Theme.Txt(g, Lang.T("预计可释放 ") + Byt.Format(_cleanable), Theme.F(9.5f, FontStyle.Bold), Theme.Text, 22, c.Height - 86);
             }
         }
 
@@ -342,10 +342,10 @@ namespace CCDesk
             Graphics g = e.Graphics;
             Theme.Smooth(g);
             Card c = (Card)sender;
-            Theme.Txt(g, "占用最高的进程", Theme.F(10.5f, FontStyle.Bold), Theme.Text, 22, 18);
+            Theme.Txt(g, Lang.T("占用最高的进程"), Theme.F(10.5f, FontStyle.Bold), Theme.Text, 22, 18);
             using (StringFormat sf = Theme.SF(StringAlignment.Far, StringAlignment.Near))
             {
-                Theme.Txt(g, "CPU / 内存", Theme.F(8f), Theme.Muted, new Rectangle(c.Width - 160, 20, 138, 20), sf);
+                Theme.Txt(g, Lang.T("CPU / 内存"), Theme.F(8f), Theme.Muted, new Rectangle(c.Width - 160, 20, 138, 20), sf);
             }
 
             if (_sample == null || _sample.Top.Count == 0) return;

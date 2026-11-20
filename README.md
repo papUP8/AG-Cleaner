@@ -2,9 +2,10 @@
 
 原生 Windows 桌面清理工具：绿色单文件、深色/浅色双主题、**先审阅清单再删除**，扫描与清理全程显示百分比进度，覆盖系统级缓存、浏览器与应用缓存、系统痕迹、事件日志、内存转储、大体积日志，并提供“已卸载软件残留”的专页清理。
 
-- 单文件可执行，约 290 KB；不用 .NET SDK、不用 Node/Electron
+- 单文件可执行，约 370 KB；不用 .NET SDK、不用 Node/Electron
 - 运行依赖：Windows 10 / 11 自带的 .NET Framework 4.8
 - 不联网、不上传任何清单；配置与日志只写本地 `%USERPROFILE%\.config\ccdesk`
+- 中文 / English 双语界面，设置页一键切换，选择会记住（英文说明见 [README.en.md](README.en.md)）
 - 代码开源（GPL-3.0），源码随包提供
 
 ---
@@ -41,7 +42,9 @@ powershell -ExecutionPolicy Bypass -File install.ps1
 powershell -ExecutionPolicy Bypass -File uninstall.ps1
 ```
 
-**切换主题**：标题栏右上角「浅色 / 深色」按钮，选择会记住。
+**切换主题**：标题栏右上角「浅色 / 深色 / 系统」按钮，选择会记住。
+
+**切换语言**：设置页底部「关于」卡片右侧的「English / 中文」按钮，点击后界面立即换成对应语言，选择会记住。
 
 ---
 
@@ -57,7 +60,7 @@ powershell -ExecutionPolicy Bypass -File uninstall.ps1
 | 磁盘分析 | 逐层下钻、大文件排行、删除进回收站，边扫描边出结果 |
 | 系统优化 | DNS / ARP / TRIM / 更新缓存 / 临时文件 / 回收站 六项，管理员项会标注 |
 | 历史记录 | 操作时间线、导出 CSV、清空 |
-| 设置 | 回收站开关、GPU/项目/安装包扫描开关、临时文件天数（全部/1/3/7/14/30）、白名单、项目目录、关于 |
+| 设置 | 回收站开关、GPU/项目/安装包扫描开关、临时文件天数（全部/1/3/7/14/30）、白名单、项目目录、界面语言切换、关于 |
 
 ---
 
@@ -111,7 +114,7 @@ powershell -ExecutionPolicy Bypass -File uninstall.ps1
 
 ```
 CCDesk.exe                              正常启动
-CCDesk.exe --shot a.png 1 45000 [light|dark|toggle]    离屏渲染截图（自检用）
+CCDesk.exe --shot a.png 1 45000 [light|dark|system] [zh|en]    离屏渲染截图（自检用）
 CCDesk.exe --scan scan.txt              输出分类扫描结果
 CCDesk.exe --orphans orphans.txt        输出残留扫描结果
 CCDesk.exe --selftest s.txt             安全护栏与删除链路自检

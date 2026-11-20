@@ -47,6 +47,7 @@ namespace CCDesk.Core
         public bool CleanProjectArtifacts = false;
         public bool DeleteOldInstallers = true;
         public string ThemeMode = "dark";
+        public string Language = "zh";
         public string ScanDrives = "";   // 逗号分隔的盘符（如 "C,D"）；空表示全部固定盘
         public List<string> ProjectDirs = new List<string>();
         public bool ConfirmBeforeDelete = true;
@@ -70,6 +71,7 @@ namespace CCDesk.Core
                 else if (k == "projects") s.CleanProjectArtifacts = v == "1";
                 else if (k == "installers") s.DeleteOldInstallers = v == "1";
                 else if (k == "theme") s.ThemeMode = v;
+                else if (k == "lang") s.Language = v;
                 else if (k == "scandrives") s.ScanDrives = v;
                 else if (k == "tempmig") s.TempMigrated = v == "1";
                 else if (k == "dir") { if (v.Length > 0) s.ProjectDirs.Add(v); }
@@ -93,7 +95,7 @@ namespace CCDesk.Core
         public void Save()
         {
             StringBuilder sb = new StringBuilder();
-            sb.AppendLine("# CC-Desk 配置");
+            sb.AppendLine(Lang.T("# CC-Desk 配置"));
             sb.AppendLine("recycle=" + (UseRecycleBin ? "1" : "0"));
             sb.AppendLine("tempdays=" + TempDays);
             sb.AppendLine("tempmig=1");
@@ -101,6 +103,7 @@ namespace CCDesk.Core
             sb.AppendLine("projects=" + (CleanProjectArtifacts ? "1" : "0"));
             sb.AppendLine("installers=" + (DeleteOldInstallers ? "1" : "0"));
             sb.AppendLine("theme=" + ThemeMode);
+            sb.AppendLine("lang=" + Language);
             sb.AppendLine("scandrives=" + ScanDrives);
             foreach (string d in ProjectDirs) sb.AppendLine("dir=" + d);
             Store.WriteAll(Store.SettingsFile, sb.ToString());
@@ -239,7 +242,7 @@ namespace CCDesk.Core
         public static void SaveWhiteList(List<string> list)
         {
             StringBuilder sb = new StringBuilder();
-            sb.AppendLine("# CC-Desk 白名单：每行一个路径，命中则不清理（支持 %ENV% 变量）");
+            sb.AppendLine(Lang.T("# CC-Desk 白名单：每行一个路径，命中则不清理（支持 %ENV% 变量）"));
             foreach (string s in list) sb.AppendLine(s);
             Store.WriteAll(Store.WhitelistFile, sb.ToString());
             _whitelist = null;

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -104,13 +104,13 @@ namespace CCDesk.Core
 
         public static string ActionLabel(string action)
         {
-            if (action == "clean") return "清理";
-            if (action == "emptied") return "清空回收站";
-            if (action == "uninstall") return "卸载";
-            if (action == "leftover") return "清理残留";
-            if (action == "startup") return "启动项";
-            if (action == "optimize") return "系统优化";
-            if (action == "delete") return "删除文件";
+            if (action == "clean") return Lang.T("清理");
+            if (action == "emptied") return Lang.T("清空回收站");
+            if (action == "uninstall") return Lang.T("卸载");
+            if (action == "leftover") return Lang.T("清理残留");
+            if (action == "startup") return Lang.T("启动项");
+            if (action == "optimize") return Lang.T("系统优化");
+            if (action == "delete") return Lang.T("删除文件");
             return action;
         }
     }
