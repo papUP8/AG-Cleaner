@@ -48,7 +48,9 @@ powershell -ExecutionPolicy Bypass -File uninstall.ps1
 
 **Theme**: the System / Light / Dark buttons at the top right of the title bar; the choice is remembered.
 
-**Language**: the `EN / 中文` button at the right of the title bar switches the whole UI in one click; the same button also sits on the right of the "About CC-Desk" card in Settings. The choice is remembered.
+**Language**: the title-bar button shows the current language code (中文 / EN / DE / FR / RU / ES) and opens a menu with Chinese, English, Deutsch, Français, Русский and Español; the same entry sits on the right of the "About CC-Desk" card in Settings. The choice is remembered.
+
+Coverage: Chinese and English are complete. German, French, Russian and Spanish each carry about 150 strings covering navigation, page titles, main buttons, settings and status messages; rule names and long descriptions currently fall back to English. The four translations are the author's own — native speakers are welcome to send corrections.
 
 ---
 

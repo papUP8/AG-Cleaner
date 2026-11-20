@@ -63,8 +63,8 @@ namespace CCDesk
             _langBtn = new Btn();
             _langBtn.Kind = ButtonKind.Ghost;
             _langBtn.Size = new Size(110, 28);
-            _langBtn.Text = Lang.Cur == "en" ? Lang.T("中文") : "English";
-            _langBtn.Click += delegate { ToggleLanguage(); };
+            _langBtn.Text = Lang.NativeName(Lang.Cur);
+            _langBtn.Click += delegate { OpenLanguageMenu(); };
             _about.Controls.Add(_langBtn);
 
             _recycle = AddToggle(_pref, 0, _settings.UseRecycleBin, delegate (bool v) { _settings.UseRecycleBin = v; _settings.Save(); });
@@ -95,14 +95,14 @@ namespace CCDesk
             _whiteSave = new Btn();
             _whiteSave.Kind = ButtonKind.Ghost;
             _whiteSave.Text = Lang.T("保存白名单");
-            _whiteSave.Size = new Size(100, 30);
+            _whiteSave.Size = new Size(136, 30);
             _whiteSave.Click += delegate { SaveWhite(); };
             _white.Controls.Add(_whiteSave);
 
             _whiteDefault = new Btn();
             _whiteDefault.Kind = ButtonKind.Link;
             _whiteDefault.Text = Lang.T("恢复默认");
-            _whiteDefault.Size = new Size(76, 28);
+            _whiteDefault.Size = new Size(100, 28);
             _whiteDefault.Click += delegate
             {
                 StringBuilder sb = new StringBuilder();
@@ -118,7 +118,7 @@ namespace CCDesk
             _projSave = new Btn();
             _projSave.Kind = ButtonKind.Ghost;
             _projSave.Text = Lang.T("保存目录");
-            _projSave.Size = new Size(100, 30);
+            _projSave.Size = new Size(136, 30);
             _projSave.Click += delegate { SaveProjects(); };
             _proj.Controls.Add(_projSave);
 
@@ -221,8 +221,8 @@ namespace CCDesk
             _days.SetBounds(_pref.Width - 96, 226, 76, 28);
 
             _whiteBox.SetBounds(18, 66, _white.Width - 36, h1 - 120);
-            _whiteSave.SetBounds(_white.Width - 118, h1 - 44, 100, 30);
-            _whiteDefault.SetBounds(_white.Width - 202, h1 - 43, 76, 28);
+            _whiteSave.SetBounds(_white.Width - 154, h1 - 44, 136, 30);
+            _whiteDefault.SetBounds(_white.Width - 266, h1 - 43, 100, 28);
 
             int y2 = y + h1 + gap;
             int hs = 80;
@@ -234,8 +234,8 @@ namespace CCDesk
             int y3 = y2 + hs + gap;
             int h2 = 120;
             _proj.SetBounds(0, y3, w, h2);
-            _projBox.SetBounds(18, 56, w - 140, h2 - 70);
-            _projSave.SetBounds(w - 118, h2 - 42, 100, 30);
+            _projBox.SetBounds(18, 56, w - 176, h2 - 70);
+            _projSave.SetBounds(w - 154, h2 - 42, 136, 30);
 
             int y4 = y3 + h2 + gap;
             _about.SetBounds(0, y4, w, Math.Max(86, Height - y4 - 4));
@@ -355,14 +355,12 @@ namespace CCDesk
             Theme.Txt(g, Lang.T("界面语言 / Language"), Theme.F(8.2f), Theme.TextDim, c.Width - 268, 18);
         }
 
-        private void ToggleLanguage()
+        private void OpenLanguageMenu()
         {
-            string next = Lang.Cur == "en" ? "zh" : "en";
-            Lang.Set(next);
-            _settings.Language = next;
-            _settings.Save();
             MainForm mf = FindForm() as MainForm;
-            if (mf != null) mf.BeginInvoke((Action)delegate { mf.ReloadPages(8); });
+            if (mf == null) return;
+            if (!LangSwitch.Pick(mf)) return;
+            mf.BeginInvoke((Action)delegate { mf.ReloadPages(8); });
         }
     }
 }

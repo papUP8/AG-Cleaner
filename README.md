@@ -5,7 +5,7 @@
 - 单文件可执行，约 370 KB；不用 .NET SDK、不用 Node/Electron
 - 运行依赖：Windows 10 / 11 自带的 .NET Framework 4.8
 - 不联网、不上传任何清单；配置与日志只写本地 `%USERPROFILE%\.config\ccdesk`
-- 中文 / English 双语界面，设置页一键切换，选择会记住（英文说明见 [README.en.md](README.en.md)）
+- 中文 / English / Deutsch / Français / Русский / Español 六种界面语言，顶栏一键切换，选择会记住（英文说明见 [README.en.md](README.en.md)）
 - 代码开源（GPL-3.0），源码随包提供
 
 ---
@@ -44,7 +44,9 @@ powershell -ExecutionPolicy Bypass -File uninstall.ps1
 
 **切换主题**：标题栏右上角「浅色 / 深色 / 系统」按钮，选择会记住。
 
-**切换语言**：标题栏右侧的「EN / 中文」按钮，点一下整个界面就换语言；设置页「关于」卡片右侧也有一个同样的按钮。选择会记住。
+**切换语言**：标题栏右侧的语言按钮显示当前语言代码（中文 / EN / DE / FR / RU / ES），点开是六种语言的列表（中文、English、Deutsch、Français、Русский、Español），选中立即生效；设置页「关于」卡片右侧有同样的入口。选择会记住。
+
+语言覆盖度：中英两套为全量；德、法、俄、西四套各约 136 条，覆盖导航、页面标题、主要按钮、设置项与状态句，清理规则名与判定说明等长文案暂时回落英文。四套小语种为作者自译，欢迎 native speaker 提 PR 校对。
 
 ---
 

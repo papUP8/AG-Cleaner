@@ -150,27 +150,23 @@ namespace CCDesk
 
             _langBtn = new TitleBtn();
             _langBtn.Size = new Size(58, 24);
-            _langBtn.Click += delegate { ToggleLanguage(); };
-            _langBtn.SetBounds(ClientSize.Width - 316, 16, 58, 24);
+            _langBtn.Click += delegate { OpenLanguageMenu(); };
+            _langBtn.SetBounds(ClientSize.Width - 326, 16, 68, 24);
             _title.Controls.Add(_langBtn);
             SyncLanguageButton();
         }
 
-        /// <summary>顶栏语言按钮：显示「切换后能切到的语言」，当前中文时显示 EN。</summary>
+        /// <summary>顶栏语言按钮：显示当前语言代码，点击弹出六种语言的菜单。</summary>
         private void SyncLanguageButton()
         {
             if (_langBtn == null) return;
-            _langBtn.Text = Lang.IsEn ? Lang.T("中文") : "EN";
+            _langBtn.Text = Lang.Badge(Lang.Cur);
             _langBtn.Invalidate();
         }
 
-        private void ToggleLanguage()
+        private void OpenLanguageMenu()
         {
-            string next = Lang.IsEn ? "zh" : "en";
-            Lang.Set(next);
-            Settings st = Settings.Load();
-            st.Language = next;
-            st.Save();
+            if (!LangSwitch.Pick(this)) return;
             SyncLanguageButton();
             // 点击来源就在即将被重建的页面上，延后一帧再重建，避免在事件里 Dispose 自己
             BeginInvoke((Action)delegate { ReloadPages(_current); });
@@ -410,7 +406,7 @@ namespace CCDesk
                 _pages[i].SetBounds(28, 18, _content.Width - 56, _content.Height - 36);
             }
             if (_themeSeg != null) _themeSeg.SetBounds(ClientSize.Width - 250, 16, 150, 24);
-            if (_langBtn != null) _langBtn.SetBounds(ClientSize.Width - 316, 16, 58, 24);
+            if (_langBtn != null) _langBtn.SetBounds(ClientSize.Width - 326, 16, 68, 24);
             _title.Invalidate();
         }
 

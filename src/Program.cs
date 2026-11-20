@@ -7,7 +7,7 @@ namespace CCDesk
 {
     public static class Program
     {
-        public static string Version = "1.4.1";
+        public static string Version = "1.5.0";
 
         [STAThread]
         public static void Main(string[] args)
@@ -250,8 +250,7 @@ namespace CCDesk
                 if (themeMode.Length > 0) Theme.ApplyMode(themeMode, Theme.SystemLight());
                 for (int i = 0; i < args.Length; i++)
                 {
-                    if (args[i] == "en") Lang.Set("en");
-                    else if (args[i] == "zh") Lang.Set("zh");
+                    if (args[i] == "en" || args[i] == "zh" || args[i] == "de" || args[i] == "fr" || args[i] == "ru" || args[i] == "es") Lang.Set(args[i]);
                 }
                 MainForm f = new MainForm();
                 if (themeMode.Length > 0) f.SyncThemeVisualMode(themeMode);

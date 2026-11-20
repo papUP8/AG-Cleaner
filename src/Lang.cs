@@ -4,26 +4,62 @@ using System.Collections.Generic;
 namespace CCDesk
 {
     /// <summary>
-    /// 界面语言（中文 / English）。代码里保留中文原文作为键，T() 在英文模式查表替换；
-    /// 查不到就原样返回中文，保证不会出现空白或乱码。
+    /// 界面语言（中文 / English / Deutsch / Français / Русский / Español）。
+    /// 代码里保留中文原文作为键，T() 按当前语言查表；当前语言查不到就回落到英文，再回落到中文，
+    /// 保证任何时候都不会出现空白或乱码。
     /// </summary>
     public static class Lang
     {
+        public static readonly string[] Codes = { "zh", "en", "de", "fr", "ru", "es" };
+
         public static string Cur = "zh";
 
         public static bool IsEn { get { return Cur == "en"; } }
 
+        public static bool IsZh { get { return Cur == "zh"; } }
+
         public static void Set(string code)
         {
-            Cur = (code == "en") ? "en" : "zh";
+            Cur = Norm(code);
         }
 
         public static string T(string zh)
         {
-            if (zh == null || Cur != "en") return zh;
-            string en;
-            if (En.TryGetValue(zh, out en)) return en;
+            if (zh == null || Cur == "zh") return zh;
+            string v;
+            Dictionary<string, string> t = Table(Cur);
+            if (t != null && t.TryGetValue(zh, out v) && v.Length > 0) return v;
+            if (En.TryGetValue(zh, out v)) return v;
             return zh;
+        }
+
+        private static Dictionary<string, string> Table(string code)
+        {
+            if (code == "en") return En;
+            if (code == "de") return De;
+            if (code == "fr") return Fr;
+            if (code == "ru") return Ru;
+            if (code == "es") return Es;
+            return null;
+        }
+
+        /// <summary>顶栏/设置页按钮上显示的语言代码。</summary>
+        public static string Badge(string code)
+        {
+            if (code == "zh") return "中文";
+            return code.ToUpperInvariant();
+        }
+
+        /// <summary>语言菜单里显示的名字。</summary>
+        public static string NativeName(string code)
+        {
+            if (code == "zh") return "中文";
+            if (code == "en") return "English";
+            if (code == "de") return "Deutsch";
+            if (code == "fr") return "Français";
+            if (code == "ru") return "Русский";
+            if (code == "es") return "Español";
+            return code;
         }
 
         public static string F(string zh, params object[] args)
@@ -35,8 +71,14 @@ namespace CCDesk
         /// <summary>从配置里读到的语言代码，非法值回落到中文。</summary>
         public static string Norm(string code)
         {
-            return code == "en" ? "en" : "zh";
+            for (int i = 0; i < Codes.Length; i++) { if (Codes[i] == code) return code; }
+            return "zh";
         }
+
+        private static readonly Dictionary<string, string> De = LangTables.De();
+        private static readonly Dictionary<string, string> Fr = LangTables.Fr();
+        private static readonly Dictionary<string, string> Ru = LangTables.Ru();
+        private static readonly Dictionary<string, string> Es = LangTables.Es();
 
         private static readonly Dictionary<string, string> En = new Dictionary<string, string>(StringComparer.Ordinal)
         {
