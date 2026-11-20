@@ -1,0 +1,24 @@
+# 构建产物
+dist/
+*.exe
+*.pdb
+*.obj
+*.ilk
+*.log
+
+# 自检与诊断输出（会随每次扫描变化，不入库）
+shots/*.png
+shots/*.txt
+
+# 本地私有素材与临时文件
+assets/raw.png
+assets/_tmp/
+*.bak
+*.tmp
+.vs/
+.vscode/
+.idea/
+
+# 系统与工具目录
+Thumbs.db
+desktop.ini
