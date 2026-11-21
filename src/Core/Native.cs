@@ -160,7 +160,7 @@ namespace AGCleaner.Core
             }
             catch (Exception)
             {
-                return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "AGCleaner.exe");
+                return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "AG Cleaner.exe");
             }
         }
 
