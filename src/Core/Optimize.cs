@@ -4,7 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Text;
 
-namespace CCDesk.Core
+namespace AGCleaner.Core
 {
     public class OptimizeAction
     {

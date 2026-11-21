@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net.NetworkInformation;
 
-namespace CCDesk.Core
+namespace AGCleaner.Core
 {
     public class ProcInfo
     {

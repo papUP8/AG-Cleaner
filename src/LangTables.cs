@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace CCDesk
+namespace AGCleaner
 {
     /// <summary>
     /// 德 / 法 / 俄 / 西 四套词条。键与 Lang.En 一致（中文原文），当前语言查不到时回落到英文。
@@ -23,7 +23,7 @@ namespace CCDesk
         {
             Dictionary<string, string> d = Make();
             // 窗口与导航
-            Add(d, "CC-Desk 桌面清理", "CC-Desk Bereinigung");
+            Add(d, "AG Cleaner 桌面清理", "AG Cleaner Bereinigung");
   Add(d, "说明与许可", "Doku & Lizenz");
   Add(d, "使用说明", "Anleitung");
   Add(d, "版本更新记录", "Änderungen");
@@ -31,7 +31,7 @@ namespace CCDesk
   Add(d, "开源许可证", "Lizenz");
   Add(d, "关闭", "Schließen");
   Add(d, "无法读取内置文档：", "Internes Dokument nicht lesbar: ");
-  Add(d, "全部文档已编译进 CC-Desk.exe，不必附带任何外部文件", "Alle Dokumente sind in CC-Desk.exe eingebettet; keine weiteren Dateien nötig");
+  Add(d, "全部文档已编译进 AGCleaner.exe，不必附带任何外部文件", "Alle Dokumente sind in AGCleaner.exe eingebettet; keine weiteren Dateien nötig");
   Add(d, "执行 ", "Ausführen ");
   Add(d, "正在统计 ", "Messung ");
   Add(d, "已完成分类列举 ", "Kategorien aufgelistet ");
@@ -70,7 +70,7 @@ namespace CCDesk
             Add(d, "Adobe 媒体缓存", "Adobe-Mediencache");
             Add(d, "Adobe 媒体缓存数据库", "Adobe-Mediencache-Datenbank");
             Add(d, "Adobe Reader 缓存", "Adobe-Reader-Cache");
-            Add(d, "CC-Desk 系统优化 · ", "CC-Desk Tuning · ");
+            Add(d, "AG Cleaner 系统优化 · ", "AG Cleaner Tuning · ");
             Add(d, "CPU 负载很高，检查占用最高的进程", "CPU-Last hoch: Prozesse prüfen");
             Add(d, "Defender 扫描历史", "Defender-Scanverlauf");
             Add(d, "DirectX 管道缓存", "DirectX-Pipeline-Cache");
@@ -393,7 +393,7 @@ namespace CCDesk
             Add(d, "飞书", "Feishu");
             Add(d, "飞书 Feishu", "Feishu");
             Add(d, "服务名 ", "Dienst ");
-            Add(d, "服务项涉及系统组件，CC-Desk 不在此处启停。\n如需调整，请在“服务”管理器中操作，或使用系统配置工具。", "Diese gehören zu Windows. CC-Desk startet oder stoppt Dienste hier nicht; nutzen Sie die Dienste-Konsole.");
+            Add(d, "服务项涉及系统组件，AG Cleaner 不在此处启停。\n如需调整，请在“服务”管理器中操作，或使用系统配置工具。", "Diese gehören zu Windows. AG Cleaner startet oder stoppt Dienste hier nicht; nutzen Sie die Dienste-Konsole.");
             Add(d, "副本", "Kopie");
             Add(d, "该操作需要管理员权限，请点击右上角“以管理员身份重启”后再执行。", "Dafür sind Administratorrechte nötig. Oben rechts „Als Administrator neu starten“ wählen und erneut ausführen.");
             Add(d, "干净的系统里通常只剩零星快捷方式，扫描结果为空也是正常的", "Auf einem sauberen System bleiben nur wenige Verknüpfungen; ein leeres Ergebnis ist normal");
@@ -423,7 +423,7 @@ namespace CCDesk
             Add(d, "键值指向已不存在的目录：", "Wert zeigt auf fehlenden Ordner: ");
             Add(d, "将调用该应用自带的卸载器：\n", "Der eigene Deinstaller wird gestartet:\n");
             Add(d, "将删除回收站中的 ", "Der Papierkorb wird geleert, ");
-            Add(d, "将以 UAC 提权方式重新启动 CC-Desk，解锁 ARP 缓存、磁盘 TRIM 与 Windows 更新缓存清理。当前窗口会关闭。", "CC-Desk startet mit UAC-Rechten neu, um ARP, TRIM und Update-Cache zu bereinigen. Dieses Fenster schließt sich.");
+            Add(d, "将以 UAC 提权方式重新启动 AG Cleaner，解锁 ARP 缓存、磁盘 TRIM 与 Windows 更新缓存清理。当前窗口会关闭。", "AG Cleaner startet mit UAC-Rechten neu, um ARP, TRIM und Update-Cache zu bereinigen. Dieses Fenster schließt sich.");
             Add(d, "交付优化缓存", "Übermittlungsoptimierung");
             Add(d, "交付优化缓存  6.27 MB", "Übermittlungsoptimierung  6.27 MB");
             Add(d, "界面语言切换后立即生效，会重新加载各页面", "Der Sprachwechsel wirkt sofort und lädt die Seiten neu");
@@ -443,8 +443,8 @@ namespace CCDesk
             Add(d, "\n合计 ", "\nGesamt ");
             Add(d, "\n其中部分项目需要管理员权限，当前不是管理员，可能失败。", "\nEinige Einträge brauchen Administratorrechte; ohne diese können sie fehlschlagen.");
             Add(d, "\n受保护目录、白名单路径与敏感目录已自动排除，不会出现在清单里。", "\nGeschützte Ordner, Whitelist-Pfade und sensible Ordner sind ausgeschlossen.");
-            Add(d, "# CC-Desk 白名单：每行一个路径，命中则不清理（支持 %ENV% 变量）", "# CC-Desk Whitelist: ein Pfad pro Zeile; Treffer werden nie bereinigt (%ENV% möglich)");
-            Add(d, "# CC-Desk 配置", "# CC-Desk Einstellungen");
+            Add(d, "# AG Cleaner 白名单：每行一个路径，命中则不清理（支持 %ENV% 变量）", "# AG Cleaner Whitelist: ein Pfad pro Zeile; Treffer werden nie bereinigt (%ENV% möglich)");
+            Add(d, "# AG Cleaner 配置", "# AG Cleaner Einstellungen");
             Add(d, "▶ 开始：", "▶ Start: ");
             Add(d, "360 极速浏览器", "360 Chrome");
             Add(d, "阿里云盘", "Aliyun Drive");
@@ -614,7 +614,7 @@ namespace CCDesk
             Add(d, "项目扫描目录", "Projektordner");
             Add(d, "保存目录", "Ordner speichern");
             Add(d, "残留扫描范围", "Suchbereich für Reste");
-            Add(d, "关于 CC-Desk", "Über CC-Desk");
+            Add(d, "关于 AG Cleaner", "Über AG Cleaner");
             Add(d, "界面语言 / Language", "Sprache / Language");
             Add(d, "已保存", "Gespeichert");
             Add(d, "清理偏好、白名单与项目目录；所有配置保存在本地", "Reinigungsoptionen, Whitelist und Projektordner; alles bleibt lokal");
@@ -704,7 +704,7 @@ namespace CCDesk
         public static Dictionary<string, string> Fr()
         {
             Dictionary<string, string> d = Make();
-            Add(d, "CC-Desk 桌面清理", "CC-Desk Nettoyage");
+            Add(d, "AG Cleaner 桌面清理", "AG Cleaner Nettoyage");
   Add(d, "说明与许可", "Docs et licence");
   Add(d, "使用说明", "Guide d'utilisation");
   Add(d, "版本更新记录", "Journal des versions");
@@ -712,7 +712,7 @@ namespace CCDesk
   Add(d, "开源许可证", "Licence");
   Add(d, "关闭", "Fermer");
   Add(d, "无法读取内置文档：", "Document intégré illisible : ");
-  Add(d, "全部文档已编译进 CC-Desk.exe，不必附带任何外部文件", "Tous les documents sont intégrés dans CC-Desk.exe, aucun fichier annexe requis");
+  Add(d, "全部文档已编译进 AGCleaner.exe，不必附带任何外部文件", "Tous les documents sont intégrés dans AGCleaner.exe, aucun fichier annexe requis");
   Add(d, "执行 ", "Exécuter ");
   Add(d, "正在统计 ", "Mesure ");
   Add(d, "已完成分类列举 ", "Catégories listées ");
@@ -751,7 +751,7 @@ namespace CCDesk
             Add(d, "Adobe 媒体缓存", "Cache média Adobe");
             Add(d, "Adobe 媒体缓存数据库", "Base du cache média Adobe");
             Add(d, "Adobe Reader 缓存", "Cache d'Adobe Reader");
-            Add(d, "CC-Desk 系统优化 · ", "CC-Desk Optimisation · ");
+            Add(d, "AG Cleaner 系统优化 · ", "AG Cleaner Optimisation · ");
             Add(d, "CPU 负载很高，检查占用最高的进程", "Charge CPU élevée : vérifiez les processus");
             Add(d, "Defender 扫描历史", "Historique des analyses Defender");
             Add(d, "DirectX 管道缓存", "Cache de pipeline DirectX");
@@ -1074,7 +1074,7 @@ namespace CCDesk
             Add(d, "飞书", "Feishu");
             Add(d, "飞书 Feishu", "Feishu");
             Add(d, "服务名 ", "Service ");
-            Add(d, "服务项涉及系统组件，CC-Desk 不在此处启停。\n如需调整，请在“服务”管理器中操作，或使用系统配置工具。", "Ce sont des services Windows. CC-Desk ne les démarre ni ne les arrête; utilisez la console Services.");
+            Add(d, "服务项涉及系统组件，AG Cleaner 不在此处启停。\n如需调整，请在“服务”管理器中操作，或使用系统配置工具。", "Ce sont des services Windows. AG Cleaner ne les démarre ni ne les arrête; utilisez la console Services.");
             Add(d, "副本", "Copie");
             Add(d, "该操作需要管理员权限，请点击右上角“以管理员身份重启”后再执行。", "Cette action exige les droits d'admin. Utilisez « Redémarrer en administrateur » en haut à droite.");
             Add(d, "干净的系统里通常只剩零星快捷方式，扫描结果为空也是正常的", "Sur un système propre il ne reste que quelques raccourcis; un résultat vide est normal");
@@ -1104,7 +1104,7 @@ namespace CCDesk
             Add(d, "键值指向已不存在的目录：", "La valeur pointe vers un dossier absent : ");
             Add(d, "将调用该应用自带的卸载器：\n", "Le désinstalleur de l'app va démarrer :\n");
             Add(d, "将删除回收站中的 ", "La corbeille sera vidée, ");
-            Add(d, "将以 UAC 提权方式重新启动 CC-Desk，解锁 ARP 缓存、磁盘 TRIM 与 Windows 更新缓存清理。当前窗口会关闭。", "CC-Desk va redémarrer avec élévation UAC pour débloquer ARP, TRIM et le cache des mises à jour. Cette fenêtre va se fermer.");
+            Add(d, "将以 UAC 提权方式重新启动 AG Cleaner，解锁 ARP 缓存、磁盘 TRIM 与 Windows 更新缓存清理。当前窗口会关闭。", "AG Cleaner va redémarrer avec élévation UAC pour débloquer ARP, TRIM et le cache des mises à jour. Cette fenêtre va se fermer.");
             Add(d, "交付优化缓存", "Optimisation de distribution");
             Add(d, "交付优化缓存  6.27 MB", "Optimisation de distribution  6.27 MB");
             Add(d, "界面语言切换后立即生效，会重新加载各页面", "Le changement de langue s'applique immédiatement et recharge les pages");
@@ -1124,8 +1124,8 @@ namespace CCDesk
             Add(d, "\n合计 ", "\nTotal ");
             Add(d, "\n其中部分项目需要管理员权限，当前不是管理员，可能失败。", "\nCertains éléments exigent les droits d'admin; sans eux, ils peuvent échouer.");
             Add(d, "\n受保护目录、白名单路径与敏感目录已自动排除，不会出现在清单里。", "\nDossiers protégés, chemins de la liste blanche et dossiers sensibles sont exclus.");
-            Add(d, "# CC-Desk 白名单：每行一个路径，命中则不清理（支持 %ENV% 变量）", "# CC-Desk liste blanche : un chemin par ligne, jamais nettoyé (%ENV% accepté)");
-            Add(d, "# CC-Desk 配置", "# CC-Desk paramètres");
+            Add(d, "# AG Cleaner 白名单：每行一个路径，命中则不清理（支持 %ENV% 变量）", "# AG Cleaner liste blanche : un chemin par ligne, jamais nettoyé (%ENV% accepté)");
+            Add(d, "# AG Cleaner 配置", "# AG Cleaner paramètres");
             Add(d, "▶ 开始：", "▶ Début : ");
             Add(d, "360 极速浏览器", "360 Chrome");
             Add(d, "阿里云盘", "Aliyun Drive");
@@ -1290,7 +1290,7 @@ namespace CCDesk
             Add(d, "项目扫描目录", "Dossiers de projets");
             Add(d, "保存目录", "Enregistrer");
             Add(d, "残留扫描范围", "Portée de l'analyse des résidus");
-            Add(d, "关于 CC-Desk", "À propos de CC-Desk");
+            Add(d, "关于 AG Cleaner", "À propos de AG Cleaner");
             Add(d, "界面语言 / Language", "Langue / Language");
             Add(d, "已保存", "Enregistré");
             Add(d, "用户启动项", "Éléments de démarrage");
@@ -1372,7 +1372,7 @@ namespace CCDesk
         public static Dictionary<string, string> Ru()
         {
             Dictionary<string, string> d = Make();
-            Add(d, "CC-Desk 桌面清理", "CC-Desk Очистка");
+            Add(d, "AG Cleaner 桌面清理", "AG Cleaner Очистка");
   Add(d, "说明与许可", "Документация и лицензия");
   Add(d, "使用说明", "Руководство");
   Add(d, "版本更新记录", "История версий");
@@ -1380,7 +1380,7 @@ namespace CCDesk
   Add(d, "开源许可证", "Лицензия");
   Add(d, "关闭", "Закрыть");
   Add(d, "无法读取内置文档：", "Не удалось прочитать встроенный документ: ");
-  Add(d, "全部文档已编译进 CC-Desk.exe，不必附带任何外部文件", "Все документы встроены в CC-Desk.exe, внешние файлы не нужны");
+  Add(d, "全部文档已编译进 AGCleaner.exe，不必附带任何外部文件", "Все документы встроены в AGCleaner.exe, внешние файлы не нужны");
   Add(d, "执行 ", "Выполнить ");
   Add(d, "正在统计 ", "Подсчёт ");
   Add(d, "已完成分类列举 ", "Категории перечислены ");
@@ -1419,7 +1419,7 @@ namespace CCDesk
             Add(d, "Adobe 媒体缓存", "Медиакэш Adobe");
             Add(d, "Adobe 媒体缓存数据库", "База медиакэша Adobe");
             Add(d, "Adobe Reader 缓存", "Кэш Adobe Reader");
-            Add(d, "CC-Desk 系统优化 · ", "CC-Desk Оптимизация · ");
+            Add(d, "AG Cleaner 系统优化 · ", "AG Cleaner Оптимизация · ");
             Add(d, "CPU 负载很高，检查占用最高的进程", "Высокая нагрузка CPU — проверьте процессы");
             Add(d, "Defender 扫描历史", "История проверок Defender");
             Add(d, "DirectX 管道缓存", "Кэш конвейера DirectX");
@@ -1742,7 +1742,7 @@ namespace CCDesk
             Add(d, "飞书", "Feishu");
             Add(d, "飞书 Feishu", "Feishu");
             Add(d, "服务名 ", "Служба ");
-            Add(d, "服务项涉及系统组件，CC-Desk 不在此处启停。\n如需调整，请在“服务”管理器中操作，或使用系统配置工具。", "Это службы Windows. CC-Desk не запускает и не останавливает их; используйте оснастку «Службы».");
+            Add(d, "服务项涉及系统组件，AG Cleaner 不在此处启停。\n如需调整，请在“服务”管理器中操作，或使用系统配置工具。", "Это службы Windows. AG Cleaner не запускает и не останавливает их; используйте оснастку «Службы».");
             Add(d, "副本", "Копия");
             Add(d, "该操作需要管理员权限，请点击右上角“以管理员身份重启”后再执行。", "Нужны права администратора. Нажмите «Перезапуск от администратора» справа сверху.");
             Add(d, "干净的系统里通常只剩零星快捷方式，扫描结果为空也是正常的", "На чистой системе остаются лишь редкие ярлыки; пустой результат — норма");
@@ -1772,7 +1772,7 @@ namespace CCDesk
             Add(d, "键值指向已不存在的目录：", "Значение указывает на отсутствующую папку: ");
             Add(d, "将调用该应用自带的卸载器：\n", "Запускается деинсталлятор программы:\n");
             Add(d, "将删除回收站中的 ", "Корзина будет очищена, ");
-            Add(d, "将以 UAC 提权方式重新启动 CC-Desk，解锁 ARP 缓存、磁盘 TRIM 与 Windows 更新缓存清理。当前窗口会关闭。", "CC-Desk перезапустится с правами UAC, чтобы очистить ARP, TRIM и кэш обновлений. Окно закроется.");
+            Add(d, "将以 UAC 提权方式重新启动 AG Cleaner，解锁 ARP 缓存、磁盘 TRIM 与 Windows 更新缓存清理。当前窗口会关闭。", "AG Cleaner перезапустится с правами UAC, чтобы очистить ARP, TRIM и кэш обновлений. Окно закроется.");
             Add(d, "交付优化缓存", "Кэш оптимизации доставки");
             Add(d, "交付优化缓存  6.27 MB", "Кэш оптимизации доставки  6.27 МБ");
             Add(d, "界面语言切换后立即生效，会重新加载各页面", "Смена языка действует сразу и перезагружает страницы");
@@ -1792,8 +1792,8 @@ namespace CCDesk
             Add(d, "\n合计 ", "\nВсего ");
             Add(d, "\n其中部分项目需要管理员权限，当前不是管理员，可能失败。", "\nЧасть пунктов требует прав администратора; без них возможны ошибки.");
             Add(d, "\n受保护目录、白名单路径与敏感目录已自动排除，不会出现在清单里。", "\nЗащищённые папки, пути белого списка и чувствительные папки исключены.");
-            Add(d, "# CC-Desk 白名单：每行一个路径，命中则不清理（支持 %ENV% 变量）", "# CC-Desk белый список: путь в строке, совпадения не очищаются (%ENV% поддерживается)");
-            Add(d, "# CC-Desk 配置", "# CC-Desk настройки");
+            Add(d, "# AG Cleaner 白名单：每行一个路径，命中则不清理（支持 %ENV% 变量）", "# AG Cleaner белый список: путь в строке, совпадения не очищаются (%ENV% поддерживается)");
+            Add(d, "# AG Cleaner 配置", "# AG Cleaner настройки");
             Add(d, "▶ 开始：", "▶ Старт: ");
             Add(d, "360 极速浏览器", "360 Chrome");
             Add(d, "阿里云盘", "Aliyun Drive");
@@ -1958,7 +1958,7 @@ namespace CCDesk
             Add(d, "项目扫描目录", "Папки проектов");
             Add(d, "保存目录", "Сохранить папки");
             Add(d, "残留扫描范围", "Область поиска остатков");
-            Add(d, "关于 CC-Desk", "О CC-Desk");
+            Add(d, "关于 AG Cleaner", "О AG Cleaner");
             Add(d, "界面语言 / Language", "Язык / Language");
             Add(d, "已保存", "Сохранено");
             Add(d, "用户启动项", "Автозапуск");
@@ -2040,7 +2040,7 @@ namespace CCDesk
         public static Dictionary<string, string> Es()
         {
             Dictionary<string, string> d = Make();
-            Add(d, "CC-Desk 桌面清理", "CC-Desk Limpieza");
+            Add(d, "AG Cleaner 桌面清理", "AG Cleaner Limpieza");
   Add(d, "说明与许可", "Docs y licencia");
   Add(d, "使用说明", "Guía de uso");
   Add(d, "版本更新记录", "Historial de versiones");
@@ -2048,7 +2048,7 @@ namespace CCDesk
   Add(d, "开源许可证", "Licencia");
   Add(d, "关闭", "Cerrar");
   Add(d, "无法读取内置文档：", "No se pudo leer el documento integrado: ");
-  Add(d, "全部文档已编译进 CC-Desk.exe，不必附带任何外部文件", "Todos los documentos están integrados en CC-Desk.exe; no hacen falta archivos externos");
+  Add(d, "全部文档已编译进 AGCleaner.exe，不必附带任何外部文件", "Todos los documentos están integrados en AGCleaner.exe; no hacen falta archivos externos");
   Add(d, "执行 ", "Ejecutar ");
   Add(d, "正在统计 ", "Midiendo ");
   Add(d, "已完成分类列举 ", "Categorías listadas ");
@@ -2087,7 +2087,7 @@ namespace CCDesk
             Add(d, "Adobe 媒体缓存", "Caché multimedia de Adobe");
             Add(d, "Adobe 媒体缓存数据库", "Base del caché multimedia de Adobe");
             Add(d, "Adobe Reader 缓存", "Caché de Adobe Reader");
-            Add(d, "CC-Desk 系统优化 · ", "CC-Desk Optimización · ");
+            Add(d, "AG Cleaner 系统优化 · ", "AG Cleaner Optimización · ");
             Add(d, "CPU 负载很高，检查占用最高的进程", "Carga de CPU alta: revise los procesos");
             Add(d, "Defender 扫描历史", "Historial de análisis de Defender");
             Add(d, "DirectX 管道缓存", "Caché de canalización DirectX");
@@ -2410,7 +2410,7 @@ namespace CCDesk
             Add(d, "飞书", "Feishu");
             Add(d, "飞书 Feishu", "Feishu");
             Add(d, "服务名 ", "Servicio ");
-            Add(d, "服务项涉及系统组件，CC-Desk 不在此处启停。\n如需调整，请在“服务”管理器中操作，或使用系统配置工具。", "Son servicios de Windows. CC-Desk no los inicia ni detiene; use la consola de Servicios.");
+            Add(d, "服务项涉及系统组件，AG Cleaner 不在此处启停。\n如需调整，请在“服务”管理器中操作，或使用系统配置工具。", "Son servicios de Windows. AG Cleaner no los inicia ni detiene; use la consola de Servicios.");
             Add(d, "副本", "Copia");
             Add(d, "该操作需要管理员权限，请点击右上角“以管理员身份重启”后再执行。", "Esta acción requiere permisos de admin. Use «Reiniciar como administrador» arriba a la derecha.");
             Add(d, "干净的系统里通常只剩零星快捷方式，扫描结果为空也是正常的", "En un sistema limpio quedan pocos accesos; un resultado vacío es normal");
@@ -2440,7 +2440,7 @@ namespace CCDesk
             Add(d, "键值指向已不存在的目录：", "El valor apunta a una carpeta inexistente: ");
             Add(d, "将调用该应用自带的卸载器：\n", "Se abrirá el desinstalador de la app:\n");
             Add(d, "将删除回收站中的 ", "Se vaciará la papelera, ");
-            Add(d, "将以 UAC 提权方式重新启动 CC-Desk，解锁 ARP 缓存、磁盘 TRIM 与 Windows 更新缓存清理。当前窗口会关闭。", "CC-Desk se reiniciará con UAC para limpiar ARP, TRIM y caché de actualizaciones. Esta ventana se cerrará.");
+            Add(d, "将以 UAC 提权方式重新启动 AG Cleaner，解锁 ARP 缓存、磁盘 TRIM 与 Windows 更新缓存清理。当前窗口会关闭。", "AG Cleaner se reiniciará con UAC para limpiar ARP, TRIM y caché de actualizaciones. Esta ventana se cerrará.");
             Add(d, "交付优化缓存", "Optimización de entrega");
             Add(d, "交付优化缓存  6.27 MB", "Optimización de entrega  6.27 MB");
             Add(d, "界面语言切换后立即生效，会重新加载各页面", "El cambio de idioma se aplica al instante y recarga las páginas");
@@ -2460,8 +2460,8 @@ namespace CCDesk
             Add(d, "\n合计 ", "\nTotal ");
             Add(d, "\n其中部分项目需要管理员权限，当前不是管理员，可能失败。", "\nAlgunos elementos requieren permisos de admin; sin ellos pueden fallar.");
             Add(d, "\n受保护目录、白名单路径与敏感目录已自动排除，不会出现在清单里。", "\nLas carpetas protegidas, las de la lista blanca y las sensibles quedan excluidas.");
-            Add(d, "# CC-Desk 白名单：每行一个路径，命中则不清理（支持 %ENV% 变量）", "# CC-Desk lista blanca: una ruta por línea, nunca se limpiará (%ENV% admitido)");
-            Add(d, "# CC-Desk 配置", "# CC-Desk ajustes");
+            Add(d, "# AG Cleaner 白名单：每行一个路径，命中则不清理（支持 %ENV% 变量）", "# AG Cleaner lista blanca: una ruta por línea, nunca se limpiará (%ENV% admitido)");
+            Add(d, "# AG Cleaner 配置", "# AG Cleaner ajustes");
             Add(d, "▶ 开始：", "▶ Inicio: ");
             Add(d, "360 极速浏览器", "360 Chrome");
             Add(d, "阿里云盘", "Aliyun Drive");
@@ -2626,7 +2626,7 @@ namespace CCDesk
             Add(d, "项目扫描目录", "Carpetas de proyectos");
             Add(d, "保存目录", "Guardar carpetas");
             Add(d, "残留扫描范围", "Alcance de búsqueda de residuos");
-            Add(d, "关于 CC-Desk", "Acerca de CC-Desk");
+            Add(d, "关于 AG Cleaner", "Acerca de AG Cleaner");
             Add(d, "界面语言 / Language", "Idioma / Language");
             Add(d, "已保存", "Guardado");
             Add(d, "用户启动项", "Elementos de inicio");

@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Threading;
 using System.Windows.Forms;
-using CCDesk.Core;
+using AGCleaner.Core;
 
-namespace CCDesk
+namespace AGCleaner
 {
     /// <summary>残留清理页：孤儿目录、无效卸载项、失效快捷方式、失效启动项。</summary>
     public class OrphanPage : PageBase

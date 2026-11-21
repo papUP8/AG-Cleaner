@@ -2,7 +2,7 @@ using System;
 using System.Drawing;
 using System.Windows.Forms;
 
-namespace CCDesk
+namespace AGCleaner
 {
     /// <summary>语言选择：列出全部语言，选中即返回语言代码。</summary>
     public class LangPicker : Form

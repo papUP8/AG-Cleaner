@@ -1,4 +1,4 @@
-param([string]$Root = "D:\Projects\CCDesk\src")
+param([string]$Root = "D:\Projects\AGCleaner\src")
 
 $files = Get-ChildItem -LiteralPath $Root -Recurse -Filter *.cs | Where-Object { $_.Name -ne 'Lang.cs' }
 function Test-Cjk([string]$s) {

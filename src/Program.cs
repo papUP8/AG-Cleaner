@@ -3,11 +3,11 @@ using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
-namespace CCDesk
+namespace AGCleaner
 {
     public static class Program
     {
-        public static string Version = "1.5.3";
+        public static string Version = "1.6.0";
 
         private static Icon _appIcon;
 
@@ -72,7 +72,7 @@ namespace CCDesk
                     sb.AppendLine("guard update-cache=" + Core.Guard.CanDelete("C:\\Windows\\SoftwareDistribution\\Download", true));
                     sb.AppendLine("guard winsxs=" + Core.Guard.CanDelete("C:\\Windows\\WinSxS", true));
 
-                    string sandbox = System.IO.Path.Combine(temp, "ccdesk_selftest_" + DateTime.Now.Ticks);
+                    string sandbox = System.IO.Path.Combine(temp, "agcleaner_selftest_" + DateTime.Now.Ticks);
                     System.IO.Directory.CreateDirectory(sandbox);
                     for (int i = 0; i < 3; i++)
                     {
@@ -201,10 +201,10 @@ namespace CCDesk
             if (args.Length >= 2 && args[0] == "--startup")
             {
                 System.Text.StringBuilder sb = new System.Text.StringBuilder();
-                System.Collections.Generic.List<CCDesk.Core.StartupItem> list = CCDesk.Core.Startup.List();
+                System.Collections.Generic.List<AGCleaner.Core.StartupItem> list = AGCleaner.Core.Startup.List();
                 for (int i = 0; i < list.Count; i++)
                 {
-                    CCDesk.Core.StartupItem it = list[i];
+                    AGCleaner.Core.StartupItem it = list[i];
                     sb.Append(it.GroupText).Append(" | ").Append(it.Enabled ? "on " : "off").Append(" | ");
                     sb.Append(it.Name).Append(" | ").Append(it.Command).Append(" | ").Append(it.Source);
                     sb.Append(" | chars=");
@@ -226,12 +226,12 @@ namespace CCDesk
                 f.StartPosition = FormStartPosition.Manual;
                 f.Location = new System.Drawing.Point(-4000, 0);
                 f.ShowInTaskbar = false;
-                CCDesk.VList list = new CCDesk.VList();
+                AGCleaner.VList list = new AGCleaner.VList();
                 list.ShowCheck = false;
                 list.RightHeader = "";
                 list.RowHeight = 28;
                 list.SetBounds(20, 76, 620, 300);
-                System.Collections.Generic.List<CCDesk.VRow> rows = new System.Collections.Generic.List<CCDesk.VRow>();
+                System.Collections.Generic.List<AGCleaner.VRow> rows = new System.Collections.Generic.List<AGCleaner.VRow>();
                 string[] demo = new string[]
                 {
                     Lang.T("用户临时目录  55.4 MB"), Lang.T("Windows 更新下载缓存  346 MB"), Lang.T("事件日志  172 MB"),
@@ -241,20 +241,20 @@ namespace CCDesk
                 };
                 for (int i = 0; i < demo.Length; i++)
                 {
-                    CCDesk.VRow r = new CCDesk.VRow();
+                    AGCleaner.VRow r = new AGCleaner.VRow();
                     r.Title = demo[i];
                     rows.Add(r);
                 }
                 list.SetRows(rows);
                 f.Controls.Add(list);
-                CCDesk.Btn b1 = new CCDesk.Btn();
-                b1.Kind = CCDesk.ButtonKind.Subtle;
+                AGCleaner.Btn b1 = new AGCleaner.Btn();
+                b1.Kind = AGCleaner.ButtonKind.Subtle;
                 b1.Text = Lang.T("打开操作日志");
                 b1.Size = new System.Drawing.Size(112, 34);
                 b1.Location = new System.Drawing.Point(20, 448);
                 f.Controls.Add(b1);
-                CCDesk.Btn b2 = new CCDesk.Btn();
-                b2.Kind = CCDesk.ButtonKind.Accent;
+                AGCleaner.Btn b2 = new AGCleaner.Btn();
+                b2.Kind = AGCleaner.ButtonKind.Accent;
                 b2.Text = Lang.T("完成");
                 b2.Size = new System.Drawing.Size(96, 34);
                 b2.Location = new System.Drawing.Point(540, 448);
@@ -358,7 +358,7 @@ namespace CCDesk
             {
                 System.Windows.Forms.MessageBox.Show(
                     Lang.T("程序遇到一个内部错误，已记录到日志：") + "\r\n" + path + "\r\n\r\n" + ex.Message,
-                    "CC-Desk", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Warning);
+                    "AG Cleaner", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Warning);
             }
             catch (Exception) { }
         }

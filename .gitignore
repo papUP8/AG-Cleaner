@@ -12,6 +12,7 @@ shots/*.txt
 
 # 本地私有素材与临时文件
 assets/raw.png
+assets/raw_ag.png
 assets/_tmp/
 *.bak
 *.tmp

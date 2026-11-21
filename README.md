@@ -1,13 +1,19 @@
-# CC-Desk · Windows 桌面清理与优化
+# AG Cleaner · Windows 桌面清理与优化
 
-原生 Windows 桌面清理工具：绿色单文件、深色/浅色双主题、**先审阅清单再删除**，扫描与清理全程显示百分比进度，覆盖系统级缓存、浏览器与应用缓存、系统痕迹、事件日志、内存转储、大体积日志，并提供“已卸载软件残留”的专页清理。
+**下载一个 exe，双击就能用；扫出来的东西先列给你看，你点头才删。**
 
-- 单文件可执行，约 620 KB，下载解压后只有一个 `CC-Desk.exe`；不用 .NET SDK、不用 Node/Electron
-- 运行依赖：Windows 10 / 11 自带的 .NET Framework 4.8
-- 不联网、不上传任何清单；配置与日志只写本地 `%USERPROFILE%\.config\ccdesk`
-- 说明、变更记录、版权署名与许可证已编译进 exe：设置页「关于」卡片里的「说明与许可」可直接查看，无需附带 README 等文件
+它面向不想装全家桶、也不想为了清个缓存去读十篇教程的人。打开是一块总览（磁盘余量、内存、CPU、可清理空间），点「智能清理」出清单，逐条勾选后才执行；侧栏另有深度清理、残留清理、应用卸载、启动项管理、磁盘分析、系统优化、历史记录，每一页只做一件事，深色/浅色主题随时切。
+
+## 下载
+
+最新版在 [Releases](../../releases/latest)，资产只有一个 `AGCleaner.exe`（约 780 KB，免安装）。
+
+- 运行依赖：Windows 10 / 11 自带的 .NET Framework 4.8，不装 .NET SDK、不用 Node/Electron
+- 不联网、不上传任何清单；配置与日志只写本地 `%USERPROFILE%\.config\agcleaner`
+- 未做代码签名，首次运行可能弹 SmartScreen，点「更多信息 → 仍要运行」即可；介意可从源码自行编译（见第七节）
 - 中文 / English / Deutsch / Français / Русский / Español 六种界面语言，顶栏一键切换，选择会记住（英文说明见 [README.en.md](README.en.md)）
-- 代码开源（GPL-3.0），源码见 git 仓库与源码包
+- 使用说明、变更记录、版权署名与许可证已编译进 exe：设置页「关于」卡片里的「说明与许可」直接查看，无需另带文档
+- 代码开源（GPL-3.0），源码即本仓库
 
 ---
 
@@ -29,7 +35,7 @@
 
 ## 一、快速开始
 
-**直接运行**：双击 `CC-Desk.exe`。系统级清理（Windows 缓存、事件日志、更新缓存、深度清理）需要管理员权限，非管理员时这些项会被跳过或标注。
+**直接运行**：双击 `AGCleaner.exe`。系统级清理（Windows 缓存、事件日志、更新缓存、深度清理）需要管理员权限，非管理员时这些项会被跳过或标注。
 
 **安装到本机**：
 
@@ -37,7 +43,7 @@
 powershell -ExecutionPolicy Bypass -File install.ps1
 ```
 
-安装到 `%LOCALAPPDATA%\CC-Desk\`，并创建桌面与开始菜单快捷方式。卸载：
+安装到 `%LOCALAPPDATA%\AG Cleaner\`，并创建桌面与开始菜单快捷方式。卸载：
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File uninstall.ps1
@@ -107,7 +113,7 @@ powershell -ExecutionPolicy Bypass -File uninstall.ps1
 2. **敏感片段拦截**：`.ssh`、`.gnupg`、`.aws`、`.kube`、`.docker`、浏览器 Cookies / Login Data / Local Storage / IndexedDB、AI 会话记录等，清理时自动跳过。
 3. **白名单**：默认保护 VS Code 扩展、NuGet/Cargo 缓存、JetBrains 等，设置页可增删。
 4. **先审阅后删除**：扫描只出清单，不自动执行。
-5. **可恢复**：用户级项目默认进回收站；注册表项删除前 `reg export` 备份到 `.config\ccdesk\backup`；启动项禁用前备份，可还原。
+5. **可恢复**：用户级项目默认进回收站；注册表项删除前 `reg export` 备份到 `.config\agcleaner\backup`；启动项禁用前备份，可还原。
 6. **占用文件**：被服务占用的文件登记为重启后删除（`MoveFileEx`），并如实计入释放量。
 7. **审计**：每次操作写入 `operations.log`，历史记录页可导出 CSV。
 
@@ -116,14 +122,14 @@ powershell -ExecutionPolicy Bypass -File uninstall.ps1
 ## 六、命令行
 
 ```
-CC-Desk.exe                              正常启动
-CC-Desk.exe --shot a.png 1 45000 [light|dark|system] [zh|en]    离屏渲染截图（自检用）
-CC-Desk.exe --scan scan.txt              输出分类扫描结果
-CC-Desk.exe --orphans orphans.txt        输出残留扫描结果
-CC-Desk.exe --selftest s.txt             安全护栏与删除链路自检
-CC-Desk.exe --dlgshot d.png              离屏渲染“清理完成”报告框
-CC-Desk.exe --guard <path...>            输出路径判定（可删/受保护/白名单/敏感/可信/存在）
-CC-Desk.exe --startup s.txt              导出启动项清单与逐字符编码（排查显示问题）
+AGCleaner.exe                              正常启动
+AGCleaner.exe --shot a.png 1 45000 [light|dark|system] [zh|en]    离屏渲染截图（自检用）
+AGCleaner.exe --scan scan.txt              输出分类扫描结果
+AGCleaner.exe --orphans orphans.txt        输出残留扫描结果
+AGCleaner.exe --selftest s.txt             安全护栏与删除链路自检
+AGCleaner.exe --dlgshot d.png              离屏渲染“清理完成”报告框
+AGCleaner.exe --guard <path...>            输出路径判定（可删/受保护/白名单/敏感/可信/存在）
+AGCleaner.exe --startup s.txt              导出启动项清单与逐字符编码（排查显示问题）
 ```
 
 ---
@@ -136,7 +142,7 @@ CC-Desk.exe --startup s.txt              导出启动项清单与逐字符编码
 powershell -ExecutionPolicy Bypass -File src\build.ps1 -Icon
 ```
 
-产物为 `dist\CC-Desk.exe`；图标由 `src\makeicon.ps1` 从 `assets\raw.png` 生成 `assets\app.ico`。
+产物为 `dist\AGCleaner.exe`；图标由 `src\makeicon.ps1` 从 `assets\raw.png` 生成 `assets\app.ico`。
 
 源码结构：
 

@@ -4,9 +4,9 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Threading;
 using System.Windows.Forms;
-using CCDesk.Core;
+using AGCleaner.Core;
 
-namespace CCDesk
+namespace AGCleaner
 {
     public class StatCard : Control
     {

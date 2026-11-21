@@ -1,12 +1,19 @@
-# CC-Desk · Windows cleanup and tune-up
+# AG Cleaner · Windows cleanup and tune-up
 
-A native Windows cleanup tool: a single green executable, light / dark / system themes, and a **review-before-delete** workflow. Scan and clean show a percentage progress bar, covering system-level caches, browser and app caches, system traces, event logs, memory dumps and oversized log files, plus a dedicated page for "leftovers of uninstalled apps".
+**One executable, double-click to run; everything it finds is listed for you first, and only deleted when you say so.**
 
-- Single executable, about 620 KB — the download unpacks to one `CC-Desk.exe`; no .NET SDK, no Node/Electron
-- Requires the .NET Framework 4.8 shipped with Windows 10 / 11
-- No network, nothing uploaded; config and logs stay in `%USERPROFILE%\.config\ccdesk`
-- Chinese / English UI, switchable in Settings with one click, and the choice is remembered
-- Open source (GPL-3.0), sources included in the package
+Built for people who don't want a bundled suite or a ten-article tutorial to clear a cache. It opens on an overview (free space, memory, CPU, reclaimable space); "Smart clean" produces a list, you tick items, then it acts. The sidebar holds deep clean, leftovers, uninstall, startup items, disk analyzer, tune-up and history — one job per page, with light / dark themes.
+
+## Download
+
+Grab `AGCleaner.exe` (about 780 KB, portable) from [Releases](../../releases/latest).
+
+- Requires the .NET Framework 4.8 shipped with Windows 10 / 11; no .NET SDK, no Node/Electron
+- No network, nothing uploaded; config and logs stay in `%USERPROFILE%\.config\agcleaner`
+- Not code-signed, so SmartScreen may warn on first run (More info → Run anyway); you can always build it yourself (see section 7)
+- Chinese / English / Deutsch / Français / Русский / Español interfaces, one click in the title bar, remembered
+- Usage notes, changelog, credits and licence are compiled into the exe (Settings → About → Notes & licence)
+- Open source (GPL-3.0); this repository is the source
 
 ---
 
@@ -32,7 +39,7 @@ A native Windows cleanup tool: a single green executable, light / dark / system 
 
 ## 1. Getting started
 
-**Run it**: double-click `CC-Desk.exe`. System-level cleaning (Windows caches, event logs, update cache, deep clean) needs administrator rights; without them those items are skipped or flagged.
+**Run it**: double-click `AGCleaner.exe`. System-level cleaning (Windows caches, event logs, update cache, deep clean) needs administrator rights; without them those items are skipped or flagged.
 
 **Install locally**:
 
@@ -40,7 +47,7 @@ A native Windows cleanup tool: a single green executable, light / dark / system 
 powershell -ExecutionPolicy Bypass -File install.ps1
 ```
 
-Installs to `%LOCALAPPDATA%\CCDesk\` and creates desktop and Start menu shortcuts. Uninstall:
+Installs to `%LOCALAPPDATA%\AGCleaner\` and creates desktop and Start menu shortcuts. Uninstall:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File uninstall.ps1
@@ -48,7 +55,7 @@ powershell -ExecutionPolicy Bypass -File uninstall.ps1
 
 **Theme**: the System / Light / Dark buttons at the top right of the title bar; the choice is remembered.
 
-**Language**: the title-bar button shows the current language code (中文 / EN / DE / FR / RU / ES) and opens a menu with Chinese, English, Deutsch, Français, Русский and Español; the same entry sits on the right of the "About CC-Desk" card in Settings. The choice is remembered.
+**Language**: the title-bar button shows the current language code (中文 / EN / DE / FR / RU / ES) and opens a menu with Chinese, English, Deutsch, Français, Русский and Español; the same entry sits on the right of the "About AG Cleaner" card in Settings. The choice is remembered.
 
 Coverage: all six languages are complete — 650 strings per language, aligned one-to-one with the English table, with no fallback gaps. The four translations are the author's own — native speakers are welcome to send corrections.
 
@@ -110,7 +117,7 @@ Judgement is heuristic, so everything is unchecked by default and you confirm it
 2. **Sensitive segments**: `.ssh`, `.gnupg`, `.aws`, `.kube`, `.docker`, browser Cookies / Login Data / Local Storage / IndexedDB, AI session records and similar are skipped automatically.
 3. **Whitelist**: VS Code extensions, NuGet/Cargo caches, JetBrains and more are protected by default; editable in Settings.
 4. **Review before delete**: scanning only produces a list, nothing runs automatically.
-5. **Recoverable**: user-level items go to the Recycle Bin by default; registry entries are exported with `reg export` to `.config\ccdesk\backup` before deletion; startup entries are backed up before disabling and can be restored.
+5. **Recoverable**: user-level items go to the Recycle Bin by default; registry entries are exported with `reg export` to `.config\agcleaner\backup` before deletion; startup entries are backed up before disabling and can be restored.
 6. **Locked files**: files held by a service are scheduled for deletion on reboot (`MoveFileEx`) and counted honestly in the freed total.
 7. **Audit**: every operation is written to `operations.log`; the History page can export CSV.
 
@@ -119,14 +126,14 @@ Judgement is heuristic, so everything is unchecked by default and you confirm it
 ## 6. Command line
 
 ```
-CC-Desk.exe                              normal launch
-CC-Desk.exe --shot a.png 1 45000 [light|dark|system] [zh|en]    offscreen render for self-checks
-CC-Desk.exe --scan scan.txt              dump categorized scan results
-CC-Desk.exe --orphans orphans.txt        dump leftover scan results
-CC-Desk.exe --selftest s.txt             safety guard and deletion path self-test
-CC-Desk.exe --dlgshot d.png              offscreen render of the "clean finished" report
-CC-Desk.exe --guard <path...>            path verdict (cleanable / protected / whitelisted / sensitive / trusted / exists)
-CC-Desk.exe --startup s.txt              export startup items with per-character codes
+AGCleaner.exe                              normal launch
+AGCleaner.exe --shot a.png 1 45000 [light|dark|system] [zh|en]    offscreen render for self-checks
+AGCleaner.exe --scan scan.txt              dump categorized scan results
+AGCleaner.exe --orphans orphans.txt        dump leftover scan results
+AGCleaner.exe --selftest s.txt             safety guard and deletion path self-test
+AGCleaner.exe --dlgshot d.png              offscreen render of the "clean finished" report
+AGCleaner.exe --guard <path...>            path verdict (cleanable / protected / whitelisted / sensitive / trusted / exists)
+AGCleaner.exe --startup s.txt              export startup items with per-character codes
 ```
 
 ---
@@ -139,7 +146,7 @@ No .NET SDK needed; the bundled `csc.exe` is enough (the sources avoid C# 6+ syn
 powershell -ExecutionPolicy Bypass -File src\build.ps1 -Icon
 ```
 
-The output is `dist\CC-Desk.exe`; the icon is generated from `assets\raw.png` into `assets\app.ico` by `src\makeicon.ps1`.
+The output is `dist\AGCleaner.exe`; the icon is generated from `assets\raw.png` into `assets\app.ico` by `src\makeicon.ps1`.
 
 Source layout:
 

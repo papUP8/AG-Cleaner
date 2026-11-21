@@ -1,4 +1,4 @@
-param([string]$Root = "D:\Projects\CCDesk\src")
+param([string]$Root = "D:\Projects\AGCleaner\src")
 
 $langPath = Join-Path $Root "Lang.cs"
 $dict = @{}

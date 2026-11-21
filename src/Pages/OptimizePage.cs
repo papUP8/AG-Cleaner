@@ -4,9 +4,9 @@ using System.Drawing;
 using System.Text;
 using System.Threading;
 using System.Windows.Forms;
-using CCDesk.Core;
+using AGCleaner.Core;
 
-namespace CCDesk
+namespace AGCleaner
 {
     public class OptimizePage : PageBase
     {
@@ -61,7 +61,7 @@ namespace CCDesk
             _adminBtn.Size = new Size(150, 32);
             _adminBtn.Click += delegate
             {
-                if (Dlg.Confirm(FindForm(), Lang.T("以管理员身份重启？"), Lang.T("将以 UAC 提权方式重新启动 CC-Desk，解锁 ARP 缓存、磁盘 TRIM 与 Windows 更新缓存清理。当前窗口会关闭。"), Lang.T("重启"), false))
+                if (Dlg.Confirm(FindForm(), Lang.T("以管理员身份重启？"), Lang.T("将以 UAC 提权方式重新启动 AG Cleaner，解锁 ARP 缓存、磁盘 TRIM 与 Windows 更新缓存清理。当前窗口会关闭。"), Lang.T("重启"), false))
                 {
                     if (Native.RelaunchAsAdmin()) Application.Exit();
                 }
@@ -70,7 +70,7 @@ namespace CCDesk
 
             Fill();
             LayoutChildren();
-            Append(Lang.T("CC-Desk 系统优化 · ") + (Native.IsAdmin() ? Lang.T("当前为管理员权限") : Lang.T("当前为普通用户权限，标记“需要管理员”的项目会被拦截")));
+            Append(Lang.T("AG Cleaner 系统优化 · ") + (Native.IsAdmin() ? Lang.T("当前为管理员权限") : Lang.T("当前为普通用户权限，标记“需要管理员”的项目会被拦截")));
         }
 
         private void Fill()

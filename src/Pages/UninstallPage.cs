@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Threading;
 using System.Windows.Forms;
-using CCDesk.Core;
+using AGCleaner.Core;
 
-namespace CCDesk
+namespace AGCleaner
 {
     public class UninstallPage : PageBase
     {

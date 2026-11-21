@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using Microsoft.Win32;
 
-namespace CCDesk.Core
+namespace AGCleaner.Core
 {
     public class StartupItem
     {

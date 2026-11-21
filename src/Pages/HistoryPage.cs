@@ -4,9 +4,9 @@ using System.Drawing;
 using System.IO;
 using System.Text;
 using System.Windows.Forms;
-using CCDesk.Core;
+using AGCleaner.Core;
 
-namespace CCDesk
+namespace AGCleaner
 {
     public class HistoryPage : PageBase
     {
@@ -120,7 +120,7 @@ namespace CCDesk
         {
             try
             {
-                string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "CCDesk-history.csv");
+                string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "AGCleaner-history.csv");
                 StringBuilder sb = new StringBuilder();
                 sb.AppendLine(Lang.T("时间,操作,释放字节,路径"));
                 for (int i = 0; i < _entries.Count; i++)

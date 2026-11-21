@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Threading;
 using System.Windows.Forms;
-using CCDesk.Core;
+using AGCleaner.Core;
 
-namespace CCDesk
+namespace AGCleaner
 {
     public class StartupPage : PageBase
     {
@@ -373,7 +373,7 @@ namespace CCDesk
             if (it == null) return;
             if (it.IsService)
             {
-                Dlg.Info(FindForm(), Lang.T("系统服务仅展示"), Lang.T("服务项涉及系统组件，CC-Desk 不在此处启停。\n如需调整，请在“服务”管理器中操作，或使用系统配置工具。"));
+                Dlg.Info(FindForm(), Lang.T("系统服务仅展示"), Lang.T("服务项涉及系统组件，AG Cleaner 不在此处启停。\n如需调整，请在“服务”管理器中操作，或使用系统配置工具。"));
                 return;
             }
             string message = "";

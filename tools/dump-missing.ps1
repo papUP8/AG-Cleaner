@@ -1,4 +1,4 @@
-param([string]$Root = "D:\Projects\CCDesk\src")
+param([string]$Root = "D:\Projects\AGCleaner\src")
 
 $langText = [System.IO.File]::ReadAllText((Join-Path $Root "Lang.cs"))
 $en = @{}
@@ -19,4 +19,4 @@ $sb = New-Object System.Text.StringBuilder
 foreach ($k in ($missing | Sort-Object)) {
   [void]$sb.AppendLine(($k -replace "`r?`n", "\\n") + " >>> " + ($en[$k] -replace "`r?`n", "\\n"))
 }
-[System.IO.File]::WriteAllText("D:\Projects\CCDesk\shots\missing_keys.txt", $sb.ToString(), (New-Object System.Text.UTF8Encoding($false)))
+[System.IO.File]::WriteAllText("D:\Projects\AGCleaner\shots\missing_keys.txt", $sb.ToString(), (New-Object System.Text.UTF8Encoding($false)))

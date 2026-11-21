@@ -3,19 +3,51 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
-namespace CCDesk.Core
+namespace AGCleaner.Core
 {
-    /// <summary>本地配置与操作日志。放在 %USERPROFILE%\.config\ccdesk 下。</summary>
+    /// <summary>本地配置与操作日志。放在 %USERPROFILE%\.config\agcleaner 下。</summary>
     public static class Store
     {
+        private static bool _migrated;
+
         public static string RootDir
         {
             get
             {
-                string dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".config", "ccdesk");
+                string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+                string dir = Path.Combine(home, ".config", "agcleaner");
+                if (!_migrated) { _migrated = true; MigrateLegacy(home, dir); }
                 if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
                 return dir;
             }
+        }
+
+        /// <summary>从旧品牌目录 .config\ccdesk 迁移配置与日志，老用户不用重新设置。</summary>
+        private static void MigrateLegacy(string home, string dir)
+        {
+            try
+            {
+                string old = Path.Combine(home, ".config", "ccdesk");
+                if (!Directory.Exists(old)) return;
+                if (Directory.Exists(dir)) return;
+                Directory.CreateDirectory(dir);
+                foreach (string name in new string[] { "settings.ini", "whitelist.txt", "operations.log", "crash.log" })
+                {
+                    string from = Path.Combine(old, name);
+                    if (File.Exists(from)) File.Copy(from, Path.Combine(dir, name), true);
+                }
+                string oldBackup = Path.Combine(old, "backup");
+                if (Directory.Exists(oldBackup))
+                {
+                    string newBackup = Path.Combine(dir, "backup");
+                    Directory.CreateDirectory(newBackup);
+                    foreach (string f in Directory.GetFiles(oldBackup))
+                    {
+                        File.Copy(f, Path.Combine(newBackup, Path.GetFileName(f)), true);
+                    }
+                }
+            }
+            catch (Exception) { }
         }
 
         public static string SettingsFile { get { return Path.Combine(RootDir, "settings.ini"); } }
@@ -95,7 +127,7 @@ namespace CCDesk.Core
         public void Save()
         {
             StringBuilder sb = new StringBuilder();
-            sb.AppendLine(Lang.T("# CC-Desk 配置"));
+            sb.AppendLine(Lang.T("# AG Cleaner 配置"));
             sb.AppendLine("recycle=" + (UseRecycleBin ? "1" : "0"));
             sb.AppendLine("tempdays=" + TempDays);
             sb.AppendLine("tempmig=1");
@@ -242,7 +274,7 @@ namespace CCDesk.Core
         public static void SaveWhiteList(List<string> list)
         {
             StringBuilder sb = new StringBuilder();
-            sb.AppendLine(Lang.T("# CC-Desk 白名单：每行一个路径，命中则不清理（支持 %ENV% 变量）"));
+            sb.AppendLine(Lang.T("# AG Cleaner 白名单：每行一个路径，命中则不清理（支持 %ENV% 变量）"));
             foreach (string s in list) sb.AppendLine(s);
             Store.WriteAll(Store.WhitelistFile, sb.ToString());
             _whitelist = null;

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
 
-namespace CCDesk
+namespace AGCleaner
 {
     /// <summary>深色模态对话框：确认、输入、提示。</summary>
     public class DlgForm : Form
@@ -130,7 +130,7 @@ namespace CCDesk
             logBtn.Location = new Point(20, 500 - 52);
             logBtn.Click += delegate
             {
-                try { System.Diagnostics.Process.Start("notepad.exe", CCDesk.Core.Store.OpLogFile); }
+                try { System.Diagnostics.Process.Start("notepad.exe", AGCleaner.Core.Store.OpLogFile); }
                 catch (Exception) { }
             };
             f.Controls.Add(logBtn);

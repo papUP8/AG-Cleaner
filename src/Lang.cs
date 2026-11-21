@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace CCDesk
+namespace AGCleaner
 {
     /// <summary>
     /// 界面语言（中文 / English / Deutsch / Français / Русский / Español）。
@@ -83,7 +83,7 @@ namespace CCDesk
         private static readonly Dictionary<string, string> En = new Dictionary<string, string>(StringComparer.Ordinal)
         {
             // ---------- 窗口与导航 ----------
-            { "CC-Desk 桌面清理", "CC-Desk Cleaner" },
+            { "AG Cleaner 桌面清理", "AG Cleaner" },
             { "桌面清理与优化 · Windows", "Cleanup and tune-up for Windows" },
             { "管理员模式", "Administrator" },
             { "普通用户", "Standard user" },
@@ -329,7 +329,7 @@ namespace CCDesk
             { "命令：", "Command: " },
             { "禁用只影响开机自启，不会删除程序；注册表项与文件均先备份", "Disabling only stops autostart; nothing is deleted and backups are kept" },
             { "系统服务仅展示", "Services are read-only" },
-            { "服务项涉及系统组件，CC-Desk 不在此处启停。\n如需调整，请在“服务”管理器中操作，或使用系统配置工具。", "These belong to Windows. CC-Desk does not start or stop services here; use the Services console instead." },
+            { "服务项涉及系统组件，AG Cleaner 不在此处启停。\n如需调整，请在“服务”管理器中操作，或使用系统配置工具。", "These belong to Windows. AG Cleaner does not start or stop services here; use the Services console instead." },
             { "系统服务不在此处停用，请在“服务”管理器或系统配置中操作", "Services are not stopped here; use the Services console" },
             { "系统服务不在此处启用，请在“服务”管理器操作", "Services are not started here; use the Services console" },
             { "启动文件夹项", "Startup folder item" },
@@ -400,7 +400,7 @@ namespace CCDesk
             { "该操作需要管理员权限，请点击右上角“以管理员身份重启”后再执行。", "This needs administrator rights. Use Restart as administrator in the top right, then run it again." },
             { "以管理员身份重启", "Restart as admin" },
             { "以管理员身份重启？", "Restart as administrator?" },
-            { "将以 UAC 提权方式重新启动 CC-Desk，解锁 ARP 缓存、磁盘 TRIM 与 Windows 更新缓存清理。当前窗口会关闭。", "CC-Desk will restart with UAC elevation to unlock ARP, TRIM and update cache cleaning. This window will close." },
+            { "将以 UAC 提权方式重新启动 AG Cleaner，解锁 ARP 缓存、磁盘 TRIM 与 Windows 更新缓存清理。当前窗口会关闭。", "AG Cleaner will restart with UAC elevation to unlock ARP, TRIM and update cache cleaning. This window will close." },
             { "重启", "Restart" },
             { "清理本机 DNS 缓存，修复域名解析失败或网页打开异常", "Clears the DNS cache to fix name resolution issues" },
             { "刷新 DNS 解析缓存", "Flush DNS cache" },
@@ -412,7 +412,7 @@ namespace CCDesk
             { "清理 Windows 更新缓存", "Clear Windows update cache" },
             { "开始执行", "Running" },
             { "执行完成", "Done" },
-            { "CC-Desk 系统优化 · ", "CC-Desk tune-up · " },
+            { "AG Cleaner 系统优化 · ", "AG Cleaner tune-up · " },
             { "当前为管理员权限", "running as administrator" },
             { "当前为普通用户权限，标记“需要管理员”的项目会被拦截", "standard user; actions marked Admin required will be blocked" },
 
@@ -471,11 +471,11 @@ namespace CCDesk
             { "开源许可证", "License" },
             { "关闭", "Close" },
             { "无法读取内置文档：", "Cannot read built-in document: " },
-            { "全部文档已编译进 CC-Desk.exe，不必附带任何外部文件", "All docs are compiled into CC-Desk.exe; no external files needed" },
+            { "全部文档已编译进 AGCleaner.exe，不必附带任何外部文件", "All docs are compiled into AGCleaner.exe; no external files needed" },
             { "界面语言切换后立即生效，会重新加载各页面", "Switching language applies immediately and reloads the pages" },
             { "中文", "中文" },
             { "English", "English" },
-            { "关于 CC-Desk", "About CC-Desk" },
+            { "关于 AG Cleaner", "About AG Cleaner" },
             { " ·  Windows 图形桌面清理与优化工具", " ·  Windows cleanup and tune-up tool" },
             { "许可证：GPL-3.0 · 社区版，代码开源可审计 · 所有配置与日志只保存在本机", "License: GPL-3.0 · community edition, open source and auditable · all data stays on this PC" },
             { "配置目录：", "Config folder: " },
@@ -756,8 +756,8 @@ namespace CCDesk
             { "火绒", "Huorong" },
             { "显卡", "GPU" },
             { "自动更新", "Auto-update" },
-            { "# CC-Desk 白名单：每行一个路径，命中则不清理（支持 %ENV% 变量）", "# CC-Desk whitelist: one path per line; matches are never cleaned (%ENV% variables supported)" },
-            { "# CC-Desk 配置", "# CC-Desk settings" },
+            { "# AG Cleaner 白名单：每行一个路径，命中则不清理（支持 %ENV% 变量）", "# AG Cleaner whitelist: one path per line; matches are never cleaned (%ENV% variables supported)" },
+            { "# AG Cleaner 配置", "# AG Cleaner settings" },
             { " 处", " spots" },
             { " 处残留，可移入回收站：\n", " leftover spots can be moved to the Recycle Bin:\n" },
             { " 个已安装程序", " installed apps" },

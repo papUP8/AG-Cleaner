@@ -4,9 +4,9 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
-using CCDesk.Core;
+using AGCleaner.Core;
 
-namespace CCDesk
+namespace AGCleaner
 {
     /// <summary>页面基类：统一标题区与内容区。</summary>
     public abstract class PageBase : Panel2
@@ -63,7 +63,7 @@ namespace CCDesk
 
         public MainForm()
         {
-            Text = Lang.T("CC-Desk 桌面清理");
+            Text = Lang.T("AG Cleaner 桌面清理");
             Icon = Program.AppIcon();
             FormBorderStyle = FormBorderStyle.None;
             StartPosition = FormStartPosition.CenterScreen;
@@ -254,9 +254,9 @@ namespace CCDesk
             Theme.FillRound(g, logo, 8, Theme.Accent);
             using (StringFormat sf = Theme.SF(StringAlignment.Center, StringAlignment.Center))
             {
-                Theme.Txt(g, "C", Theme.F(12f, FontStyle.Bold), Theme.AccentFg, logo, sf);
+                Theme.Txt(g, "AG", Theme.F(8.2f, FontStyle.Bold), Theme.AccentFg, logo, sf);
             }
-            Theme.Txt(g, "CC-Desk", Theme.F(12f, FontStyle.Bold), Theme.TitleText, 54, 14);
+            Theme.Txt(g, "AG Cleaner", Theme.F(12f, FontStyle.Bold), Theme.TitleText, 54, 14);
             Theme.Txt(g, Lang.T("桌面清理与优化 · Windows"), Theme.F(8f), Theme.TitleDim, 54, 34);
         }
 
@@ -375,7 +375,7 @@ namespace CCDesk
                 _pages[i].Dispose();
             }
             _pages.Clear();
-            Text = Lang.T("CC-Desk 桌面清理");
+            Text = Lang.T("AG Cleaner 桌面清理");
             RetranslateChrome();
             AddPages(CreatePages());
             SelectPage(gotoIndex < 0 || gotoIndex >= _pages.Count ? 0 : gotoIndex);

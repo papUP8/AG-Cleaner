@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 using System.Security.Principal;
 using System.Text;
 
-namespace CCDesk.Core
+namespace AGCleaner.Core
 {
     public static class Native
     {
@@ -160,7 +160,7 @@ namespace CCDesk.Core
             }
             catch (Exception)
             {
-                return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "CCDesk.exe");
+                return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "AGCleaner.exe");
             }
         }
 

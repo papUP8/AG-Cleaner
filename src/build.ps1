@@ -12,7 +12,7 @@ $csc = "C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
 if (-not (Test-Path $csc)) { throw "csc.exe not found: $csc" }
 
 $files = @(Get-ChildItem -Path $src -Recurse -Filter *.cs | ForEach-Object { $_.FullName })
-$out = Join-Path $dist "CC-Desk.exe"
+$out = Join-Path $dist "AGCleaner.exe"
 
 $opt = @(
     "/nologo",

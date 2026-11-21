@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 
-namespace CCDesk.Core
+namespace AGCleaner.Core
 {
     public enum CleanKind { DirContents, DirItself, OldFilesInDir, OldFilesExt, RecycleBin, FileItself }
 

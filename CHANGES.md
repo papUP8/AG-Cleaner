@@ -1,5 +1,13 @@
 # 变更记录
 
+## 1.6.0
+
+- 产品名为 AG Cleaner，可执行文件为 `AGCleaner.exe`
+- 图标为字母 AG 的多尺寸 ico，窗口、任务栏、alt-tab 与内置文档窗口共用同一来源
+- 标题栏徽标、窗口标题、关于卡片、内置说明与许可窗口均以 AG Cleaner 呈现
+- 配置与日志目录为 `%USERPROFILE%\.config\agcleaner`；首次运行若发现旧目录 `.config\ccdesk` 且新目录不存在，自动迁移设置、白名单、操作日志、崩溃日志与备份
+- 历史记录导出文件名为 `AGCleaner-history.csv`
+
 ## 1.5.3
 
 - 窗口与任务栏图标取 exe 内嵌的 ico：此前只有文件本身带自定义图标，任务栏和 alt-tab 里显示的是 WinForms 默认图标，两处对不上

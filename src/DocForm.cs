@@ -4,7 +4,7 @@ using System.IO;
 using System.Reflection;
 using System.Windows.Forms;
 
-namespace CCDesk
+namespace AGCleaner
 {
     /// <summary>内置文档查看器：README、变更记录、版权与许可都编译进 exe，发布时只有一个文件。</summary>
     public class DocForm : Form
@@ -112,6 +112,8 @@ namespace CCDesk
         private static string Clean(string text)
         {
             text = System.Text.RegularExpressions.Regex.Replace(text, "!\\[[^\\]]*\\]\\([^\\)]*\\)", "");
+            // 链接保留文字，去掉地址
+            text = System.Text.RegularExpressions.Regex.Replace(text, "\\[([^\\]]*)\\]\\([^\\)]*\\)", "$1");
             string[] lines = text.Replace("\r\n", "\n").Split('\n');
             System.Text.StringBuilder sb = new System.Text.StringBuilder();
             for (int i = 0; i < lines.Length; i++)
@@ -122,6 +124,13 @@ namespace CCDesk
                 // 只剩表格竖线、分隔符或空格的残留行（原本是截图表格）
                 string bare = trim.Replace("|", "").Replace("-", "").Replace(":", "").Replace(" ", "").Replace("\t", "");
                 if (bare.Length == 0 && trim.Length > 0) continue;
+                // 去掉 Markdown 标记，只留文字
+                while (trim.StartsWith("#"))
+                {
+                    trim = trim.Substring(1).TrimStart();
+                    if (trim.Length == 0) break;
+                }
+                t = trim.Replace("**", "").Replace("`", "");
                 sb.Append(t).Append("\r\n");
             }
             return sb.ToString();
@@ -154,7 +163,7 @@ namespace CCDesk
             Theme.FillRound(g, r, 12, Theme.Card);
             Theme.StrokeRound(g, r, 12, Theme.Border, 1);
             Theme.Txt(g, Lang.T("说明与许可"), Theme.F(12f, FontStyle.Bold), Theme.Text, 24, 22);
-            Theme.Txt(g, Lang.T("全部文档已编译进 CC-Desk.exe，不必附带任何外部文件"),
+            Theme.Txt(g, Lang.T("全部文档已编译进 AGCleaner.exe，不必附带任何外部文件"),
                 Theme.F(8f), Theme.Muted, 24, 44);
             base.OnPaint(e);
         }

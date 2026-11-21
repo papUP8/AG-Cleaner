@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
@@ -6,7 +6,7 @@ using System.Drawing.Text;
 using System.Windows.Forms;
 using Microsoft.Win32;
 
-namespace CCDesk
+namespace AGCleaner
 {
     /// <summary>统一配色、字体与绘制工具。深色/浅色两套主题可切换。</summary>
     public static class Theme

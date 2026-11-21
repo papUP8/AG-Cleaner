@@ -6,7 +6,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.Win32;
 
-namespace CCDesk.Core
+namespace AGCleaner.Core
 {
     public class App
     {

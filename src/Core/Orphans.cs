@@ -6,7 +6,7 @@ using System.Reflection;
 using System.Text;
 using Microsoft.Win32;
 
-namespace CCDesk.Core
+namespace AGCleaner.Core
 {
     /// <summary>一条残留项：可能是目录、注册表项、快捷方式或失效启动项。</summary>
     public class OrphanItem
@@ -46,7 +46,7 @@ namespace CCDesk.Core
         private static readonly string[] SkipDirs = new string[]
         {
             "microsoft", "windows", "common files", "windows nt", "windows defender", "windowsapps",
-            "modifiable", "temp", "packages", "package cache", "installer", "ccdesk", "public",
+            "modifiable", "temp", "packages", "package cache", "installer", "agcleaner", "public",
             "system", "config", "drivers", "desktop.ini", "dotnet", "reference assemblies",
             "windows defender advanced threat protection", "comms", "connecteddevicesplatform",
             "ebwebview", "webview", "edgeupdate", "edgecore", "microsoft edge", "python"

@@ -4,9 +4,9 @@ using System.Drawing;
 using System.IO;
 using System.Text;
 using System.Windows.Forms;
-using CCDesk.Core;
+using AGCleaner.Core;
 
-namespace CCDesk
+namespace AGCleaner
 {
     public class SettingsPage : PageBase
     {
@@ -365,8 +365,8 @@ namespace CCDesk
             Graphics g = e.Graphics;
             Theme.Smooth(g);
             Card c = (Card)sender;
-            Theme.Txt(g, Lang.T("关于 CC-Desk"), Theme.F(10.5f, FontStyle.Bold), Theme.Text, 20, 14);
-            Theme.Txt(g, "CC-Desk " + Program.Version + Lang.T("  ·  Windows 图形桌面清理与优化工具"),
+            Theme.Txt(g, Lang.T("关于 AG Cleaner"), Theme.F(10.5f, FontStyle.Bold), Theme.Text, 20, 14);
+            Theme.Txt(g, "AG Cleaner " + Program.Version + Lang.T("  ·  Windows 图形桌面清理与优化工具"),
                 Theme.F(8.2f), Theme.TextDim, 20, 40);
             Theme.Txt(g, Lang.T("许可证：GPL-3.0 · 社区版，代码开源可审计 · 所有配置与日志只保存在本机"),
                 Theme.F(7.9f), Theme.Muted, 20, 62);
