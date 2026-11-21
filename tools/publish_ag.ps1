@@ -5,7 +5,7 @@ $owner = "papUP8"
 $oldRepo = "CC-Desk"
 $newRepo = "AG-Cleaner"
 $ver = "1.6.0"
-$exePath = "D:\Projects\CCDesk\dist\AG Cleaner.exe"
+$exePath = "D:\Projects\CCDesk\dist\AG-Cleaner.exe"
 
 $headers = @{ Authorization = "Bearer $token"; "User-Agent" = "AGCleaner-Publisher"; Accept = "application/vnd.github+json" }
 
@@ -55,7 +55,7 @@ $relBody = @{
     body = @"
 AG Cleaner $ver — 单文件 Windows 清理工具。
 
-- 下载 `AG Cleaner.exe`（约 780 KB）双击即可，免安装，依赖 Windows 自带的 .NET Framework 4.8
+- 下载 `AG-Cleaner.exe`（约 780 KB）双击即可，免安装，依赖 Windows 自带的 .NET Framework 4.8
 - 先出清单、勾选后才删除；删除默认进回收站，注册表项删除前导出备份
 - 不联网、不上传任何清单；配置与日志只写 `%USERPROFILE%\.config\agcleaner`
 - 六种界面语言：中文 / English / Deutsch / Français / Русский / Español
@@ -78,7 +78,7 @@ $client.Timeout = [TimeSpan]::FromSeconds(300)
 $client.DefaultRequestHeaders.Add("Authorization", "Bearer $token")
 $client.DefaultRequestHeaders.Add("User-Agent", "AGCleaner-Publisher")
 $client.DefaultRequestHeaders.Add("Accept", "application/vnd.github+json")
-$upUrl = "https://uploads.github.com$new/releases/$($rel.id)/assets?name=AG Cleaner.exe"
+$upUrl = "https://uploads.github.com$new/releases/$($rel.id)/assets?name=AG-Cleaner.exe"
 $content = [System.Net.Http.ByteArrayContent]::new($bytes)
 $content.Headers.ContentType = [System.Net.Http.Headers.MediaTypeHeaderValue]::Parse("application/octet-stream")
 $resp = $client.PostAsync($upUrl, $content).Result
