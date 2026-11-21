@@ -163,7 +163,7 @@ namespace AGCleaner
             Theme.FillRound(g, r, 12, Theme.Card);
             Theme.StrokeRound(g, r, 12, Theme.Border, 1);
             Theme.Txt(g, Lang.T("说明与许可"), Theme.F(12f, FontStyle.Bold), Theme.Text, 24, 22);
-            Theme.Txt(g, Lang.T("全部文档已编译进 AGCleaner.exe，不必附带任何外部文件"),
+            Theme.Txt(g, Lang.T("全部文档已编译进 AG Cleaner.exe，不必附带任何外部文件"),
                 Theme.F(8f), Theme.Muted, 24, 44);
             base.OnPaint(e);
         }

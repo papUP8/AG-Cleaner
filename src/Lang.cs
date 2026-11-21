@@ -471,7 +471,7 @@ namespace AGCleaner
             { "开源许可证", "License" },
             { "关闭", "Close" },
             { "无法读取内置文档：", "Cannot read built-in document: " },
-            { "全部文档已编译进 AGCleaner.exe，不必附带任何外部文件", "All docs are compiled into AGCleaner.exe; no external files needed" },
+            { "全部文档已编译进 AG Cleaner.exe，不必附带任何外部文件", "All docs are compiled into AG Cleaner.exe; no external files needed" },
             { "界面语言切换后立即生效，会重新加载各页面", "Switching language applies immediately and reloads the pages" },
             { "中文", "中文" },
             { "English", "English" },
