@@ -31,7 +31,7 @@ namespace AGCleaner
   Add(d, "开源许可证", "Lizenz");
   Add(d, "关闭", "Schließen");
   Add(d, "无法读取内置文档：", "Internes Dokument nicht lesbar: ");
-  Add(d, "全部文档已编译进 AG Cleaner.exe，不必附带任何外部文件", "Alle Dokumente sind in AG Cleaner.exe eingebettet; keine weiteren Dateien nötig");
+  Add(d, "全部文档已编译进 AG-Cleaner.exe，不必附带任何外部文件", "Alle Dokumente sind in AG-Cleaner.exe eingebettet; keine weiteren Dateien nötig");
   Add(d, "执行 ", "Ausführen ");
   Add(d, "正在统计 ", "Messung ");
   Add(d, "已完成分类列举 ", "Kategorien aufgelistet ");
@@ -712,7 +712,7 @@ namespace AGCleaner
   Add(d, "开源许可证", "Licence");
   Add(d, "关闭", "Fermer");
   Add(d, "无法读取内置文档：", "Document intégré illisible : ");
-  Add(d, "全部文档已编译进 AG Cleaner.exe，不必附带任何外部文件", "Tous les documents sont intégrés dans AG Cleaner.exe, aucun fichier annexe requis");
+  Add(d, "全部文档已编译进 AG-Cleaner.exe，不必附带任何外部文件", "Tous les documents sont intégrés dans AG-Cleaner.exe, aucun fichier annexe requis");
   Add(d, "执行 ", "Exécuter ");
   Add(d, "正在统计 ", "Mesure ");
   Add(d, "已完成分类列举 ", "Catégories listées ");
@@ -1380,7 +1380,7 @@ namespace AGCleaner
   Add(d, "开源许可证", "Лицензия");
   Add(d, "关闭", "Закрыть");
   Add(d, "无法读取内置文档：", "Не удалось прочитать встроенный документ: ");
-  Add(d, "全部文档已编译进 AG Cleaner.exe，不必附带任何外部文件", "Все документы встроены в AG Cleaner.exe, внешние файлы не нужны");
+  Add(d, "全部文档已编译进 AG-Cleaner.exe，不必附带任何外部文件", "Все документы встроены в AG-Cleaner.exe, внешние файлы не нужны");
   Add(d, "执行 ", "Выполнить ");
   Add(d, "正在统计 ", "Подсчёт ");
   Add(d, "已完成分类列举 ", "Категории перечислены ");
@@ -2048,7 +2048,7 @@ namespace AGCleaner
   Add(d, "开源许可证", "Licencia");
   Add(d, "关闭", "Cerrar");
   Add(d, "无法读取内置文档：", "No se pudo leer el documento integrado: ");
-  Add(d, "全部文档已编译进 AG Cleaner.exe，不必附带任何外部文件", "Todos los documentos están integrados en AG Cleaner.exe; no hacen falta archivos externos");
+  Add(d, "全部文档已编译进 AG-Cleaner.exe，不必附带任何外部文件", "Todos los documentos están integrados en AG-Cleaner.exe; no hacen falta archivos externos");
   Add(d, "执行 ", "Ejecutar ");
   Add(d, "正在统计 ", "Midiendo ");
   Add(d, "已完成分类列举 ", "Categorías listadas ");
