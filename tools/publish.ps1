@@ -61,12 +61,12 @@ try {
 }
 
 Write-Host "4/5 create release"
-$exe = Join-Path $root "dist\AG Cleaner.exe"
-if (-not (Test-Path $exe)) { throw "missing dist\AG Cleaner.exe" }
+$exe = Join-Path $root "dist\AG-Cleaner.exe"
+if (-not (Test-Path $exe)) { throw "missing dist\AG-Cleaner.exe" }
 $relBody = @{
     tag_name = $Tag
     name     = "AG Cleaner " + $Tag.TrimStart('v')
-    body     = "Single-file Windows cleanup tool. Download AG Cleaner.exe and run it - no install, no extra files. Requires the .NET Framework 4.x that ships with Windows 10/11. Docs, changelog, credits and license are embedded in the exe (Settings -> About -> Docs & license)."
+    body     = "Single-file Windows cleanup tool. Download AG-Cleaner.exe and run it - no install, no extra files. Requires the .NET Framework 4.x that ships with Windows 10/11. Docs, changelog, credits and license are embedded in the exe (Settings -> About -> Docs & license)."
     draft    = $false
     prerelease = $false
 }
@@ -80,7 +80,7 @@ if ($release) {
 }
 
 Write-Host "5/5 upload exe"
-$name = "AG Cleaner.exe"
+$name = "AG-Cleaner.exe"
 $assets = Invoke-GitHub "GET" ($release.upload_url.Split('{')[0] + "?name=$name") $null
 $already = @($assets | Where-Object { $_.name -eq $name })
 if ($already.Count -gt 0) {
