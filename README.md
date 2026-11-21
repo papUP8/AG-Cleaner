@@ -6,7 +6,7 @@
 
 ## 下载
 
-最新版在 [Releases](../../releases/latest)，资产只有一个 `AG Cleaner.exe`（约 780 KB，免安装）。
+最新版在 [Releases](../../releases/latest)，资产只有一个 `AG-Cleaner.exe`（约 780 KB，免安装）。
 
 - 运行依赖：Windows 10 / 11 自带的 .NET Framework 4.8，不装 .NET SDK、不用 Node/Electron
 - 不联网、不上传任何清单；配置与日志只写本地 `%USERPROFILE%\.config\agcleaner`
@@ -35,7 +35,7 @@
 
 ## 一、快速开始
 
-**直接运行**：双击 `AG Cleaner.exe`。系统级清理（Windows 缓存、事件日志、更新缓存、深度清理）需要管理员权限，非管理员时这些项会被跳过或标注。
+**直接运行**：双击 `AG-Cleaner.exe`。系统级清理（Windows 缓存、事件日志、更新缓存、深度清理）需要管理员权限，非管理员时这些项会被跳过或标注。
 
 **安装到本机**：
 
@@ -122,14 +122,14 @@ powershell -ExecutionPolicy Bypass -File uninstall.ps1
 ## 六、命令行
 
 ```
-AG Cleaner.exe                              正常启动
-AG Cleaner.exe --shot a.png 1 45000 [light|dark|system] [zh|en]    离屏渲染截图（自检用）
-AG Cleaner.exe --scan scan.txt              输出分类扫描结果
-AG Cleaner.exe --orphans orphans.txt        输出残留扫描结果
-AG Cleaner.exe --selftest s.txt             安全护栏与删除链路自检
-AG Cleaner.exe --dlgshot d.png              离屏渲染“清理完成”报告框
-AG Cleaner.exe --guard <path...>            输出路径判定（可删/受保护/白名单/敏感/可信/存在）
-AG Cleaner.exe --startup s.txt              导出启动项清单与逐字符编码（排查显示问题）
+AG-Cleaner.exe                              正常启动
+AG-Cleaner.exe --shot a.png 1 45000 [light|dark|system] [zh|en]    离屏渲染截图（自检用）
+AG-Cleaner.exe --scan scan.txt              输出分类扫描结果
+AG-Cleaner.exe --orphans orphans.txt        输出残留扫描结果
+AG-Cleaner.exe --selftest s.txt             安全护栏与删除链路自检
+AG-Cleaner.exe --dlgshot d.png              离屏渲染“清理完成”报告框
+AG-Cleaner.exe --guard <path...>            输出路径判定（可删/受保护/白名单/敏感/可信/存在）
+AG-Cleaner.exe --startup s.txt              导出启动项清单与逐字符编码（排查显示问题）
 ```
 
 ---
@@ -142,7 +142,7 @@ AG Cleaner.exe --startup s.txt              导出启动项清单与逐字符编
 powershell -ExecutionPolicy Bypass -File src\build.ps1 -Icon
 ```
 
-产物为 `dist\AG Cleaner.exe`；图标由 `src\makeicon.ps1` 从 `assets\raw.png` 生成 `assets\app.ico`。
+产物为 `dist\AG-Cleaner.exe`；图标由 `src\makeicon.ps1` 从 `assets\raw.png` 生成 `assets\app.ico`。
 
 源码结构：
 

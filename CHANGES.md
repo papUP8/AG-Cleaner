@@ -2,7 +2,7 @@
 
 ## 1.6.0
 
-- 产品名为 AG Cleaner，可执行文件为 `AG Cleaner.exe`
+- 产品名为 AG Cleaner，可执行文件为 `AG-Cleaner.exe`
 - 图标为字母 AG 的多尺寸 ico，窗口、任务栏、alt-tab 与内置文档窗口共用同一来源
 - 标题栏徽标、窗口标题、关于卡片、内置说明与许可窗口均以 AG Cleaner 呈现
 - 配置与日志目录为 `%USERPROFILE%\.config\agcleaner`；首次运行若发现旧目录 `.config\ccdesk` 且新目录不存在，自动迁移设置、白名单、操作日志、崩溃日志与备份

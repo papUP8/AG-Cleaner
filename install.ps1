@@ -1,11 +1,11 @@
 $ErrorActionPreference = "Stop"
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
-$exe = Join-Path $here "AG Cleaner.exe"
-if (-not (Test-Path $exe)) { Write-Output "找不到 AG Cleaner.exe，请把安装脚本放在程序同目录再运行"; exit 1 }
+$exe = Join-Path $here "AG-Cleaner.exe"
+if (-not (Test-Path $exe)) { Write-Output "找不到 AG-Cleaner.exe，请把安装脚本放在程序同目录再运行"; exit 1 }
 
 $targetDir = Join-Path $env:LOCALAPPDATA "AG Cleaner"
 New-Item -ItemType Directory -Force -Path $targetDir | Out-Null
-$targetExe = Join-Path $targetDir "AG Cleaner.exe"
+$targetExe = Join-Path $targetDir "AG-Cleaner.exe"
 Copy-Item -LiteralPath $exe -Destination $targetExe -Force
 Copy-Item -LiteralPath (Join-Path $here "README.md") -Destination $targetDir -Force -ErrorAction SilentlyContinue
 
