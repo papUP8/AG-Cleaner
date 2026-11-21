@@ -12,7 +12,8 @@ $csc = "C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
 if (-not (Test-Path $csc)) { throw "csc.exe not found: $csc" }
 
 $files = @(Get-ChildItem -Path $src -Recurse -Filter *.cs | ForEach-Object { $_.FullName })
-$out = Join-Path $dist "AGCleaner.exe"
+$final = Join-Path $dist "AG Cleaner.exe"
+$out = Join-Path $dist "AGCleaner.exe"  # csc 不认带空格的 /out，先编到这里再改名
 
 $opt = @(
     "/nologo",
@@ -43,5 +44,7 @@ $opt += $files
 Write-Host ("Compiling {0} source files -> {1}" -f $files.Count, $out)
 & $csc $opt
 if ($LASTEXITCODE -ne 0) { throw "build failed with exit code $LASTEXITCODE" }
-$kb = [math]::Round((Get-Item $out).Length / 1KB)
-Write-Host ("Build OK: {0} KB" -f $kb)
+if (Test-Path $final) { Remove-Item -LiteralPath $final -Force }
+Move-Item -LiteralPath $out -Destination $final -Force
+$kb = [math]::Round((Get-Item -LiteralPath $final).Length / 1KB)
+Write-Host ("Build OK: {0} KB -> {1}" -f $kb, $final)
