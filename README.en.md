@@ -6,7 +6,7 @@ Built for people who don't want a bundled suite or a ten-article tutorial to cle
 
 ## Download
 
-Grab `AG Cleaner.exe` (about 780 KB, portable) from [Releases](../../releases/latest).
+Grab `AG-Cleaner.exe` (about 780 KB, portable) from [Releases](../../releases/latest).
 
 - Requires the .NET Framework 4.8 shipped with Windows 10 / 11; no .NET SDK, no Node/Electron
 - No network, nothing uploaded; config and logs stay in `%USERPROFILE%\.config\agcleaner`
@@ -39,7 +39,7 @@ Grab `AG Cleaner.exe` (about 780 KB, portable) from [Releases](../../releases/la
 
 ## 1. Getting started
 
-**Run it**: double-click `AG Cleaner.exe`. System-level cleaning (Windows caches, event logs, update cache, deep clean) needs administrator rights; without them those items are skipped or flagged.
+**Run it**: double-click `AG-Cleaner.exe`. System-level cleaning (Windows caches, event logs, update cache, deep clean) needs administrator rights; without them those items are skipped or flagged.
 
 **Install locally**:
 
@@ -126,14 +126,14 @@ Judgement is heuristic, so everything is unchecked by default and you confirm it
 ## 6. Command line
 
 ```
-AG Cleaner.exe                              normal launch
-AG Cleaner.exe --shot a.png 1 45000 [light|dark|system] [zh|en]    offscreen render for self-checks
-AG Cleaner.exe --scan scan.txt              dump categorized scan results
-AG Cleaner.exe --orphans orphans.txt        dump leftover scan results
-AG Cleaner.exe --selftest s.txt             safety guard and deletion path self-test
-AG Cleaner.exe --dlgshot d.png              offscreen render of the "clean finished" report
-AG Cleaner.exe --guard <path...>            path verdict (cleanable / protected / whitelisted / sensitive / trusted / exists)
-AG Cleaner.exe --startup s.txt              export startup items with per-character codes
+AG-Cleaner.exe                              normal launch
+AG-Cleaner.exe --shot a.png 1 45000 [light|dark|system] [zh|en]    offscreen render for self-checks
+AG-Cleaner.exe --scan scan.txt              dump categorized scan results
+AG-Cleaner.exe --orphans orphans.txt        dump leftover scan results
+AG-Cleaner.exe --selftest s.txt             safety guard and deletion path self-test
+AG-Cleaner.exe --dlgshot d.png              offscreen render of the "clean finished" report
+AG-Cleaner.exe --guard <path...>            path verdict (cleanable / protected / whitelisted / sensitive / trusted / exists)
+AG-Cleaner.exe --startup s.txt              export startup items with per-character codes
 ```
 
 ---
@@ -146,7 +146,7 @@ No .NET SDK needed; the bundled `csc.exe` is enough (the sources avoid C# 6+ syn
 powershell -ExecutionPolicy Bypass -File src\build.ps1 -Icon
 ```
 
-The output is `dist\AG Cleaner.exe`; the icon is generated from `assets\raw.png` into `assets\app.ico` by `src\makeicon.ps1`.
+The output is `dist\AG-Cleaner.exe`; the icon is generated from `assets\raw.png` into `assets\app.ico` by `src\makeicon.ps1`.
 
 Source layout:
 
