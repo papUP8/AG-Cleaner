@@ -7,7 +7,7 @@ namespace AGCleaner
 {
     public static class Program
     {
-        public static string Version = "1.6.0";
+        public static string Version = "1.6.1";
 
         private static Icon _appIcon;
 
@@ -155,6 +155,8 @@ namespace AGCleaner
                     sb.AppendLine("CAN=" + Core.Guard.CanDelete(System.Environment.GetEnvironmentVariable("TEMP"), true));
                 }
                 catch (Exception ex) { sb.AppendLine("EX " + ex.ToString()); }
+                sb.AppendLine("--- 各步耗时 ---");
+                for (int i = 0; i < Core.CleanEngine.Timings.Count; i++) sb.AppendLine(Core.CleanEngine.Timings[i]);
                 System.IO.File.WriteAllText(args.Length >= 2 ? args[1] : "scan.txt", sb.ToString());
                 return;
             }
@@ -215,6 +217,35 @@ namespace AGCleaner
                 return;
             }
 
+            if (args.Length >= 3 && args[0] == "--startup-toggle")
+            {
+                // 诊断用：--startup-toggle <名称片段> off|on
+                bool wantOff = args[2] == "off";
+                System.Text.StringBuilder log = new System.Text.StringBuilder();
+                System.Collections.Generic.List<AGCleaner.Core.StartupItem> list = AGCleaner.Core.Startup.List();
+                for (int i = 0; i < list.Count; i++)
+                {
+                    AGCleaner.Core.StartupItem it = list[i];
+                    if (args.Length < 4)
+                    {
+                        if (!it.Name.Equals(args[1], StringComparison.OrdinalIgnoreCase)) continue;
+                    }
+                    else
+                    {
+                        if (it.Name.IndexOf(args[1], StringComparison.OrdinalIgnoreCase) < 0) continue;
+                    }
+                    if (it.Enabled == wantOff)
+                    {
+                        string msg;
+                        bool ok = wantOff ? AGCleaner.Core.Startup.Disable(it, out msg) : AGCleaner.Core.Startup.Enable(it, out msg);
+                        log.AppendLine((ok ? "OK   " : "FAIL ") + it.GroupText + " | " + it.Name + " | " + msg);
+                        if (!ok) Environment.ExitCode = 1;
+                    }
+                }
+                System.IO.File.WriteAllText("startup-toggle.txt", log.ToString(), System.Text.Encoding.UTF8);
+                return;
+            }
+
             if (args.Length >= 2 && args[0] == "--dlgshot")
             {
                 // 离屏渲染“清理完成”报告框，用于自检排版
@@ -271,6 +302,25 @@ namespace AGCleaner
                 return;
             }
 
+            if (args.Length >= 2 && args[0] == "--langshot")
+            {
+                // 离屏渲染语言选择弹窗，检查关闭按钮与排版
+                LangPicker f = new LangPicker();
+                f.StartPosition = FormStartPosition.Manual;
+                f.Location = new System.Drawing.Point(-4000, 0);
+                f.ShowInTaskbar = false;
+                f.Show();
+                Application.DoEvents();
+                System.Threading.Thread.Sleep(200);
+                Application.DoEvents();
+                System.Drawing.Bitmap bmp = new System.Drawing.Bitmap(f.Width, f.Height);
+                f.DrawToBitmap(bmp, new System.Drawing.Rectangle(0, 0, f.Width, f.Height));
+                bmp.Save(args[1], System.Drawing.Imaging.ImageFormat.Png);
+                bmp.Dispose();
+                f.Close();
+                return;
+            }
+
             if (args.Length >= 2 && args[0] == "--docshot")
             {
                 // 离屏渲染内置文档窗口，用于自检嵌入资源是否读得到
@@ -303,6 +353,10 @@ namespace AGCleaner
                 for (int i = 0; i < args.Length; i++)
                 {
                     if (args[i] == "en" || args[i] == "zh" || args[i] == "de" || args[i] == "fr" || args[i] == "ru" || args[i] == "es") Lang.Set(args[i]);
+                }
+                for (int i = 0; i < args.Length; i++)
+                {
+                    if (args[i].StartsWith("filter:")) StartupPage.PendingFilter = args[i].Substring(7);
                 }
                 MainForm f = new MainForm();
                 if (themeMode.Length > 0) f.SyncThemeVisualMode(themeMode);
