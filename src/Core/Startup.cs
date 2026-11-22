@@ -27,6 +27,10 @@ namespace AGCleaner.Core
         public string ApprovalName = "";       // StartupApproved 值名
         public string TaskPath = "";           // 计划任务路径
         public string Detail = "";             // 额外说明（启动方式等）
+        public string Kind = "";               // plugin（注册表插件）/ svc（服务）/ 空（普通启动项）
+        public string KeyHive = "";            // HKLM / HKCU / HKCR
+        public string SubKey = "";             // 插件：CLSID 子键名
+        public string SvcName = "";            // 服务短名
 
         public string GroupText
         {
@@ -88,6 +92,7 @@ namespace AGCleaner.Core
             ReadTasks(items);
             ReadServices(items);
             ReadPlugins(items);
+            MergeDisabledRecords(items);
             ReadDisabled(items);
 
             items.Sort(delegate (StartupItem a, StartupItem b)
@@ -403,6 +408,8 @@ namespace AGCleaner.Core
                                 }
                                 it.Group = systemOwned ? "syssvc" : "appsvc";
                                 it.IsService = true;
+                                it.Kind = "svc";
+                                it.SvcName = subs[i];
                                 it.Machine = true;
                                 it.Source = systemOwned ? Lang.T("系统关键服务（自动启动）") : Lang.T("应用软件服务（自动启动）");
                                 it.Enabled = true;
@@ -462,7 +469,10 @@ namespace AGCleaner.Core
                         it.Name = label;
                         it.Command = clsid;
                         it.Group = "plugin";
-                        it.IsService = true;            // 复用“只读”标记
+                        it.Kind = "plugin";
+                        it.KeyHive = hive == Registry.CurrentUser ? "HKCU" : (hive == Registry.ClassesRoot ? "HKCR" : "HKLM");
+                        it.KeyPath = path;
+                        it.SubKey = clsid;
                         it.Machine = machine;
                         it.Source = kind;
                         it.Enabled = true;
@@ -472,6 +482,116 @@ namespace AGCleaner.Core
                 }
             }
             catch (Exception) { }
+        }
+
+        private class OffRec
+        {
+            public string Kind = "";   // plugin / svc
+            public string A = "";      // 插件 hive / 服务分组
+            public string B = "";      // 插件父键路径
+            public string C = "";      // 插件 CLSID / 服务名
+            public string Label = "";
+        }
+
+        private static string OffFile { get { return Path.Combine(Store.RootDir, "startup-disabled.tsv"); } }
+
+        private static List<OffRec> ReadOff()
+        {
+            List<OffRec> list = new List<OffRec>();
+            try
+            {
+                if (!File.Exists(OffFile)) return list;
+                string[] lines = File.ReadAllLines(OffFile, Encoding.UTF8);
+                for (int i = 0; i < lines.Length; i++)
+                {
+                    string[] p = lines[i].Split('\t');
+                    if (p.Length < 5) continue;
+                    OffRec r = new OffRec();
+                    r.Kind = p[0]; r.A = p[1]; r.B = p[2]; r.C = p[3]; r.Label = p[4];
+                    list.Add(r);
+                }
+            }
+            catch (Exception) { }
+            return list;
+        }
+
+        private static void AddOff(OffRec r)
+        {
+            try
+            {
+                string line = r.Kind + "\t" + r.A + "\t" + r.B + "\t" + r.C + "\t" + r.Label.Replace('\t', ' ') + "\r\n";
+                File.AppendAllText(OffFile, line, Encoding.UTF8);
+            }
+            catch (Exception) { }
+        }
+
+        private static void RemoveOff(string kind, string a, string b, string c)
+        {
+            try
+            {
+                if (!File.Exists(OffFile)) return;
+                List<string> keep = new List<string>();
+                string[] lines = File.ReadAllLines(OffFile, Encoding.UTF8);
+                for (int i = 0; i < lines.Length; i++)
+                {
+                    string[] p = lines[i].Split('\t');
+                    if (p.Length < 5) continue;
+                    if (p[0] == kind && p[1] == a && p[2] == b && p[3] == c) continue;
+                    keep.Add(lines[i]);
+                }
+                File.WriteAllText(OffFile, string.Join("\r\n", keep.ToArray()) + (keep.Count > 0 ? "\r\n" : ""), Encoding.UTF8);
+            }
+            catch (Exception) { }
+        }
+
+        /// <summary>被本程序禁用过的插件与服务，注册表里已查不到时按记录补回“已禁用”行，才能一键还原。</summary>
+        private static void MergeDisabledRecords(List<StartupItem> items)
+        {
+            List<OffRec> off = ReadOff();
+            for (int i = 0; i < off.Count; i++)
+            {
+                OffRec r = off[i];
+                if (r.Kind != "plugin" && r.Kind != "svc") continue;
+                bool found = false;
+                for (int j = 0; j < items.Count; j++)
+                {
+                    StartupItem it = items[j];
+                    if (it.Kind != r.Kind) continue;
+                    if (r.Kind == "plugin")
+                    {
+                        if (it.KeyHive == r.A && it.KeyPath == r.B && it.SubKey == r.C) { found = true; break; }
+                    }
+                    else
+                    {
+                        if (it.SvcName == r.C) { found = true; break; }
+                    }
+                }
+                if (found) continue;
+                StartupItem ni = new StartupItem();
+                ni.Name = r.Label;
+                ni.Enabled = false;
+                ni.Kind = r.Kind;
+                if (r.Kind == "plugin")
+                {
+                    ni.Group = "plugin";
+                    ni.KeyHive = r.A;
+                    ni.KeyPath = r.B;
+                    ni.SubKey = r.C;
+                    ni.Command = r.C;
+                    ni.Source = Lang.T("已禁用插件");
+                    ni.Detail = Lang.T("由 AG Cleaner 禁用，备份在本地");
+                }
+                else
+                {
+                    ni.Group = r.A == "appsvc" ? "appsvc" : "syssvc";
+                    ni.IsService = true;
+                    ni.SvcName = r.C;
+                    ni.Command = r.C;
+                    ni.Source = Lang.T("已禁用服务");
+                    ni.Detail = Lang.T("服务名 ") + r.C + Lang.T(" · 由 AG Cleaner 禁用");
+                }
+                items.Add(ni);
+            }
         }
 
         private static string ClsidName(string clsid)
@@ -571,6 +691,51 @@ namespace AGCleaner.Core
         public static bool Disable(StartupItem it, out string message)
         {
             message = "";
+            if (it.Kind == "svc" && it.SvcName.Length > 0)
+            {
+                string output;
+                bool ok = RunTool(SysTool("sc.exe"), "config \"" + it.SvcName + "\" start= disabled", out output);
+                if (ok)
+                {
+                    OffRec rec = new OffRec();
+                    rec.Kind = "svc"; rec.A = it.Group; rec.C = it.SvcName; rec.Label = it.Name;
+                    AddOff(rec);
+                    OpLog.Write("startup", Lang.T("禁用服务 ") + it.Name, 0);
+                    message = Lang.T("服务已设为禁用启动，可在本页一键还原");
+                    return true;
+                }
+                message = Lang.T("服务禁用失败：") + (output == null ? Lang.T("需要管理员权限") : output.Trim());
+                return false;
+            }
+            if (it.Kind == "plugin")
+            {
+                string file = PluginBackupFile(it);
+                string output;
+                bool backed = RunTool(SysTool("reg.exe"), "export \"" + PluginRegPath(it) + "\" \"" + file + "\" /y", out output);
+                if (!backed || !File.Exists(file))
+                {
+                    message = Lang.T("插件备份失败：") + (output == null ? Lang.T("需要管理员权限") : output.Trim());
+                    return false;
+                }
+                try
+                {
+                    using (RegistryKey root = HiveOf(it.KeyHive))
+                    {
+                        root.DeleteSubKeyTree(it.KeyPath + "\\" + it.SubKey, false);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    message = Lang.T("操作失败：") + ex.Message;
+                    return false;
+                }
+                OffRec rec = new OffRec();
+                rec.Kind = "plugin"; rec.A = it.KeyHive; rec.B = it.KeyPath; rec.C = it.SubKey; rec.Label = it.Name;
+                AddOff(rec);
+                OpLog.Write("startup", Lang.T("禁用 ") + it.Name, 0);
+                message = Lang.T("插件已停用（已备份注册表，可随时还原）");
+                return true;
+            }
             if (it.IsService)
             {
                 message = Lang.T("系统服务不在此处停用，请在“服务”管理器或系统配置中操作");
@@ -628,6 +793,36 @@ namespace AGCleaner.Core
         public static bool Enable(StartupItem it, out string message)
         {
             message = "";
+            if (it.Kind == "svc" && it.SvcName.Length > 0)
+            {
+                string output;
+                bool ok = RunTool(SysTool("sc.exe"), "config \"" + it.SvcName + "\" start= auto", out output);
+                if (ok)
+                {
+                    RemoveOff("svc", it.Group, "", it.SvcName);
+                    OpLog.Write("startup", Lang.T("启用服务 ") + it.Name, 0);
+                    message = Lang.T("服务已恢复自动启动");
+                    return true;
+                }
+                message = Lang.T("服务启用失败：") + (output == null ? Lang.T("需要管理员权限") : output.Trim());
+                return false;
+            }
+            if (it.Kind == "plugin")
+            {
+                string file = PluginBackupFile(it);
+                if (!File.Exists(file)) { message = Lang.T("找不到插件备份"); return false; }
+                string output;
+                bool ok = RunTool(SysTool("reg.exe"), "import \"" + file + "\"", out output);
+                if (ok)
+                {
+                    RemoveOff("plugin", it.KeyHive, it.KeyPath, it.SubKey);
+                    OpLog.Write("startup", Lang.T("启用 ") + it.Name, 0);
+                    message = Lang.T("插件已恢复");
+                    return true;
+                }
+                message = Lang.T("插件恢复失败：") + (output == null ? Lang.T("需要管理员权限") : output.Trim());
+                return false;
+            }
             if (it.IsService)
             {
                 message = Lang.T("系统服务不在此处启用，请在“服务”管理器操作");
@@ -728,6 +923,41 @@ namespace AGCleaner.Core
                 return raw;
             }
             catch (Exception) { return raw; }
+        }
+
+        /// <summary>系统目录下的 exe 全路径（本机 PATH 有时缺 System32）。</summary>
+        private static string SysTool(string name)
+        {
+            return Path.Combine(Environment.SystemDirectory, name);
+        }
+
+        private static RegistryKey HiveOf(string hive)
+        {
+            if (hive == "HKCU") return Registry.CurrentUser;
+            if (hive == "HKCR") return Registry.ClassesRoot;
+            return Registry.LocalMachine;
+        }
+
+        private static string PluginRegPath(StartupItem it)
+        {
+            return it.KeyHive + "\\" + it.KeyPath + "\\" + it.SubKey;
+        }
+
+        private static string PluginBackupFile(StartupItem it)
+        {
+            return Path.Combine(BackupDir, "plugin_" + SafeName(it.KeyHive + "_" + it.KeyPath + "_" + it.SubKey) + ".reg");
+        }
+
+        private static string SafeName(string s)
+        {
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < s.Length && sb.Length < 110; i++)
+            {
+                char c = s[i];
+                if (char.IsLetterOrDigit(c) || c == '-' || c == '_' || c == '.') sb.Append(c);
+                else sb.Append('_');
+            }
+            return sb.ToString();
         }
 
         /// <summary>调用系统工具并取输出（schtasks）。</summary>
