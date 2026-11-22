@@ -270,6 +270,17 @@ namespace AGCleaner.Core
         public static string Temp { get { return Environment.GetEnvironmentVariable("TEMP"); } }
         public static string Downloads { get { return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads"); } }
 
+        /// <summary>各类扫描耗时（诊断用，--scan 时一并写出）。</summary>
+        public static List<string> Timings = new List<string>();
+
+        private static CleanCategory Timed(string name, Func<CleanCategory> f)
+        {
+            DateTime t0 = DateTime.Now;
+            CleanCategory c = f();
+            Timings.Add(name + "\t" + ((int)(DateTime.Now - t0).TotalMilliseconds) + " ms\t" + c.Items.Count);
+            return c;
+        }
+
         public static List<CleanCategory> Scan(Settings s, Action<string> report)
         {
             return Scan(s, delegate (int pc, string msg) { if (report != null) report(msg); });
@@ -278,23 +289,24 @@ namespace AGCleaner.Core
         public static List<CleanCategory> Scan(Settings s, StepProgress prog)
         {
             List<CleanCategory> cats = new List<CleanCategory>();
+            Timings.Clear();
             ScanCtx c = new ScanCtx();
             c.P = prog;
             Report(prog, 3, Lang.T("正在列举可清理目录..."));
 
-            cats.Add(ScanUserTemp(s, c.Msg(Lang.T("扫描临时文件与临时目录...")))); c.Next();
-            cats.Add(ScanBrowser(s, c.Msg(Lang.T("扫描浏览器缓存...")))); c.Next();
-            cats.Add(ScanApps(s, c.Msg(Lang.T("扫描应用缓存与 UWP 缓存...")))); c.Next();
-            cats.Add(ScanTraces(s, c.Msg(Lang.T("扫描缩略图与图标数据库...")))); c.Next();
-            cats.Add(ScanSystem(s, c.Msg(Lang.T("扫描系统缓存与日志...")))); c.Next();
-            cats.Add(ScanDeep(s, c.Msg(Lang.T("扫描旧系统备份与组件缓存...")))); c.Next();
-            if (s.CleanGpuShaders) cats.Add(ScanGpu(c.Msg(Lang.T("扫描显卡着色器缓存..."))));
-            cats.Add(ScanLogsReports(c.Msg(Lang.T("扫描崩溃转储与错误报告...")))); c.Next();
-            cats.Add(ScanUsage(s, c.Msg(Lang.T("扫描使用痕迹...")))); c.Next();
-            if (s.DeleteOldInstallers) cats.Add(ScanInstallers(c.Msg(Lang.T("扫描下载目录的旧安装包..."))));
-            if (s.CleanProjectArtifacts) cats.Add(ScanProjects(s, c.Msg(Lang.T("扫描项目构建产物..."))));
-            cats.Add(ScanBigLogs(c.Msg(Lang.T("扫描大体积日志与转储文件...")))); c.Next();
-            cats.Add(ScanRecycleBin(c.Msg(Lang.T("检查回收站...")))); c.Next();
+            cats.Add(Timed("临时文件", delegate { return ScanUserTemp(s, c.Msg(Lang.T("扫描临时文件与临时目录..."))); })); c.Next();
+            cats.Add(Timed("浏览器缓存", delegate { return ScanBrowser(s, c.Msg(Lang.T("扫描浏览器缓存..."))); })); c.Next();
+            cats.Add(Timed("应用缓存", delegate { return ScanApps(s, c.Msg(Lang.T("扫描应用缓存与 UWP 缓存..."))); })); c.Next();
+            cats.Add(Timed("系统痕迹", delegate { return ScanTraces(s, c.Msg(Lang.T("扫描缩略图与图标数据库..."))); })); c.Next();
+            cats.Add(Timed("系统缓存与日志", delegate { return ScanSystem(s, c.Msg(Lang.T("扫描系统缓存与日志..."))); })); c.Next();
+            cats.Add(Timed("深度清理", delegate { return ScanDeep(s, c.Msg(Lang.T("扫描旧系统备份与组件缓存..."))); })); c.Next();
+            if (s.CleanGpuShaders) cats.Add(Timed("着色器", delegate { return ScanGpu(c.Msg(Lang.T("扫描显卡着色器缓存..."))); }));
+            cats.Add(Timed("日志与错误报告", delegate { return ScanLogsReports(c.Msg(Lang.T("扫描崩溃转储与错误报告..."))); })); c.Next();
+            cats.Add(Timed("使用痕迹", delegate { return ScanUsage(s, c.Msg(Lang.T("扫描使用痕迹..."))); })); c.Next();
+            if (s.DeleteOldInstallers) cats.Add(Timed("旧安装包", delegate { return ScanInstallers(c.Msg(Lang.T("扫描下载目录的旧安装包..."))); }));
+            if (s.CleanProjectArtifacts) cats.Add(Timed("项目产物", delegate { return ScanProjects(s, c.Msg(Lang.T("扫描项目构建产物..."))); }));
+            cats.Add(Timed("大体积日志", delegate { return ScanBigLogs(c.Msg(Lang.T("扫描大体积日志与转储文件..."))); })); c.Next();
+            cats.Add(Timed("回收站", delegate { return ScanRecycleBin(c.Msg(Lang.T("检查回收站..."))); })); c.Next();
 
             List<CleanItem> all = new List<CleanItem>();
             for (int i = 0; i < cats.Count; i++)

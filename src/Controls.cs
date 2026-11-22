@@ -427,6 +427,7 @@ namespace AGCleaner
         private int _scroll;
         private int _hover = -1;
         private int _selected = -1;
+        private bool _anyAction = false;
 
         public event EventHandler CheckChanged;
         public event EventHandler RowActivated;
@@ -466,9 +467,14 @@ namespace AGCleaner
         public void Rebuild()
         {
             _view.Clear();
+            _anyAction = false;
             for (int i = 0; i < _rows.Count; i++)
             {
-                if (_rows[i].Visible) _view.Add(_rows[i]);
+                if (_rows[i].Visible)
+                {
+                    _view.Add(_rows[i]);
+                    if (_rows[i].Action.Length > 0) _anyAction = true;
+                }
             }
             _scroll = 0;
             _selected = -1;
@@ -604,7 +610,8 @@ namespace AGCleaner
                 using (StringFormat sf = Theme.SF(StringAlignment.Far, StringAlignment.Near))
                 {
                     int hw = RightW;
-                    Theme.Txt(g, RightHeader, Theme.F(8.5f), Theme.Muted, new Rectangle(Width - hw - 6, 6, hw - 6, 20), sf);
+                    int ax = _anyAction ? 90 : 0;
+                    Theme.Txt(g, RightHeader, Theme.F(8.5f), Theme.Muted, new Rectangle(Width - hw - ax - 6, 6, hw - 6, 20), sf);
                 }
                 using (Pen p = new Pen(Theme.BorderSoft))
                 {
@@ -736,9 +743,9 @@ namespace AGCleaner
                 }
             }
 
-            using (StringFormat sf = Theme.SF(StringAlignment.Far, StringAlignment.Near))
+            using (StringFormat sf = Theme.SF(StringAlignment.Far, StringAlignment.Center))
             {
-                Theme.Txt(g, row.Right, Theme.F(9f), row.Alarm ? Theme.Warn : Theme.TextDim, new Rectangle(rightX, top + 10, rightW - 6, 20), sf);
+                Theme.Txt(g, row.Right, Theme.F(9f), row.Alarm ? Theme.Warn : Theme.TextDim, new Rectangle(rightX, top, rightW - 6, RowHeight), sf);
             }
         }
     }

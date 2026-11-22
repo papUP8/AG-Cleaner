@@ -10,6 +10,13 @@ $have = @{}
 foreach ($m in [regex]::Matches($tablesText, 'Add\(d, "((?:[^"\\]|\\.)*)"')) {
   $have[$m.Groups[1].Value] = 1
 }
+# AddStartup 里的键数组不算 Add(d, ...) 字面量，单独收进来
+$sm = [regex]::Match($tablesText, 'string\[\] k = new string\[\]\s*\{(?<body>[\s\S]*?)\};')
+if ($sm.Success) {
+  foreach ($m in [regex]::Matches($sm.Groups['body'].Value, '"((?:[^"\\]|\\.)*)"')) {
+    $have[$m.Groups[1].Value] = 1
+  }
+}
 "En keys = " + $en.Count
 "translated keys = " + $have.Count
 $missing = @()

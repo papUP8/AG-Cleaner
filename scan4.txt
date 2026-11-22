@@ -1,0 +1,57 @@
+TEMP=C:\Users\ADMINI~1\AppData\Local\Temp
+LAD=C:\Users\Administrator\AppData\Local
+WL count=8
+CAN(deletable)=True
+SIZEOLD=0 bytes / 0 files
+临时文件 -> 1 items, 17.1 MB
+    用户临时目录 | 17.1 MB | C:\Users\ADMINI~1\AppData\Local\Temp
+浏览器缓存 -> 8 items, 90.4 MB
+    Doubao · Default\Cache | 83.7 MB | C:\Users\Administrator\AppData\Local\Doubao\User Data\Default\Cache
+    Doubao · Default\Code Cache | 39.1 KB | C:\Users\Administrator\AppData\Local\Doubao\User Data\Default\Code Cache
+    Doubao · Default\GPUCache | 544 KB | C:\Users\Administrator\AppData\Local\Doubao\User Data\Default\GPUCache
+    Doubao · Default\DawnGraphiteCache | 544 KB | C:\Users\Administrator\AppData\Local\Doubao\User Data\Default\DawnGraphiteCache
+    Doubao · Default\DawnWebGPUCache | 544 KB | C:\Users\Administrator\AppData\Local\Doubao\User Data\Default\DawnWebGPUCache
+    Doubao · ShaderCache | 544 KB | C:\Users\Administrator\AppData\Local\Doubao\User Data\ShaderCache
+    Doubao · GrShaderCache | 544 KB | C:\Users\Administrator\AppData\Local\Doubao\User Data\GrShaderCache
+    Doubao · BrowserMetrics | 4.00 MB | C:\Users\Administrator\AppData\Local\Doubao\User Data\BrowserMetrics
+应用缓存 -> 2 items, 1.43 MB
+    OC Ferry · ShaderCache | 544 KB | C:\Users\Administrator\AppData\Roaming\OC Ferry\ShaderCache
+    UWP · Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy\TempState | 922 KB | C:\Users\Administrator\AppData\Local\Packages\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy\TempState
+系统痕迹缓存 -> 2 items, 2.51 MB
+    缩略图与图标缓存 | 2.04 MB | C:\Users\Administrator\AppData\Local\Microsoft\Windows\Explorer
+    资源管理器图标缓存 | 488 KB | C:\Users\Administrator\AppData\Local\Microsoft\Windows\Caches
+系统缓存与日志 -> 4 items, 48.9 MB
+    Windows 系统日志 | 2.62 MB | C:\Windows\Logs
+    组件服务日志 CBS | 187 KB | C:\Windows\Logs\CBS
+    Windows 事件日志 | 21.6 MB | C:\Windows\System32\winevt\Logs
+    字体缓存（系统） | 24.5 MB | C:\Windows\ServiceProfiles\LocalService\AppData\Local\FontCache
+系统深度清理 -> 3 items, 1.12 GB
+    系统组件缓存 WinSxS | 19.4 MB | C:\Windows\WinSxS\Temp
+    搜索索引数据库 | 631 MB | C:\ProgramData\Microsoft\Search\Data
+    安装包缓存 Package Cache | 493 MB | C:\ProgramData\Package Cache
+日志与错误报告 -> 1 items, 22.8 KB
+    IE / INetCache 临时文件 | 22.8 KB | C:\Users\Administrator\AppData\Local\Microsoft\Windows\INetCache
+使用痕迹（可选） -> 2 items, 1.62 MB
+    最近使用的文档 | 176 KB | C:\Users\Administrator\AppData\Roaming\Microsoft\Windows\Recent
+    通知中心历史 | 1.45 MB | C:\Users\Administrator\AppData\Local\Microsoft\Windows\Notifications
+旧安装包 -> 0 items, 0 B
+大体积日志与转储 -> 3 items, 221 MB
+    20261117\sandbox_center_8460_000.log | 66.3 MB | C:\Users\Administrator\.workbuddy\logs\sandbox\20261117\sandbox_center_8460_000.log
+    20261118\sandbox_center_8460_000.log | 100 MB | C:\Users\Administrator\.workbuddy\logs\sandbox\20261118\sandbox_center_8460_000.log
+    20261118\sandbox_center_8460_001.log | 54.4 MB | C:\Users\Administrator\.workbuddy\logs\sandbox\20261118\sandbox_center_8460_001.log
+回收站 -> 1 items, 2.69 MB
+    回收站 | 2.69 MB | recycle:
+TEMP=C:\Users\ADMINI~1\AppData\Local\Temp
+CAN=True
+--- 各步耗时 ---
+临时文件	132 ms	1
+浏览器缓存	4398 ms	31
+应用缓存	65806 ms	181
+系统痕迹	330 ms	4
+系统缓存与日志	2142 ms	25
+深度清理	190 ms	4
+日志与错误报告	644 ms	8
+使用痕迹	160 ms	2
+旧安装包	3 ms	0
+大体积日志	13368 ms	3
+回收站	7987 ms	1
