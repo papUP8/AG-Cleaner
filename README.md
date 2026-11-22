@@ -6,7 +6,7 @@
 
 ## 下载
 
-最新版在 [Releases](../../releases/latest)，资产只有一个 `AG-Cleaner.exe`（约 800 KB，免安装）。
+最新版在 [Releases](../../releases/latest)，资产只有一个 `AG-Cleaner.exe`（约 820 KB，免安装）。
 
 - 运行依赖：Windows 10 / 11 自带的 .NET Framework 4.8，不装 .NET SDK、不用 Node/Electron
 - 不联网、不上传任何清单；配置与日志只写本地 `%USERPROFILE%\.config\agcleaner`
