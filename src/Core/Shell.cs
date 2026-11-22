@@ -69,12 +69,126 @@ namespace AGCleaner.Core
 
         public static bool EmptyRecycleBin()
         {
+            // 第一级：直接清 $Recycle.Bin 里的 $R/$I 数据（可绕过 shell 卡死，也能逐项汇报失败）
+            bool fsOk = false;
             try
             {
-                // NOCONFIRMATION | NOPROGRESSUI | NOSOUND
-                return SHEmptyRecycleBin(IntPtr.Zero, null, 0x1 | 0x2 | 0x4) == 0;
+                Thread t1 = new Thread(delegate () { fsOk = EmptyRecycleByFs(); });
+                t1.IsBackground = true;
+                t1.Start();
+                t1.Join(6000);
+            }
+            catch (Exception) { }
+
+            if (RecycleEmpty()) return true;
+            if (fsOk) return false; // 自己删完了但复核仍非空，说明有被占用的项
+
+            // 第二级：交给 shell（部分机器上只有它能清掉受保护项），5 秒没回来就当失败，不再等
+            Thread t2 = new Thread(delegate ()
+            {
+                try { SHEmptyRecycleBin(IntPtr.Zero, null, 0x1 | 0x2 | 0x4); } catch (Exception) { }
+            });
+            t2.IsBackground = true;
+            try { t2.SetApartmentState(ApartmentState.STA); } catch (Exception) { }
+            t2.Start();
+            try { t2.Join(5000); } catch (Exception) { }
+
+            return RecycleEmpty();
+        }
+
+        private static bool EmptyRecycleByFs()
+        {
+            bool ok = true;
+            try
+            {
+                DriveInfo[] drives = DriveInfo.GetDrives();
+                for (int i = 0; i < drives.Length; i++)
+                {
+                    DriveInfo d = drives[i];
+                    try
+                    {
+                        if (d.DriveType != DriveType.Fixed || !d.IsReady) continue;
+                        string rb = Path.Combine(d.RootDirectory.FullName, "$Recycle.Bin");
+                        if (!Directory.Exists(rb)) continue;
+                        string[] sids;
+                        try { sids = Directory.GetDirectories(rb); }
+                        catch (Exception) { continue; }
+                        for (int s = 0; s < sids.Length; s++)
+                        {
+                            string sid = sids[s];
+                            string[] entries;
+                            try { entries = Directory.GetFileSystemEntries(sid); }
+                            catch (Exception) { ok = false; continue; }
+                            for (int e = 0; e < entries.Length; e++)
+                            {
+                                string ent = entries[e];
+                                string name = Path.GetFileName(ent);
+                                if (name.Equals("desktop.ini", StringComparison.OrdinalIgnoreCase)) continue;
+                                if (!name.StartsWith("$R", StringComparison.OrdinalIgnoreCase) &&
+                                    !name.StartsWith("$I", StringComparison.OrdinalIgnoreCase)) continue;
+                                try
+                                {
+                                    if (Directory.Exists(ent)) Directory.Delete(ent, true);
+                                    else File.Delete(ent);
+                                }
+                                catch (Exception)
+                                {
+                                    try
+                                    {
+                                        FileAttributes attr = File.GetAttributes(ent);
+                                        File.SetAttributes(ent, attr & ~(FileAttributes.ReadOnly | FileAttributes.Hidden | FileAttributes.System));
+                                        if (Directory.Exists(ent)) Directory.Delete(ent, true);
+                                        else File.Delete(ent);
+                                    }
+                                    catch (Exception) { ok = false; }
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception) { ok = false; }
+                }
             }
             catch (Exception) { return false; }
+            return ok;
+        }
+
+        /// <summary>复核回收站是否真的空了（逐固定盘查询，3 秒超时）。</summary>
+        private static bool RecycleEmpty()
+        {
+            bool empty = true;
+            long[] size = new long[] { 0 };
+            bool[] done = new bool[] { false };
+            Thread worker = new Thread(delegate ()
+            {
+                try
+                {
+                    DriveInfo[] drives = DriveInfo.GetDrives();
+                    for (int i = 0; i < drives.Length; i++)
+                    {
+                        try
+                        {
+                            if (drives[i].DriveType != DriveType.Fixed || !drives[i].IsReady) continue;
+                            string root = drives[i].RootDirectory.FullName;
+                            if (!Directory.Exists(Path.Combine(root, "$Recycle.Bin"))) continue;
+                            SHQUERYRBINFO info = new SHQUERYRBINFO();
+                            info.cbSize = Marshal.SizeOf(typeof(SHQUERYRBINFO));
+                            if (SHQueryRecycleBin(root, ref info) != 0) continue;
+                            lock (size) { size[0] += info.i64Size; }
+                        }
+                        catch (Exception) { }
+                    }
+                }
+                catch (Exception) { }
+                done[0] = true;
+            });
+            worker.IsBackground = true;
+            try { worker.SetApartmentState(ApartmentState.STA); }
+            catch (Exception) { }
+            worker.Start();
+            try { worker.Join(3000); } catch (Exception) { }
+            if (!done[0]) return false; // 查询卡住时不能当成已清空
+            lock (size) { if (size[0] > 0) empty = false; }
+            return empty;
         }
     }
 
@@ -146,3 +260,4 @@ namespace AGCleaner.Core
         }
     }
 }
+
