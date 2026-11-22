@@ -8,6 +8,7 @@ namespace AGCleaner
     public class LangPicker : Form
     {
         public string Chosen = null;
+        private Timer _outside;
 
         public LangPicker()
         {
@@ -18,6 +19,7 @@ namespace AGCleaner
             ShowInTaskbar = false;
             Font = Theme.F(9f);
             DoubleBuffered = true;
+            KeyPreview = true;
             ClientSize = new Size(260, 60 + Lang.Codes.Length * 42);
 
             for (int i = 0; i < Lang.Codes.Length; i++)
@@ -31,6 +33,39 @@ namespace AGCleaner
                 b.Click += delegate { Chosen = code; Close(); };
                 Controls.Add(b);
             }
+
+            // 右上角关闭：不想换语言时可以随时退出，不必被迫选一个
+            Btn close = new Btn();
+            close.Kind = ButtonKind.Ghost;
+            close.Text = "✕";
+            close.Size = new Size(30, 28);
+            close.Location = new Point(ClientSize.Width - 42, 12);
+            close.Click += delegate { Close(); };
+            Controls.Add(close);
+
+            // 点弹窗以外的任何位置也自动关闭
+            _outside = new Timer();
+            _outside.Interval = 120;
+            _outside.Tick += delegate
+            {
+                if (!Visible) return;
+                if (Control.MouseButtons == MouseButtons.None) return;
+                Rectangle me = RectangleToScreen(ClientRectangle);
+                if (!me.Contains(Cursor.Position)) Close();
+            };
+            _outside.Start();
+        }
+
+        protected override void OnKeyDown(KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Escape) { Close(); return; }
+            base.OnKeyDown(e);
+        }
+
+        protected override void OnFormClosed(FormClosedEventArgs e)
+        {
+            if (_outside != null) { _outside.Stop(); _outside.Dispose(); _outside = null; }
+            base.OnFormClosed(e);
         }
 
         protected override CreateParams CreateParams
