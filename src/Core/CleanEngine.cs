@@ -464,6 +464,102 @@ namespace AGCleaner.Core
             return false;
         }
 
+        /// <summary>
+        /// 自动发现嵌套的 Web 缓存：&lt;app&gt;\User Data\&lt;profile&gt;\Cache、
+        /// &lt;app&gt;\Partitions\&lt;part&gt;\Cache、&lt;app&gt;\browser-data\Default\Cache、
+        /// &lt;app&gt;\cache.x64.*\... 这类目录（Electron / CEF / 微信开发者工具等常见布局）。
+        /// </summary>
+        private static void ScanNestedWebCaches(CleanCategory cat, Settings s)
+        {
+            string[] roots = new string[] { LocalAppData, RoamingAppData, Path.Combine(LocalAppData, "Programs") };
+            string[] leaves = new string[] { "Cache", "Code Cache", "GPUCache" };
+            for (int r = 0; r < roots.Length; r++)
+            {
+                string[] apps;
+                try { apps = Directory.GetDirectories(roots[r]); }
+                catch (Exception) { continue; }
+                for (int i = 0; i < apps.Length && cat.Items.Count < 1200; i++)
+                {
+                    string app = apps[i];
+                    string appName = Path.GetFileName(app);
+                    string low = appName.ToLowerInvariant();
+                    if (low == "microsoft" || low == "windows" || low == "packages" || low == "temp" || low == "programs") continue;
+                    if (DupLabel(cat, appName)) continue;
+                    ScanNestedApp(cat, s, appName, app, leaves);
+                    string[] subs;
+                    try { subs = Directory.GetDirectories(app); }
+                    catch (Exception) { continue; }
+                    for (int j = 0; j < subs.Length && cat.Items.Count < 1200; j++)
+                    {
+                        string subName = Path.GetFileName(subs[j]);
+                        string subLow = subName.ToLowerInvariant();
+                        if (subLow == "user data" || subLow == "partitions" || subLow == "browser-data") continue;
+                        ScanNestedApp(cat, s, appName + " · " + subName, subs[j], leaves);
+                    }
+                    // User Data / browser-data 下的 profile 与 Partitions 单独展开
+                    ScanNestedProfileRoot(cat, s, appName, Path.Combine(app, "User Data"), leaves);
+                    ScanNestedProfileRoot(cat, s, appName, Path.Combine(app, "browser-data"), leaves);
+                    ScanPartitions(cat, s, appName, Path.Combine(app, "Partitions"));
+                }
+            }
+        }
+
+        /// <summary>app 目录本身或子目录如果是 profile 容器，就把里面的 profile 摊开。</summary>
+        private static void ScanNestedApp(CleanCategory cat, Settings s, string label, string dir, string[] leaves)
+        {
+            bool isProfile = Directory.Exists(Path.Combine(dir, "Default")) || Directory.Exists(Path.Combine(dir, "Profile 1"));
+            if (isProfile)
+            {
+                ScanProfiles(cat, s, label, dir, leaves);
+                return;
+            }
+            for (int i = 0; i < leaves.Length; i++)
+            {
+                AddDirItem(cat, label + " · " + leaves[i], Path.Combine(dir, leaves[i]), CleanKind.DirContents, 0, s.UseRecycleBin);
+            }
+        }
+
+        private static void ScanNestedProfileRoot(CleanCategory cat, Settings s, string label, string root, string[] leaves)
+        {
+            if (!Directory.Exists(root)) return;
+            ScanProfiles(cat, s, label, root, leaves);
+        }
+
+        private static void ScanProfiles(CleanCategory cat, Settings s, string label, string root, string[] leaves)
+        {
+            string[] profiles;
+            try { profiles = Directory.GetDirectories(root); }
+            catch (Exception) { return; }
+            for (int i = 0; i < profiles.Length && cat.Items.Count < 1200; i++)
+            {
+                string prof = profiles[i];
+                string profName = Path.GetFileName(prof);
+                string pl = profName.ToLowerInvariant();
+                if (pl != "default" && !pl.StartsWith("profile") && !pl.StartsWith("guest")) continue;
+                for (int j = 0; j < leaves.Length; j++)
+                {
+                    AddDirItem(cat, label + " · " + profName + "\\" + leaves[j], Path.Combine(prof, leaves[j]), CleanKind.DirContents, 0, s.UseRecycleBin);
+                }
+            }
+        }
+
+        private static void ScanPartitions(CleanCategory cat, Settings s, string label, string root)
+        {
+            if (!Directory.Exists(root)) return;
+            string[] parts;
+            try { parts = Directory.GetDirectories(root); }
+            catch (Exception) { return; }
+            string[] leaves = new string[] { "Cache", "Code Cache", "GPUCache" };
+            for (int i = 0; i < parts.Length && cat.Items.Count < 1200; i++)
+            {
+                string pname = Path.GetFileName(parts[i]);
+                for (int j = 0; j < leaves.Length; j++)
+                {
+                    AddDirItem(cat, label + " · Partitions\\" + pname + "\\" + leaves[j], Path.Combine(parts[i], leaves[j]), CleanKind.DirContents, 0, s.UseRecycleBin);
+                }
+            }
+        }
+
         /// <summary>自动发现 Electron 类应用的标准缓存目录（Cache / Code Cache / GPUCache 等）。</summary>
         private static void ScanElectronGeneric(CleanCategory cat, Settings s)
         {
@@ -556,7 +652,15 @@ namespace AGCleaner.Core
             ScanChromium(cat, s, "Vivaldi", Path.Combine(la, @"Vivaldi\User Data"), null);
             ScanChromium(cat, s, Lang.T("360 极速浏览器"), Path.Combine(la, @"360Chrome\Chrome\User Data"), rootLeaves);
             ScanChromium(cat, s, Lang.T("夸克浏览器"), Path.Combine(la, @"Quark\User Data"), rootLeaves);
+            ScanChromium(cat, s, "Opera", Path.Combine(la, @"Opera Software\Opera Stable"), null);
+            ScanChromium(cat, s, "Opera GX", Path.Combine(la, @"Opera Software\Opera GX Stable"), null);
+            ScanChromium(cat, s, "Yandex", Path.Combine(la, @"Yandex\YandexBrowser\User Data"), rootLeaves);
+            ScanChromium(cat, s, Lang.T("搜狗浏览器"), Path.Combine(la, @"SogouExplorer\User Data"), rootLeaves);
+            ScanChromium(cat, s, Lang.T("QQ 浏览器"), Path.Combine(la, @"Tencent\QQBrowser\User Data"), rootLeaves);
+            ScanChromium(cat, s, Lang.T("2345 浏览器"), Path.Combine(la, @"2345Soft\2345Explorer\User Data"), rootLeaves);
+            ScanChromium(cat, s, Lang.T("猎豹浏览器"), Path.Combine(la, @"Kingsoft\LieBao\User Data"), rootLeaves);
             ScanChromiumGeneric(cat, s);
+            ScanNestedWebCaches(cat, s);
 
             // WebView2（Edge 内核嵌入控件）缓存
             string[] wvRoots = new string[]
@@ -884,6 +988,7 @@ namespace AGCleaner.Core
         {
             CleanCategory cat = NewCat("sys", Lang.T("系统缓存与日志"), Lang.T("Windows 临时文件、更新下载缓存、事件日志、字体缓存、内存转储与旧系统备份"), "", true);
             cat.AdminOnly = true;
+            if (!Native.IsAdmin()) cat.Desc = Lang.T("当前未以管理员身份运行，系统级缓存无法扫描；右键“以管理员身份运行”后可见");
             R(report, Lang.T("扫描系统级缓存..."));
             bool admin = Native.IsAdmin();
 
@@ -908,6 +1013,10 @@ namespace AGCleaner.Core
                 AddDirItem(cat, Lang.T("系统服务日志 LogFiles"), @"C:\Windows\System32\LogFiles", CleanKind.DirContents, 0, false);
                 AddDirItem(cat, Lang.T("网络服务临时目录"), @"C:\Windows\ServiceProfiles\NetworkService\AppData\Local\Temp", CleanKind.DirContents, 0, false);
                 AddDirItem(cat, Lang.T("NVIDIA 驱动安装包缓存"), @"C:\ProgramData\NVIDIA Corporation\Downloader", CleanKind.DirContents, 0, false);
+                AddDirItem(cat, Lang.T("NVIDIA 安装器残留"), @"C:\ProgramData\NVIDIA Corporation\Installer2", CleanKind.DirContents, 0, false);
+                AddDirItem(cat, Lang.T("驱动解压临时目录 C:\\Drivers"), @"C:\Drivers", CleanKind.DirContents, 0, false);
+                AddDirItem(cat, Lang.T("AMD 驱动安装包"), @"C:\AMD", CleanKind.DirContents, 0, false);
+                AddDirItem(cat, Lang.T("Intel 驱动安装包"), @"C:\Intel", CleanKind.DirContents, 0, false);
                 AddDirItem(cat, Lang.T("LocalService 临时目录"), @"C:\Windows\ServiceProfiles\LocalService\AppData\Local\Temp", CleanKind.DirContents, 0, false);
                 AddDirItem(cat, Lang.T("内核报告 LiveKernelReports"), @"C:\Windows\LiveKernelReports", CleanKind.DirContents, 0, false);
                 AddDirItem(cat, Lang.T("交付优化缓存"), @"C:\ProgramData\Microsoft\Network\Downloader", CleanKind.DirContents, 0, false);
@@ -1044,7 +1153,7 @@ namespace AGCleaner.Core
 
         private static CleanCategory ScanRecycleBin(Action<string> report)
         {
-            CleanCategory cat = NewCat("recycle", Lang.T("回收站"), Lang.T("回收站中已删除的文件（确认后彻底清空）"), "🗑", false);
+            CleanCategory cat = NewCat("recycle", Lang.T("回收站"), Lang.T("回收站中已删除的文件（勾选后彻底清空，清空不可撤销）"), "🗑", true);
             R(report, Lang.T("检查回收站..."));
             long size = 0;
             int count = 0;
