@@ -31,7 +31,7 @@ foreach ($a in $rel.assets) {
 $bodyText = @"
 AG Cleaner $($rel.tag_name.TrimStart('v')) — 单文件 Windows 清理工具。
 
-- 下载 `AG-Cleaner.exe`（约 800 KB）双击即可，免安装，依赖 Windows 自带的 .NET Framework 4.8
+- 下载 `AG-Cleaner.exe`（约 820 KB）双击即可，免安装，依赖 Windows 自带的 .NET Framework 4.8
 - 先出清单、勾选后才删除；删除默认进回收站，注册表项删除前导出备份
 - 不联网、不上传任何清单；配置与日志只写 `%USERPROFILE%\.config\agcleaner`
 - 六种界面语言：中文 / English / Deutsch / Français / Русский / Español
