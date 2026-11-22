@@ -19,6 +19,97 @@ namespace AGCleaner
             if (!d.ContainsKey(k)) d.Add(k, v);
         }
 
+        /// <summary>启动项页服务/插件停用相关的 19 条词条（0=德 1=法 2=俄 3=西）。</summary>
+        private static void AddStartup(Dictionary<string, string> d, int lang)
+        {
+            string[] k = new string[]
+            {
+                "已禁用插件",
+                "由 AG Cleaner 禁用，备份在本地",
+                "已禁用服务",
+                " · 由 AG Cleaner 禁用",
+                "禁用服务 ",
+                "服务已设为禁用启动，可在本页一键还原",
+                "服务禁用失败：",
+                "插件备份失败：",
+                "插件已停用（已备份注册表，可随时还原）",
+                "启用服务 ",
+                "服务已恢复自动启动",
+                "服务启用失败：",
+                "找不到插件备份",
+                "插件已恢复",
+                "插件恢复失败：",
+                " 项；停用服务与插件需管理员权限",
+                "停用后对应的浏览器插件、图标叠加或右键菜单项会消失，不影响程序主体。\n注册表项会先导出备份，可在此页随时还原。",
+                "停用后该服务不再随系统自动启动，依赖它的功能可能失效。\n原始启动方式已记录，可在此页随时还原。",
+                "程序遇到一个内部错误，已记录到日志："
+            };
+            string[][] v = new string[][]
+            {
+                new string[]
+                {
+                    "Deaktiviertes Plugin","Von AG Cleaner deaktiviert, Sicherung lokal","Deaktivierter Dienst",
+                    " · von AG Cleaner deaktiviert","Dienst deaktivieren ",
+                    "Dienst auf deaktivierten Start gesetzt, hier jederzeit rückgängig",
+                    "Dienst konnte nicht deaktiviert werden: ","Plugin-Sicherung fehlgeschlagen: ",
+                    "Plugin deaktiviert (Registry gesichert, jederzeit wiederherstellbar)","Dienst aktivieren ",
+                    "Dienst startet wieder automatisch","Dienst konnte nicht aktiviert werden: ",
+                    "Plugin-Sicherung nicht gefunden","Plugin wiederhergestellt",
+                    "Plugin konnte nicht wiederhergestellt werden: ",
+                    " Einträge; Dienste und Plugins ändern erfordert Administratorrechte",
+                    "Nach dem Deaktivieren verschwindet das Browser-Add-on, Overlay-Symbol oder Kontextmenü; das Programm selbst bleibt nutzbar.\nDer Registry-Schlüssel wird vorher exportiert, hier jederzeit wiederherstellbar.",
+                    "Der Dienst startet nicht mehr automatisch, abhängige Funktionen können ausfallen.\nDer ursprüngliche Starttyp ist gespeichert, hier jederzeit wiederherstellbar.",
+                    "Das Programm ist auf einen internen Fehler gestoßen; protokolliert in: "
+                },
+                new string[]
+                {
+                    "Extension désactivée","Désactivé par AG Cleaner, sauvegarde locale","Service désactivé",
+                    " · désactivé par AG Cleaner","Désactiver le service ",
+                    "Service réglé sur démarrage désactivé, réversible ici",
+                    "Échec de désactivation du service : ","Échec de sauvegarde de l'extension : ",
+                    "Extension désactivée (registre exporté, réversible à tout moment)","Activer le service ",
+                    "Service de nouveau en démarrage automatique","Échec d'activation du service : ",
+                    "Sauvegarde de l'extension introuvable","Extension restaurée",
+                    "Échec de restauration de l'extension : ",
+                    " éléments ; modifier services et extensions exige les droits administrateur",
+                    "Une fois désactivée, l'extension de navigateur, l'icône de superposition ou l'entrée de menu contextuel disparaît ; le programme lui-même reste utilisable.\nLa clé de registre est exportée au préalable, restauration possible ici.",
+                    "Le service ne démarrera plus automatiquement et les fonctions qui en dépendent peuvent cesser de marcher.\nSon type de démarrage d'origine est enregistré, restauration possible ici.",
+                    "Le programme a rencontré une erreur interne, consignée dans : "
+                },
+                new string[]
+                {
+                    "Отключённый плагин","Отключено AG Cleaner, резервная копия локально","Отключённая служба",
+                    " · отключено AG Cleaner","Отключить службу ",
+                    "Служба переведена в отключённый запуск, можно вернуть здесь",
+                    "Не удалось отключить службу: ","Не удалось сохранить копию плагина: ",
+                    "Плагин отключён (реестр сохранён, можно вернуть в любой момент)","Включить службу ",
+                    "Служба снова запускается автоматически","Не удалось включить службу: ",
+                    "Резервная копия плагина не найдена","Плагин восстановлен",
+                    "Не удалось восстановить плагин: ",
+                    " элементов; изменение служб и плагинов требует прав администратора",
+                    "После отключения исчезнут надстройка браузера, значок наложения или пункт контекстного меню; сама программа работает.\nКлюч реестра предварительно экспортируется, вернуть можно здесь.",
+                    "Служба больше не будет запускаться автоматически, зависящие от неё функции могут перестать работать.\nИсходный тип запуска сохранён, вернуть можно здесь.",
+                    "Программа столкнулась с внутренней ошибкой, записано в: "
+                },
+                new string[]
+                {
+                    "Complemento desactivado","Desactivado por AG Cleaner, copia local","Servicio desactivado",
+                    " · desactivado por AG Cleaner","Desactivar servicio ",
+                    "Servicio puesto en inicio desactivado, reversible aquí",
+                    "No se pudo desactivar el servicio: ","No se pudo guardar la copia del complemento: ",
+                    "Complemento desactivado (registro exportado, reversible cuando quieras)","Activar servicio ",
+                    "El servicio vuelve a iniciarse automáticamente","No se pudo activar el servicio: ",
+                    "No se encontró la copia del complemento","Complemento restaurado",
+                    "No se pudo restaurar el complemento: ",
+                    " elementos; cambiar servicios y complementos requiere permisos de administrador",
+                    "Al desactivarlo desaparecen el complemento del navegador, el icono superpuesto o la entrada del menú contextual; el programa sigue funcionando.\nLa clave de registro se exporta antes, reversible aquí.",
+                    "El servicio ya no se iniciará automáticamente y lo que dependa de él puede dejar de funcionar.\nSu tipo de inicio original queda registrado, reversible aquí.",
+                    "El programa encontró un error interno, registrado en: "
+                }
+            };
+            for (int i = 0; i < k.Length; i++) Add(d, k[i], v[lang][i]);
+        }
+
         public static Dictionary<string, string> De()
         {
             Dictionary<string, string> d = Make();
@@ -698,6 +789,7 @@ namespace AGCleaner
             Add(d, "许可证：GPL-3.0 · 社区版，代码开源可审计 · 所有配置与日志只保存在本机", "Lizenz: GPL-3.0 · Community-Edition, quelloffen und prüfbar · alle Daten bleiben lokal");
             Add(d, "每行一个路径，支持 %LOCALAPPDATA% 等环境变量，命中即跳过", "Ein Pfad pro Zeile · %VAR% möglich");
             Add(d, "配置目录：", "Konfigurationsordner: ");
+            AddStartup(d, 0);
             return d;
         }
 
@@ -1366,6 +1458,7 @@ namespace AGCleaner
             Add(d, "许可证：GPL-3.0 · 社区版，代码开源可审计 · 所有配置与日志只保存在本机", "Licence: GPL-3.0 · édition communautaire, open source et auditable · tout reste local");
             Add(d, "每行一个路径，支持 %LOCALAPPDATA% 等环境变量，命中即跳过", "Un chemin par ligne · %VAR% accepté");
             Add(d, "配置目录：", "Dossier de configuration : ");
+            AddStartup(d, 1);
             return d;
         }
 
@@ -2034,6 +2127,7 @@ namespace AGCleaner
             Add(d, "许可证：GPL-3.0 · 社区版，代码开源可审计 · 所有配置与日志只保存在本机", "Лицензия: GPL-3.0 · сообщество, открытый код · все данные хранятся локально");
             Add(d, "每行一个路径，支持 %LOCALAPPDATA% 等环境变量，命中即跳过", "Путь на строку · %VAR% допустим");
             Add(d, "配置目录：", "Папка настроек: ");
+            AddStartup(d, 2);
             return d;
         }
 
@@ -2702,6 +2796,7 @@ namespace AGCleaner
             Add(d, "许可证：GPL-3.0 · 社区版，代码开源可审计 · 所有配置与日志只保存在本机", "Licencia: GPL-3.0 · edición comunitaria, código abierto y auditable · todo local");
             Add(d, "每行一个路径，支持 %LOCALAPPDATA% 等环境变量，命中即跳过", "Una ruta por línea · %VAR% admitido");
             Add(d, "配置目录：", "Carpeta de configuración: ");
+            AddStartup(d, 3);
             return d;
         }
     }
