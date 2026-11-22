@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace AGCleaner
@@ -332,7 +332,7 @@ namespace AGCleaner
             Add(d, "受保护目录与白名单自动跳过", "Geschützte Ordner und Whitelist werden übersprungen");
             Add(d, "输入法预加载：禁用后仍可正常打字，只是首次切换输入法会稍慢", "IME-Vorladen: Tippen geht weiter, nur der erste Wechsel ist langsamer");
             Add(d, "刷新 DNS 解析缓存", "DNS-Auflösungscache erneuern");
-            Add(d, "双击文件夹下钻 · “定位”在资源管理器中打开所在位置，是否删除由你自行决定", "Doppelklick zum Tiefergehen · „Öffnen“ zeigt den Ordner im Explorer; Löschen entscheiden Sie");
+            Add(d, "双击展开子文件夹 · “定位”在资源管理器中打开所在位置；本页只读，不删除任何文件", "Doppelklick zum Aufklappen · „Öffnen“ zeigt den Ordner im Explorer; diese Seite ist schreibgeschützt");
             Add(d, "搜狗", "Sogou");
             Add(d, "搜索...", "Suchen...");
             Add(d, "搜索索引数据库", "Suchindex-Datenbank");
@@ -1014,7 +1014,7 @@ namespace AGCleaner
             Add(d, "受保护目录与白名单自动跳过", "Dossiers protégés et liste blanche ignorés");
             Add(d, "输入法预加载：禁用后仍可正常打字，只是首次切换输入法会稍慢", "Préchargement IME : la saisie fonctionne, seul le premier basculement ralentit");
             Add(d, "刷新 DNS 解析缓存", "Rafraîchir le cache DNS");
-            Add(d, "双击文件夹下钻 · “定位”在资源管理器中打开所在位置，是否删除由你自行决定", "Double-clic pour descendre · « Ouvrir » montre le dossier dans l'Explorateur ; à vous de décider");
+            Add(d, "双击展开子文件夹 · “定位”在资源管理器中打开所在位置；本页只读，不删除任何文件", "Double-clic pour développer · « Ouvrir » montre le dossier ; cette page est en lecture seule");
             Add(d, "搜狗", "Sogou");
             Add(d, "搜索...", "Rechercher...");
             Add(d, "搜索索引数据库", "Base d'index de recherche");
@@ -1683,7 +1683,7 @@ namespace AGCleaner
             Add(d, "受保护目录与白名单自动跳过", "Защищённые папки и белый список пропускаются");
             Add(d, "输入法预加载：禁用后仍可正常打字，只是首次切换输入法会稍慢", "Предзагрузка IME: печатать можно, первый переключатель чуть медленнее");
             Add(d, "刷新 DNS 解析缓存", "Обновить кэш DNS");
-            Add(d, "双击文件夹下钻 · “定位”在资源管理器中打开所在位置，是否删除由你自行决定", "Двойной щелчок — внутрь · «Открыть» показывает папку в проводнике; удаление решаете вы");
+            Add(d, "双击展开子文件夹 · “定位”在资源管理器中打开所在位置；本页只读，不删除任何文件", "Двойной щелчок — раскрыть · «Открыть» показывает папку; страница только для просмотра");
             Add(d, "搜狗", "Sogou");
             Add(d, "搜索...", "Поиск...");
             Add(d, "搜索索引数据库", "База поискового индекса");
@@ -2352,7 +2352,7 @@ namespace AGCleaner
             Add(d, "受保护目录与白名单自动跳过", "Se omiten carpetas protegidas y lista blanca");
             Add(d, "输入法预加载：禁用后仍可正常打字，只是首次切换输入法会稍慢", "Precarga del IME: se puede escribir; solo el primer cambio tarda algo más");
             Add(d, "刷新 DNS 解析缓存", "Renovar caché DNS");
-            Add(d, "双击文件夹下钻 · “定位”在资源管理器中打开所在位置，是否删除由你自行决定", "Doble clic para entrar · «Abrir» muestra la carpeta en el Explorador; usted decide");
+            Add(d, "双击展开子文件夹 · “定位”在资源管理器中打开所在位置；本页只读，不删除任何文件", "Doble clic para expandir · «Abrir» muestra la carpeta; esta pagina es solo lectura");
             Add(d, "搜狗", "Sogou");
             Add(d, "搜索...", "Buscar...");
             Add(d, "搜索索引数据库", "Base del índice de búsqueda");

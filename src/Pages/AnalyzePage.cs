@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
@@ -277,7 +277,7 @@ namespace AGCleaner
             Theme.Txt(g, _status, Theme.F(8f), Theme.Muted, 4, 33);
             using (StringFormat sf = Theme.SF(StringAlignment.Far, StringAlignment.Near))
             {
-                Theme.Txt(g, Lang.T("双击文件夹下钻 · “定位”在资源管理器中打开所在位置，是否删除由你自行决定"), Theme.F(8f), Theme.Hint, new Rectangle(0, 32, _bar.Width - 8, 20), sf);
+                Theme.Txt(g, Lang.T("双击展开子文件夹 · “定位”在资源管理器中打开所在位置；本页只读，不删除任何文件"), Theme.F(8f), Theme.Hint, new Rectangle(0, 32, _bar.Width - 8, 20), sf);
             }
         }
 

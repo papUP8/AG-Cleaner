@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace AGCleaner
@@ -395,7 +395,7 @@ namespace AGCleaner
             { "文件", "File" },
             { "大文件", "Large file" },
             { "没有发现 20 MB 以上的大文件", "No files over 20 MB found" },
-            { "双击文件夹下钻 · “定位”在资源管理器中打开所在位置，是否删除由你自行决定", "Double-click to drill in · Reveal opens the folder in Explorer; deletion is up to you" },
+            { "双击展开子文件夹 · “定位”在资源管理器中打开所在位置；本页只读，不删除任何文件", "Double-click to expand · Reveal opens the folder in Explorer; this page is read-only" },
             { "已在资源管理器中定位：", "Opened in Explorer: " },
 
             // ---------- 系统优化 ----------

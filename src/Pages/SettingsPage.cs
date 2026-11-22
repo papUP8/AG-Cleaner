@@ -240,7 +240,7 @@ namespace AGCleaner
             _langBtn.SetBounds(w - 138, 6, 128, 30);
             _langLabel.SetBounds(w - 138 - 156, 9, 150, 24);
             _langLabel.BringToFront();
-            _docBtn.SetBounds(_about.Width - 130, 40, 118, 28);
+            _docBtn.SetBounds(_about.Width - 152, 40, 118, 28);
         }
 
         private Label _langLabel;
@@ -334,7 +334,7 @@ namespace AGCleaner
                 Theme.F(8.2f), Theme.TextDim, 20, 40);
             Theme.Txt(g, Lang.T("许可证：GPL-3.0 · 社区版，代码开源可审计 · 所有配置与日志只保存在本机"),
                 Theme.F(7.9f), Theme.Muted, 20, 62);
-            Theme.Txt(g, Lang.T("配置目录：") + Store.RootDir, Theme.F(7.6f), Theme.Hint, 20, 84);
+            
             // 语言标签跟着按钮走，卡片里不再重复
         }
 

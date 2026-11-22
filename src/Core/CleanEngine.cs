@@ -1084,7 +1084,7 @@ namespace AGCleaner.Core
         /// <summary>使用痕迹：会清掉“最近用过什么”，默认不勾选。</summary>
         private static CleanCategory ScanUsage(Settings s, Action<string> report)
         {
-            CleanCategory cat = NewCat("usage", Lang.T("使用痕迹（可选）"), Lang.T("最近文档、通知历史、浏览器历史与常用站点；清掉后这些列表为空，默认不勾选"), "", false);
+            CleanCategory cat = NewCat("usage", Lang.T("使用痕迹（可选）"), Lang.T("最近文档、通知历史、浏览器历史与常用站点；清掉后这些列表清空"), "", true);
             R(report, Lang.T("扫描使用痕迹..."));
             string la = LocalAppData;
             string ra = RoamingAppData;
