@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Threading;
@@ -65,7 +65,7 @@ namespace AGCleaner
         private List<Chip> _chips = new List<Chip>();
         private List<CleanCategory> _cats = new List<CleanCategory>();
         private string _filter = "all";
-        private string _status = Lang.T("正在统计可清理项目，稍候即出清单");
+        private string _status = Lang.T("已就绪，点「开始扫描」检查可清理项");
         private bool _busy;
         private Spinner _spinner;
         private ProgressBar2 _prog;
@@ -79,7 +79,7 @@ namespace AGCleaner
             _list.ShowCheck = true;
             _list.RightHeader = Lang.T("体积");
             _list.EmptyText = Lang.T("还没有扫描结果");
-            _list.EmptyHint = Lang.T("扫描会自动开始，看到清单后再逐项决定删除");
+            _list.EmptyHint = Lang.T("点上方「开始扫描」，检查完再逐项决定删除");
             _list.CheckChanged += delegate { UpdateSummary(); };
             Controls.Add(_list);
 
@@ -89,7 +89,7 @@ namespace AGCleaner
 
             _scanBtn = new Btn();
             _scanBtn.Kind = ButtonKind.Subtle;
-            _scanBtn.Text = Lang.T("重新扫描");
+            _scanBtn.Text = Lang.T("开始扫描");
             _scanBtn.Size = new Size(96, 32);
             _scanBtn.Click += delegate { StartScan(); };
             Controls.Add(_scanBtn);
@@ -111,6 +111,7 @@ namespace AGCleaner
             _cleanBtn = new Btn();
             _cleanBtn.Kind = ButtonKind.Accent;
             _cleanBtn.Text = Lang.T("清理所选");
+            _cleanBtn.Enabled = false;
             _cleanBtn.Size = new Size(128, 38);
             _cleanBtn.Click += delegate { ExecuteClean(); };
             _bar.Controls.Add(_cleanBtn);
@@ -192,7 +193,7 @@ namespace AGCleaner
 
         public override void OnEnter()
         {
-            if (_cats.Count == 0 && !_doneClean) StartScan();
+            // 不自动扫描：必须由用户点「开始扫描」，避免用户还没看到界面就开始跑磁盘
         }
 
         public void StartScan()
@@ -239,6 +240,7 @@ namespace AGCleaner
                         _spinner.Spin(false);
                         HideProgress();
                         _scanBtn.Enabled = true;
+                        _scanBtn.Text = Lang.T("重新扫描");
                         _cleanBtn.Enabled = true;
                         if (result != null)
                         {
@@ -271,7 +273,7 @@ namespace AGCleaner
         private void _modeReset()
         {
             _list.EmptyText = Lang.T("还没有扫描结果");
-            _list.EmptyHint = Lang.T("扫描会自动开始，看到清单后再逐项决定删除");
+            _list.EmptyHint = Lang.T("点上方「开始扫描」，检查完再逐项决定删除");
         }
 
         private void BuildChips()

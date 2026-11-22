@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -256,11 +256,13 @@ namespace AGCleaner.Core
         }
 
         /// <summary>设置里限定扫描磁盘时，只扫勾选的盘；为空表示全部固定盘。</summary>
+        public static string DriveOverride = "C"; // 默认只扫 C 盘，用户要清别的盘再改
+
         private static bool DriveAllowed(string root)
         {
             try
             {
-                string sel = Settings.Load().ScanDrives;
+                string sel = Settings.Load().ScanDrives; if (sel == null || sel.Trim().Length == 0) sel = DriveOverride;
                 if (sel == null || sel.Trim().Length == 0) return true;
                 string letter = Path.GetPathRoot(root).TrimEnd('\\').ToUpperInvariant();
                 string[] parts = sel.Split(',');
@@ -624,7 +626,7 @@ namespace AGCleaner.Core
             OrphanGroup g = new OrphanGroup();
             g.Id = "regres";
             g.Name = Lang.T("残留注册表键");
-            g.Desc = Lang.T("注册表值里还写着已删软件目录的键（删除前自动导出 .reg 备份）");
+            g.Desc = Lang.T("注册表值里还写着已删软件目录的键（直接删除，不留备份）");
             R(report, Lang.T("扫描残留注册表键..."));
 
             List<string> targets = new List<string>();
@@ -740,7 +742,7 @@ namespace AGCleaner.Core
             OrphanGroup g = new OrphanGroup();
             g.Id = "reg";
             g.Name = Lang.T("无效卸载项");
-            g.Desc = Lang.T("注册表里还在、但程序早已不存在的卸载记录（删除前自动导出 .reg 备份）");
+            g.Desc = Lang.T("注册表里还在、但程序早已不存在的卸载记录（直接删除，不留备份）");
             R(report, Lang.T("扫描无效卸载注册表项..."));
 
             ReadReg(Registry.LocalMachine, "HKLM", UninstallRoots[0], g);
@@ -1300,18 +1302,12 @@ namespace AGCleaner.Core
         {
             try
             {
-                string dir = Path.Combine(Store.RootDir, "backup");
-                if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
-                string safe = RegexSafe(it.Name);
-                string file = Path.Combine(dir, DateTime.Now.ToString("yyyyMMdd-HHmmss") + "-" + safe + ".reg");
-                string full = it.Hive + "\\" + it.KeyPath;
-                RunReg("export \"" + full + "\" \"" + file + "\" /y");
-                if (!File.Exists(file)) { log.Add(Lang.T("备份失败，已跳过：") + it.Target); return false; }
+                // 残留项直接删除，不做备份——备份本身就是新的垃圾
 
                 RegistryKey hive = it.Hive == "HKCU" ? Registry.CurrentUser : Registry.LocalMachine;
                 hive.DeleteSubKeyTree(it.KeyPath, false);
                 if (hive.OpenSubKey(it.KeyPath) != null) { log.Add(Lang.T("注册表项仍在，可能权限不足：") + it.Target); return false; }
-                log.Add(Lang.T("备份：") + Path.GetFileName(file));
+                log.Add(Lang.T("已删除注册表项：") + it.Target);
                 return true;
             }
             catch (Exception ex)

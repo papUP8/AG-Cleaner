@@ -64,8 +64,8 @@ namespace AGCleaner
                 "Carpetas sin ningún archivo en Escritorio, Documentos, Descargas, Imágenes, Música y Vídeos (no se pierde nada)" },
             new string[] { "AMD 驱动安装包", "AMD driver packages", "AMD-Treiberpakete", "Paquets de pilotes AMD", "Пакеты драйверов AMD", "Paquetes de controladores AMD" },
             new string[] {
-                @"HKCU\Software 下既没有值也没有子键的空壳键（删除前自动导出备份，软件会按需重建）",
-                @"Shell keys under HKCU\Software with no values and no subkeys (exported as a backup first; apps recreate them when needed)",
+                @"HKCU\Software 下既没有值也没有子键的空壳键（直接删除，软件会按需重建）",
+                @"Shell keys under HKCU\Software with no values and no subkeys (deleted directly; apps recreate them when needed)",
                 @"Leere Schlüssel unter HKCU\Software ohne Werte und Unterschlüssel (vor dem Löschen gesichert)",
                 @"Clés vides sous HKCU\Software sans valeur ni sous-clé (sauvegardées avant suppression)",
                 @"Пустые разделы в HKCU\Software без значений и подразделов (перед удалением делается резервная копия)",
@@ -126,6 +126,15 @@ namespace AGCleaner
                 "installateurs msi/exe dans Téléchargements de plus de 3 jours",
                 "установщики msi/exe в «Загрузках» старше 3 дней",
                 "instaladores msi/exe en Descargas con más de 3 días" },
+            new string[] { "已就绪，点「开始扫描」检查可清理项", "Ready. Click Start scan to check cleanable items.", "Bereit. Auf Scan starten klicken.", "Pret. Cliquez sur Lancer analyse.", "Готово. Нажмите Начать проверку.", "Listo. Pulsa Iniciar analisis." },
+            new string[] { "开始扫描", "Start scan", "Scan starten", "Lancer analyse", "Начать проверку", "Iniciar analisis" },
+            new string[] {
+                "点上方「开始扫描」，检查完再逐项决定删除",
+                "Click Start scan above; when the list appears, decide item by item.",
+                "Oben auf Scan starten klicken; danach Eintrag fuer Eintrag entscheiden.",
+                "Cliquez sur Lancer analyse ci-dessus, puis decidez element par element.",
+                "Нажмите кнопку проверки выше, затем решайте по пунктам.",
+                "Pulsa Iniciar analisis arriba y luego decide elemento por elemento." },
             new string[] {
                 "卸载残留",
                 "Leftover residue",
