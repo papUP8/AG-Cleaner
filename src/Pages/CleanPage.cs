@@ -71,6 +71,9 @@ namespace AGCleaner
         private ProgressBar2 _prog;
         private long _lastCleanEnd;
         private long _lastFreed = 0;
+        private Panel _cta;
+        private Btn _ctaBtn;
+        private Label _ctaHint;
         private bool _doneClean;
 
         public CleanPage()
@@ -81,6 +84,7 @@ namespace AGCleaner
             _list.EmptyText = Lang.T("还没有扫描结果");
             _list.EmptyHint = Lang.T("点上方「开始扫描」，检查完再逐项决定删除");
             _list.CheckChanged += delegate { UpdateSummary(); };
+            _list.RowActivated += delegate { OpenDetail(); };
             Controls.Add(_list);
 
             _bar = new ActionBar();
@@ -127,6 +131,27 @@ namespace AGCleaner
             _prog.Visible = false;
             Controls.Add(_prog);
             _prog.BringToFront();
+
+            _cta = new Panel();
+            _cta.BackColor = Theme.Bg;
+            Controls.Add(_cta);
+
+            _ctaBtn = new Btn();
+            _ctaBtn.Kind = ButtonKind.Accent;
+            _ctaBtn.Text = Lang.T("开始扫描");
+            _ctaBtn.Font = Theme.F(13f, FontStyle.Bold);
+            _ctaBtn.Size = new Size(240, 56);
+            _ctaBtn.Click += delegate { StartScan(); };
+            _cta.Controls.Add(_ctaBtn);
+
+            _ctaHint = new Label();
+            _ctaHint.BackColor = Theme.Bg;
+            _ctaHint.ForeColor = Theme.Muted;
+            _ctaHint.Font = Theme.F(9.5f);
+            _ctaHint.TextAlign = ContentAlignment.MiddleCenter;
+            _ctaHint.Text = Lang.T("扫描不会自动开始，点按钮后再检查磁盘，两分钟左右");
+            _cta.Controls.Add(_ctaHint);
+            UpdateIdleState();
 
             LayoutChildren();
         }
@@ -183,6 +208,14 @@ namespace AGCleaner
             }
             _list.SetBounds(0, listTop, w, Height - listTop - 72);
             _spinner.SetBounds(w - 56, y, 44, 44);
+            if (_cta != null)
+            {
+                int freeH = Height - listTop - 72;
+                if (freeH < 120) freeH = 120;
+                _cta.SetBounds(0, listTop, w, freeH);
+                _ctaBtn.SetBounds((w - 240) / 2, (freeH - 56) / 2 - 16, 240, 56);
+                _ctaHint.SetBounds(0, (freeH - 56) / 2 + 50, w, 22);
+            }
         }
 
         protected override void OnResize(EventArgs e)
@@ -202,6 +235,7 @@ namespace AGCleaner
             _doneClean = false;
             _modeReset();
             _busy = true;
+            UpdateIdleState();
             _status = Lang.T("正在扫描...");
             _list.Clear();
             _spinner.Spin(true);
@@ -242,6 +276,7 @@ namespace AGCleaner
                         _scanBtn.Enabled = true;
                         _scanBtn.Text = Lang.T("重新扫描");
                         _cleanBtn.Enabled = true;
+                        UpdateIdleState();
                         if (result != null)
                         {
                             _cats = result;
@@ -373,6 +408,34 @@ namespace AGCleaner
             return Theme.Muted;
         }
 
+        private void UpdateIdleState()
+        {
+            bool idle = !_doneClean && _cats.Count == 0 && !_busy;
+            if (_cta != null)
+            {
+                _cta.Visible = idle;
+                if (idle) _cta.BringToFront();
+            }
+            if (_list != null) _list.Visible = !idle;
+            if (_scanBtn != null) _scanBtn.Visible = !idle;
+            if (_allBtn != null) _allBtn.Visible = !idle;
+            if (_invBtn != null) _invBtn.Visible = !idle;
+            if (_bar != null) _bar.Visible = !idle;
+        }
+
+        private void OpenDetail()
+        {
+            VRow r = _list.SelectedRow;
+            if (r == null) return;
+            CleanItem it = r.Data as CleanItem;
+            if (it == null) return;
+            using (DetailForm f = new DetailForm(it))
+            {
+                Form host = FindForm();
+                if (host != null) f.ShowDialog(host); else f.Show();
+            }
+        }
+
         private void UpdateSummary()
         {
             long bytes = 0;
@@ -463,6 +526,7 @@ namespace AGCleaner
             if (!ok) return;
 
             _busy = true;
+            UpdateIdleState();
             _spinner.Spin(true);
             _scanBtn.Enabled = false;
             _cleanBtn.Enabled = false;
@@ -507,6 +571,7 @@ namespace AGCleaner
                         _spinner.Spin(false);
                         HideProgress();
                         _cleanBtn.Enabled = true;
+                        UpdateIdleState();
                         _status = Lang.T("已释放 ") + Byt.Format(f) + (err > 0 ? "，" + err + Lang.T(" 项被占用或跳过") : "") + Lang.T("；点“重新扫描”查看最新清单");
                         _bar.Invalidate();
 

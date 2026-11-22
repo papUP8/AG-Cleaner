@@ -1081,12 +1081,37 @@ namespace AGCleaner.Core
         /// <summary>使用痕迹：会清掉“最近用过什么”，默认不勾选。</summary>
         private static CleanCategory ScanUsage(Settings s, Action<string> report)
         {
-            CleanCategory cat = NewCat("usage", Lang.T("使用痕迹（可选）"), Lang.T("最近使用的文档、通知历史；清掉后相关列表为空，默认不勾选"), "", false);
+            CleanCategory cat = NewCat("usage", Lang.T("使用痕迹（可选）"), Lang.T("最近文档、通知历史、浏览器历史与常用站点；清掉后这些列表为空，默认不勾选"), "", false);
             R(report, Lang.T("扫描使用痕迹..."));
             string la = LocalAppData;
             string ra = RoamingAppData;
             AddDirItem(cat, Lang.T("最近使用的文档"), Path.Combine(ra, @"Microsoft\Windows\Recent"), CleanKind.DirContents, 0, true);
             AddDirItem(cat, Lang.T("通知中心历史"), Path.Combine(la, @"Microsoft\Windows\Notifications"), CleanKind.DirContents, 0, true);
+            R(report, Lang.T("扫描浏览痕迹..."));
+            string[] ubs = new string[] { @"Google\Chrome\User Data", @"Microsoft\Edge\User Data", @"BraveSoftware\Brave-Browser\User Data" };
+            for (int b = 0; b < ubs.Length; b++)
+            {
+                string ud = Path.Combine(la, ubs[b]);
+                string[] profs = new string[] { "Default", "Profile 1", "Profile 2", "Profile 3" };
+                for (int k = 0; k < profs.Length; k++)
+                {
+                    string pd = Path.Combine(ud, profs[k]);
+                    AddFileItem(cat, Lang.T("浏览历史") + " · " + profs[k], Path.Combine(pd, "History"), true);
+                    AddFileItem(cat, Lang.T("常用站点") + " · " + profs[k], Path.Combine(pd, "Top Sites"), true);
+                    AddFileItem(cat, Lang.T("访问记录") + " · " + profs[k], Path.Combine(pd, "Visited Links"), true);
+                }
+            }
+            string ff = Path.Combine(ra, @"Mozilla\Firefox\Profiles");
+            try
+            {
+                if (Directory.Exists(ff))
+                {
+                    string[] prof2 = Directory.GetDirectories(ff);
+                    for (int i2 = 0; i2 < prof2.Length; i2++)
+                        AddFileItem(cat, Lang.T("浏览历史") + " · Firefox", Path.Combine(prof2[i2], "places.sqlite"), true);
+                }
+            }
+            catch (Exception) { }
             return cat;
         }
 

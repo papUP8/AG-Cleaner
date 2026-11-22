@@ -7,7 +7,7 @@ namespace AGCleaner
 {
     public static class Program
     {
-        public static string Version = "1.7.3";
+        public static string Version = "1.7.4";
 
         private static Icon _appIcon;
 
@@ -317,6 +317,41 @@ namespace AGCleaner
                 f.Close();
                 return;
             }
+            if (args.Length >= 2 && args[0] == "--detshot")
+            {
+                // 离屏渲染“详情”对话框，确认残留分组清单排版
+                AGCleaner.Core.CleanItem item = new AGCleaner.Core.CleanItem();
+                item.Name = Lang.T("孤儿安装目录") + "（3" + Lang.T(" 项）");
+                item.Path = Lang.T("已卸载软件留下、且没有被任何已安装程序引用的目录（默认不勾选，逐个确认）");
+                item.Bytes = 1436549120;
+                item.Kind = AGCleaner.Core.CleanKind.OrphanGroup;
+                AGCleaner.Core.OrphanGroup g = new AGCleaner.Core.OrphanGroup();
+                g.Name = Lang.T("孤儿安装目录");
+                for (int gi = 0; gi < 3; gi++)
+                {
+                    AGCleaner.Core.OrphanItem oi = new AGCleaner.Core.OrphanItem();
+                    oi.Name = "CNIPAClient-" + gi;
+                    oi.Target = @"C:\Program Files (x86)\CNIPAClient" + gi;
+                    oi.Detail = Lang.T("应用列表中查不到任何安装记录");
+                    oi.Bytes = 400000000;
+                    g.Items.Add(oi);
+                }
+                item.Data = g;
+                AGCleaner.DetailForm dlf = new AGCleaner.DetailForm(item);
+                dlf.StartPosition = FormStartPosition.Manual;
+                dlf.Location = new System.Drawing.Point(-4000, 0);
+                dlf.ShowInTaskbar = false;
+                dlf.Show();
+                dlf.PerformLayout();
+                System.Threading.Thread.Sleep(300);
+                System.Drawing.Bitmap bmp2 = new System.Drawing.Bitmap(dlf.Width, dlf.Height);
+                dlf.DrawToBitmap(bmp2, new System.Drawing.Rectangle(0, 0, dlf.Width, dlf.Height));
+                bmp2.Save(args[1], System.Drawing.Imaging.ImageFormat.Png);
+                bmp2.Dispose();
+                dlf.Close();
+                return;
+            }
+
 
             if (args.Length >= 2 && args[0] == "--langshot")
             {

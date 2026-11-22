@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
@@ -260,7 +260,7 @@ namespace AGCleaner
                      ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
             BackColor = Theme.SidebarBg;
             Cursor = Cursors.Hand;
-            Height = 44;
+            Height = 52;
         }
 
         protected override void OnMouseEnter(EventArgs e) { _hover = true; Invalidate(); base.OnMouseEnter(e); }
@@ -284,8 +284,8 @@ namespace AGCleaner
                 Theme.FillRound(g, new Rectangle(8, 2, Width - 16, Height - 4), 9, Theme.CardSoft);
             }
             Color fg = Active ? Theme.Text : (_hover ? Theme.TextDim : Theme.Muted);
-            if (Glyph.Length > 0) Theme.Txt(g, Glyph, Theme.F(11f), Active ? Theme.Accent : fg, 22, (Height - 18) / 2);
-            Theme.Txt(g, Text, Font, fg, 52, (Height - Font.Height) / 2 - 1);
+            if (Glyph.Length > 0) Theme.Txt(g, Glyph, Theme.F(13f), Active ? Theme.Accent : fg, 20, (Height - 20) / 2);
+            Theme.Txt(g, Text, Font, fg, 54, (Height - Font.Height) / 2 - 1);
         }
     }
 
@@ -1142,7 +1142,7 @@ namespace AGCleaner
             SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint |
                      ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
             BackColor = Theme.Card;
-            Height = 44;
+            Height = 52;
         }
 
         public void SetProgress(int percent, string caption)
