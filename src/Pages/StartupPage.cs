@@ -24,6 +24,8 @@ namespace AGCleaner
         private ProgressBar2 _prog;
         private CheckBox2 _hide;
         private bool _hideOff = true;
+        /// <summary>截图自检用：指定初始筛选分类（all/user/task/plugin/appsvc/syssvc/disabled）。</summary>
+        public static string PendingFilter = "";
 
         public StartupPage()
         {
@@ -151,7 +153,8 @@ namespace AGCleaner
         {
             for (int i = 0; i < _chips.Count; i++) Controls.Remove(_chips[i]);
             _chips.Clear();
-            _filter = "all";
+            _filter = PendingFilter.Length > 0 ? PendingFilter : "all";
+            PendingFilter = "";
 
             int user = 0, sys = 0, task = 0, plugin = 0, appsvc = 0, syssvc = 0, off = 0;
             for (int i = 0; i < _items.Count; i++)
@@ -166,13 +169,13 @@ namespace AGCleaner
                 else if (it.Group == "syssvc") syssvc++;
             }
 
-            Chip all = MakeChip(Lang.T("全部"), _items.Count, "all", true);
-            MakeChip(Lang.T("用户启动项"), user, "user", false);
-            MakeChip(Lang.T("计划任务"), task, "task", false);
-            MakeChip(Lang.T("自动插件"), plugin, "plugin", false);
-            MakeChip(Lang.T("应用软件服务"), appsvc, "appsvc", false);
-            MakeChip(Lang.T("系统关键服务"), syssvc, "syssvc", false);
-            MakeChip(Lang.T("已禁用"), off, "disabled", false);
+            MakeChip(Lang.T("全部"), _items.Count, "all", _filter == "all");
+            MakeChip(Lang.T("用户启动项"), user, "user", _filter == "user");
+            MakeChip(Lang.T("计划任务"), task, "task", _filter == "task");
+            MakeChip(Lang.T("自动插件"), plugin, "plugin", _filter == "plugin");
+            MakeChip(Lang.T("应用软件服务"), appsvc, "appsvc", _filter == "appsvc");
+            MakeChip(Lang.T("系统关键服务"), syssvc, "syssvc", _filter == "syssvc");
+            MakeChip(Lang.T("已禁用"), off, "disabled", _filter == "disabled");
             LayoutChildren();
         }
 
@@ -216,7 +219,7 @@ namespace AGCleaner
                 r.Right = it.Enabled ? Lang.T("已启用") : Lang.T("已禁用");
                 r.Alarm = !it.Enabled;
                 r.Data = it;
-                if (it.IsService)
+                if (it.Kind.Length == 0 && it.IsService)
                 {
                     r.Action = "";
                     r.Disabled = false;
@@ -231,7 +234,7 @@ namespace AGCleaner
             _list.SetRows(rows);
             int off = 0;
             for (int i = 0; i < _items.Count; i++) if (!_items[i].Enabled) off++;
-            _status = Lang.T("当前显示 ") + shown + Lang.T(" 项 · 共 ") + _items.Count + Lang.T(" 项，其中已禁用 ") + off + Lang.T(" 项；服务项仅展示，不做修改");
+            _status = Lang.T("当前显示 ") + shown + Lang.T(" 项 · 共 ") + _items.Count + Lang.T(" 项，其中已禁用 ") + off + Lang.T(" 项；停用服务与插件需管理员权限");
             _bar.Invalidate();
         }
 
@@ -361,8 +364,8 @@ namespace AGCleaner
         private void BarPaint(object sender, PaintEventArgs e)
         {
             Theme.Smooth(e.Graphics);
-            Theme.Txt(e.Graphics, Lang.T("禁用只影响开机自启，不会删除程序；注册表项与文件均先备份"), Theme.F(8.5f), Theme.TextDim, 4, 12);
-            Theme.Txt(e.Graphics, _status, Theme.F(8f), Theme.Muted, 4, 34);
+            Theme.Txt(e.Graphics, Lang.T("禁用只影响开机自启，不会删除程序；注册表项与文件均先备份"), Theme.F(8.5f), Theme.TextDim, 26, 12);
+            Theme.Txt(e.Graphics, _status, Theme.F(8f), Theme.Muted, 26, 34);
         }
 
         private void ToggleSelected()
@@ -371,7 +374,7 @@ namespace AGCleaner
             if (r == null) return;
             StartupItem it = r.Data as StartupItem;
             if (it == null) return;
-            if (it.IsService)
+            if (it.Kind.Length == 0 && it.IsService)
             {
                 Dlg.Info(FindForm(), Lang.T("系统服务仅展示"), Lang.T("服务项涉及系统组件，AG Cleaner 不在此处启停。\n如需调整，请在“服务”管理器中操作，或使用系统配置工具。"));
                 return;
@@ -380,9 +383,35 @@ namespace AGCleaner
             bool ok;
             if (it.Enabled)
             {
-                string mode = it.IsTask ? Lang.T("计划任务") : (it.IsFile ? Lang.T("启动文件夹项") : Lang.T("注册表启动项"));
+                string mode;
+                string warn;
+                if (it.Kind == "svc")
+                {
+                    mode = it.Group == "syssvc" ? Lang.T("系统关键服务") : Lang.T("应用软件服务");
+                    warn = Lang.T("停用后该服务不再随系统自动启动，依赖它的功能可能失效。\n原始启动方式已记录，可在此页随时还原。");
+                }
+                else if (it.Kind == "plugin")
+                {
+                    mode = Lang.T("自动插件");
+                    warn = Lang.T("停用后对应的浏览器插件、图标叠加或右键菜单项会消失，不影响程序主体。\n注册表项会先导出备份，可在此页随时还原。");
+                }
+                else if (it.IsTask)
+                {
+                    mode = Lang.T("计划任务");
+                    warn = Lang.T("禁用只阻止它开机自动运行，不会删除程序本身。原始数据会自动备份，可在此页随时“启用”还原。");
+                }
+                else if (it.IsFile)
+                {
+                    mode = Lang.T("启动文件夹项");
+                    warn = Lang.T("禁用只阻止它开机自动运行，不会删除程序本身。原始数据会自动备份，可在此页随时“启用”还原。");
+                }
+                else
+                {
+                    mode = Lang.T("注册表启动项");
+                    warn = Lang.T("禁用只阻止它开机自动运行，不会删除程序本身。原始数据会自动备份，可在此页随时“启用”还原。");
+                }
                 bool confirm = Dlg.Confirm(FindForm(), Lang.T("禁用") + mode + " " + it.Name + "？",
-                    Lang.T("命令：") + Theme.ShortPath(it.Command, 90) + Lang.T("\n\n禁用只阻止它开机自动运行，不会删除程序本身。原始数据会自动备份，可在此页随时“启用”还原。"),
+                    Lang.T("命令：") + Theme.ShortPath(it.Command, 90) + "\n\n" + warn,
                     Lang.T("禁用"), false);
                 if (!confirm) return;
                 ok = Startup.Disable(it, out message);
