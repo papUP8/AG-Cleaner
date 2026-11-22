@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 
 namespace AGCleaner.Core
 {
@@ -22,18 +23,48 @@ namespace AGCleaner.Core
         [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
         private static extern int SHEmptyRecycleBin(IntPtr hwnd, string pszRootPath, uint dwFlags);
 
+        /// <summary>回收站体积统计：逐块固定盘查询，整体加 8 秒超时——个别磁盘（外置盘、休眠中的机械盘）会让 shell 接口卡住。</summary>
         public static bool RecycleBinInfo(ref long size, ref int items)
         {
-            try
+            long[] totalSize = new long[] { 0 };
+            int[] totalItems = new int[] { 0 };
+            bool[] ok = new bool[] { false };
+            Thread worker = new Thread(delegate ()
             {
-                SHQUERYRBINFO info = new SHQUERYRBINFO();
-                info.cbSize = Marshal.SizeOf(typeof(SHQUERYRBINFO));
-                int hr = SHQueryRecycleBin(null, ref info);
-                size = info.i64Size;
-                items = (int)info.i64NumItems;
-                return hr == 0;
-            }
-            catch (Exception) { return false; }
+                try
+                {
+                    DriveInfo[] drives = DriveInfo.GetDrives();
+                    for (int i = 0; i < drives.Length; i++)
+                    {
+                        DriveInfo d = drives[i];
+                        try
+                        {
+                            if (d.DriveType != DriveType.Fixed) continue;
+                            if (!d.IsReady) continue;
+                            string root = d.RootDirectory.FullName;
+                            if (!Directory.Exists(Path.Combine(root, "$Recycle.Bin"))) continue;
+                            SHQUERYRBINFO info = new SHQUERYRBINFO();
+                            info.cbSize = Marshal.SizeOf(typeof(SHQUERYRBINFO));
+                            int hr = SHQueryRecycleBin(root, ref info);
+                            if (hr != 0) continue;
+                            lock (totalSize) { totalSize[0] += info.i64Size; }
+                            lock (totalItems) { totalItems[0] += (int)info.i64NumItems; }
+                            ok[0] = true;
+                        }
+                        catch (Exception) { }
+                    }
+                }
+                catch (Exception) { }
+            });
+            worker.IsBackground = true;
+            try { worker.SetApartmentState(ApartmentState.STA); }
+            catch (Exception) { }
+            worker.Start();
+            try { worker.Join(8000); }
+            catch (Exception) { }
+            lock (totalSize) { size = totalSize[0]; }
+            lock (totalItems) { items = totalItems[0]; }
+            return ok[0];
         }
 
         public static bool EmptyRecycleBin()
