@@ -33,8 +33,15 @@ namespace AGCleaner
             return zh;
         }
 
+        private static bool _extraDone = false;
+
         private static Dictionary<string, string> Table(string code)
         {
+            if (!_extraDone)
+            {
+                _extraDone = true;
+                LangExtra.Fill(En, De, Fr, Ru, Es);
+            }
             if (code == "en") return En;
             if (code == "de") return De;
             if (code == "fr") return Fr;
