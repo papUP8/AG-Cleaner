@@ -7,7 +7,7 @@ namespace AGCleaner
 {
     public static class Program
     {
-        public static string Version = "1.6.1";
+        public static string Version = "1.7.0";
 
         private static Icon _appIcon;
 
@@ -158,6 +158,22 @@ namespace AGCleaner
                 sb.AppendLine("--- 各步耗时 ---");
                 for (int i = 0; i < Core.CleanEngine.Timings.Count; i++) sb.AppendLine(Core.CleanEngine.Timings[i]);
                 System.IO.File.WriteAllText(args.Length >= 2 ? args[1] : "scan.txt", sb.ToString());
+                return;
+            }
+
+            if (args.Length >= 1 && args[0] == "--emptyrb")
+            {
+                // 诊断用：真正清空回收站并复核结果
+                long beforeSize = 0; int beforeItems = 0;
+                Core.Shell.RecycleBinInfo(ref beforeSize, ref beforeItems);
+                System.IO.File.WriteAllText("emptyrb.txt", "stage=before " + beforeSize + "/" + beforeItems + "\r\n");
+                bool ok = Core.Shell.EmptyRecycleBin();
+                System.IO.File.AppendAllText("emptyrb.txt", "stage=after-call " + ok + "\r\n");
+                long afterSize = 0; int afterItems = 0;
+                Core.Shell.RecycleBinInfo(ref afterSize, ref afterItems);
+                System.IO.File.WriteAllText("emptyrb.txt",
+                    "before=" + beforeSize + "/" + beforeItems + " after=" + afterSize + "/" + afterItems + " ok=" + ok,
+                    System.Text.Encoding.UTF8);
                 return;
             }
 
