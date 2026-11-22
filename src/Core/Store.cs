@@ -73,7 +73,9 @@ namespace AGCleaner.Core
 
     public class Settings
     {
-        public bool UseRecycleBin = true;
+        // 清理工具的目的就是释放空间：把垃圾挪进回收站等于没清，默认改为永久删除
+        public bool UseRecycleBin = false;
+        public bool BinModeMigrated = false;
         public int TempDays = 0;
         public bool CleanGpuShaders = false;
         public bool CleanProjectArtifacts = false;
@@ -98,6 +100,7 @@ namespace AGCleaner.Core
                 string k = line.Substring(0, eq).Trim();
                 string v = line.Substring(eq + 1).Trim();
                 if (k == "recycle") s.UseRecycleBin = v == "1";
+                else if (k == "binmig") s.BinModeMigrated = v == "1";
                 else if (k == "tempdays") { try { s.TempDays = int.Parse(v); } catch (Exception) { } }
                 else if (k == "gpu") s.CleanGpuShaders = v == "1";
                 else if (k == "projects") s.CleanProjectArtifacts = v == "1";
@@ -107,6 +110,14 @@ namespace AGCleaner.Core
                 else if (k == "scandrives") s.ScanDrives = v;
                 else if (k == "tempmig") s.TempMigrated = v == "1";
                 else if (k == "dir") { if (v.Length > 0) s.ProjectDirs.Add(v); }
+            }
+            // 老版本默认把删除项移入回收站，结果垃圾只是换了位置、空间一点没释放；
+            // 迁移一次改为永久删除，之后以用户在设置页的选择为准
+            if (!s.BinModeMigrated)
+            {
+                s.UseRecycleBin = false;
+                s.BinModeMigrated = true;
+                s.Save();
             }
             // 早期默认是“只清 7 天前的临时文件”，会漏掉大量仍可安全删除的临时文件；
             // 只迁移一次，之后以用户在设置页选择的天数为准
@@ -129,6 +140,7 @@ namespace AGCleaner.Core
             StringBuilder sb = new StringBuilder();
             sb.AppendLine(Lang.T("# AG Cleaner 配置"));
             sb.AppendLine("recycle=" + (UseRecycleBin ? "1" : "0"));
+            sb.AppendLine("binmig=1");
             sb.AppendLine("tempdays=" + TempDays);
             sb.AppendLine("tempmig=1");
             sb.AppendLine("gpu=" + (CleanGpuShaders ? "1" : "0"));

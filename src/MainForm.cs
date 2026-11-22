@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
@@ -278,7 +278,7 @@ namespace AGCleaner
             };
             Controls.Add(_sidebar);
 
-            string[] names = new string[] { Lang.T("概览"), Lang.T("深度清理"), Lang.T("残留清理"), Lang.T("应用卸载"), Lang.T("启动项管理"), Lang.T("磁盘分析"), Lang.T("系统优化"), Lang.T("历史记录"), Lang.T("设置") };
+            string[] names = new string[] { Lang.T("深度清理"), Lang.T("应用卸载"), Lang.T("启动项管理"), Lang.T("磁盘分析"), Lang.T("系统优化"), Lang.T("历史记录"), Lang.T("设置") };
             string[] glyphs = new string[] { "◉", "✦", "⌫", "▣", "⚡", "▤", "⚙", "↺", "☰" };
 
             for (int i = 0; i < names.Length; i++)
@@ -325,9 +325,7 @@ namespace AGCleaner
 
             PageBase[] pages = new PageBase[]
             {
-                new DashboardPage(),
                 new CleanPage(),
-                new OrphanPage(),
                 new UninstallPage(),
                 new StartupPage(),
                 new AnalyzePage(),
@@ -342,9 +340,7 @@ namespace AGCleaner
         {
             return new PageBase[]
             {
-                new DashboardPage(),
                 new CleanPage(),
-                new OrphanPage(),
                 new UninstallPage(),
                 new StartupPage(),
                 new AnalyzePage(),
@@ -383,7 +379,7 @@ namespace AGCleaner
 
         private void RetranslateChrome()
         {
-            string[] keys = new string[] { "概览", "深度清理", "残留清理", "应用卸载", "启动项管理", "磁盘分析", "系统优化", "历史记录", "设置" };
+            string[] keys = new string[] { "深度清理", "应用卸载", "启动项管理", "磁盘分析", "系统优化", "历史记录", "设置" };
             for (int i = 0; i < _navs.Count && i < keys.Length; i++)
             {
                 _navs[i].Text = Lang.T(keys[i]);

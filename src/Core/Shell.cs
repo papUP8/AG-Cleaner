@@ -1,6 +1,7 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
@@ -83,7 +84,22 @@ namespace AGCleaner.Core
             if (RecycleEmpty()) return true;
             if (fsOk) return false; // 自己删完了但复核仍非空，说明有被占用的项
 
-            // 第二级：交给 shell（部分机器上只有它能清掉受保护项），5 秒没回来就当失败，不再等
+            // 第二级：走资源管理器的 shell 动词「清空回收站」。
+            // 安全软件对 $Recycle.Bin 的目录级保护会拦直接删，但放行 explorer 自己发起的清空，
+            // 360、电脑管家、FluentCleaner 能清空也是这个路数。
+            bool verbOk = false;
+            try
+            {
+                Thread t3 = new Thread(delegate () { verbOk = EmptyRecycleByShellVerb(); });
+                t3.IsBackground = true;
+                try { t3.SetApartmentState(ApartmentState.STA); } catch (Exception) { }
+                t3.Start();
+                t3.Join(8000);
+            }
+            catch (Exception) { }
+            if (RecycleEmpty()) return true;
+
+            // 第三级：交给 shell API（部分机器上只有它能清掉受保护项），5 秒没回来就当失败，不再等
             Thread t2 = new Thread(delegate ()
             {
                 try { SHEmptyRecycleBin(IntPtr.Zero, null, 0x1 | 0x2 | 0x4); } catch (Exception) { }
@@ -95,6 +111,56 @@ namespace AGCleaner.Core
 
             return RecycleEmpty();
         }
+
+        /// <summary>用 Shell.Application 拿到回收站的「清空」动词并执行（动词名是本地化的，按关键字匹配）。</summary>
+        private static bool EmptyRecycleByShellVerb()
+        {
+            object app = null, folder = null, self = null, verbs = null;
+            try
+            {
+                Type t = Type.GetTypeFromProgID("Shell.Application");
+                if (t == null) { Dbg("no progid"); return false; }
+                app = Activator.CreateInstance(t);
+                folder = t.InvokeMember("Namespace", BindingFlags.InvokeMethod, null, app, new object[] { 10 });
+                if (folder == null) { Dbg("no folder"); return false; }
+                Type fType = folder.GetType();
+                self = fType.InvokeMember("Self", BindingFlags.GetProperty, null, folder, null);
+                if (self == null) { Dbg("no self"); return false; }
+                verbs = self.GetType().InvokeMember("Verbs", BindingFlags.InvokeMethod, null, self, null);
+                if (verbs == null) { Dbg("no verbs"); return false; }
+                int count = (int)verbs.GetType().InvokeMember("Count", BindingFlags.GetProperty, null, verbs, null);
+                Dbg("verbs=" + count);
+                for (int i = 0; i < count; i++)
+                {
+                    object v = verbs.GetType().InvokeMember("Item", BindingFlags.InvokeMethod, null, verbs, new object[] { i });
+                    if (v == null) continue;
+                    string name = (string)v.GetType().InvokeMember("Name", BindingFlags.GetProperty, null, v, null);
+                    Dbg("verb[" + i + "]=" + name);
+                    if (name == null || !IsEmptyVerb(name)) continue;
+                    v.GetType().InvokeMember("DoIt", BindingFlags.InvokeMethod, null, v, null);
+                    Dbg("DoIt ok");
+                    return true;
+                }
+            }
+            catch (Exception ex) { Dbg("ex: " + ex.GetType().Name + " " + ex.Message); return false; }
+            return false;
+        }
+
+        private static void Dbg(string s)
+        {
+            try { File.AppendAllText(Path.Combine(Path.GetTempPath(), "ag-rb-verb.txt"), s + "\r\n"); }
+            catch (Exception) { }
+        }
+
+        /// <summary>各语言下「清空回收站」动词可能的写法。</summary>
+        private static bool IsEmptyVerb(string name)
+        {
+            string low = name.ToLowerInvariant();
+            string[] keys = new string[] { "清空", "empty", "leeren", "vider", "очист", "vaciar", "emptying" };
+            for (int i = 0; i < keys.Length; i++) if (low.Contains(keys[i])) return true;
+            return false;
+        }
+
 
         private static bool EmptyRecycleByFs()
         {

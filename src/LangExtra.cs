@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace AGCleaner
 {
@@ -72,7 +72,88 @@ namespace AGCleaner
                 @"Claves vacías en HKCU\Software sin valores ni subclaves (se exporta una copia antes de borrar)" },
             new string[] { "Intel 驱动安装包", "Intel driver packages", "Intel-Treiberpakete", "Paquets de pilotes Intel", "Пакеты драйверов Intel", "Paquetes de controladores Intel" },
             new string[] { "NVIDIA 安装器残留", "NVIDIA installer leftovers", "NVIDIA-Installer-Reste", "Restes de l’installateur NVIDIA", "Остатки установщика NVIDIA", "Restos del instalador NVIDIA" },
-            new string[] { "QQ 浏览器", "QQ Browser", "QQ Browser", "Navigateur QQ", "Браузер QQ", "Navegador QQ" }
+            new string[] { "QQ 浏览器", "QQ Browser", "QQ Browser", "Navigateur QQ", "Браузер QQ", "Navegador QQ" },
+            new string[] {
+                "· 删除项直接永久删除，可在设置里改成移入回收站",
+                "· Deletions are permanent; the Recycle Bin mode is a setting",
+                "· Gelöschtes wird endgültig entfernt (Papierkorb-Modus ist eine Einstellung)",
+                "· Les suppressions sont définitives (le mode corbeille est une option)",
+                "· Удаление безвозвратное (режим корзины включается в настройках)",
+                "· Lo borrado es definitivo (el modo papelera es una opción)" },
+            new string[] {
+                "所选项目将移入回收站（可恢复，但不释放磁盘空间）。",
+                "Selected items go to the Recycle Bin (restorable, but no space is freed).",
+                "Die Auswahl geht in den Papierkorb (wiederherstellbar, aber es wird kein Speicher frei).",
+                "Les éléments vont à la corbeille (récupérables, mais aucun espace n’est libéré).",
+                "Выбранное уйдёт в корзину (восстановимо, но место не освобождается).",
+                "Los elementos irán a la papelera (recuperables, pero no libera espacio)." },
+            new string[] {
+                "回收站已被其他安全软件拦截，无法清空。请把本程序加入其信任区后重试。",
+                "Another security product is blocking the Recycle Bin, so it cannot be emptied. Add this app to its trusted list and retry.",
+                "Ein anderes Sicherheitsprogramm blockiert den Papierkorb. Fügen Sie dieses Programm der Vertrauensliste hinzu.",
+                "Un autre logiciel de sécurité bloque la corbeille. Ajoutez ce programme à sa liste de confiance.",
+                "Другой антивирус блокирует корзину. Добавьте программу в список доверенных.",
+                "Otro programa de seguridad bloquea la papelera. Añade este programa a su lista de confianza." },
+            new string[] {
+                "已安排重启后清空回收站（重启即释放空间）。",
+                "Recycle Bin emptying is queued for the next reboot (space is freed right after restart).",
+                "Das Leeren des Papierkorbs ist für den nächsten Neustart eingeplant (Platz wird danach frei).",
+                "Le vidage de la corbeille est programmé au prochain redémarrage (l’espace sera libéré ensuite).",
+                "Очистка корзины запланирована на следующую перезагрузку (место освободится после неё).",
+                "El vaciado de la papelera se ha programado para el próximo reinicio (el espacio se libera después)." },
+            new string[] { "  ·  双击可打开目录确认", "  ·  double-click to open the folder", "  ·  Doppelklick öffnet den Ordner", "  ·  double-clic pour ouvrir le dossier", "  ·  двойной щелчок откроет папку", "  ·  doble clic para abrir la carpeta" },
+            new string[] { "已在资源管理器中打开：", "Opened in Explorer: ", "Im Explorer geöffnet: ", "Ouvert dans l’Explorateur : ", "Открыто в Проводнике: ", "Abierto en el Explorador: " },
+            new string[] { "目录不存在", "Folder not found", "Ordner nicht vorhanden", "Dossier introuvable", "Папки нет", "Carpeta inexistente" },
+            new string[] { "该目录已经不存在了，可能已被清理。", "That folder no longer exists; it may already have been cleaned.", "Dieser Ordner existiert nicht mehr, evtl. schon bereinigt.", "Ce dossier n’existe plus, il a peut-être déjà été nettoyé.", "Этой папки больше нет — возможно, она уже очищена.", "Esa carpeta ya no existe; puede que ya se haya limpiado." },
+            new string[] { "无法打开目录", "Cannot open the folder", "Ordner lässt sich nicht öffnen", "Impossible d’ouvrir le dossier", "Не удаётся открыть папку", "No se puede abrir la carpeta" },
+            new string[] { "该项不是目录", "This item is not a folder", "Dieser Eintrag ist kein Ordner", "Cet élément n’est pas un dossier", "Это не папка", "Este elemento no es una carpeta" },
+            new string[] {
+                "注册表项与启动项没有对应目录；双击只对“孤儿安装目录”有效。",
+                "Registry and startup items have no folder; double-click only works for leftover install folders.",
+                "Registrierungs- und Autostart-Einträge haben keinen Ordner; der Doppelklick gilt nur für übrig gebliebene Installationsordner.",
+                "Les entrées de registre et de démarrage n’ont pas de dossier ; le double-clic ne concerne que les dossiers d’installation résiduels.",
+                "У разделов реестра и автозапуска нет папки; двойной щелчок работает только для оставшихся папок установки.",
+                "Las entradas de registro e inicio no tienen carpeta; el doble clic solo funciona en carpetas de instalación sobrantes." },
+            new string[] { " 下 · 应用列表里没有对应安装记录（按“设置-应用”核对）", " · no matching entry in the installed-apps list (checked against Settings > Apps)", " · kein Eintrag in der App-Liste (geprüft gegen Einstellungen > Apps)", " · aucune entrée dans la liste des applications installées (vérifié dans Paramètres > Applications)", " · нет записи в списке установленных программ (сверено с «Параметры → Приложения»)", " · no hay entrada en la lista de aplicaciones instaladas (verificado en Configuración > Aplicaciones)" },
+            new string[] { " · 最近改动 ", " · last modified ", " · zuletzt geändert ", " · dernière modification ", " · последнее изменение ", " · última modificación " },
+            new string[] { " 下 · 同名软件“", " · an app with the same name, \"", " · gleichnamige Software „", " · logiciel du même nom « ", " · одноимённая программа «", " · programa con el mismo nombre «" },
+            new string[] { "”已在别处安装，此处疑似旧版本副本，请确认后再删", "\", is installed elsewhere; this folder looks like an old copy - check before deleting", "\", ist anderswo installiert; dieser Ordner sieht wie eine alte Kopie aus", "\", est installé ailleurs ; ce dossier ressemble à une ancienne copie", "\", установлена в другом месте; папка похожа на старую копию", "\" está instalado en otro lugar; esta carpeta parece una copia antigua" },
+            new string[] { "npm 缓存", "npm cache", "npm-Cache", "cache npm", "кэш npm", "caché de npm" },
+            new string[] {
+                "下载目录中 3 天前的 msi/exe 安装包",
+                "msi/exe installers in Downloads older than 3 days",
+                "msi/exe-Installationspakete in „Downloads“, älter als 3 Tage",
+                "installateurs msi/exe dans Téléchargements de plus de 3 jours",
+                "установщики msi/exe в «Загрузках» старше 3 дней",
+                "instaladores msi/exe en Descargas con más de 3 días" },
+            new string[] {
+                "卸载残留",
+                "Leftover residue",
+                "Programmreste",
+                "Résidus de programmes",
+                "Остатки программ",
+                "Residuos de programas" },
+            new string[] {
+                "已卸载软件留下的空目录、空文件、空注册表键、旧目录与失效快捷方式；默认不勾选，逐组确认后再删",
+                "Empty folders and files, empty registry keys, old app folders and dead shortcuts left by removed software. Unchecked by default; review each group before deleting.",
+                "Leere Ordner und Dateien, leere Registrierungsschlüssel, alte Programmordner und tote Verknüpfungen deinstallierter Software. Standardmäßig nicht markiert; jede Gruppe vor dem Löschen prüfen.",
+                "Dossiers et fichiers vides, clés de registre vides, anciens dossiers et raccourcis morts laissés par des logiciels désinstallés. Non cochés par défaut ; vérifiez chaque groupe avant suppression.",
+                "Пустые папки и файлы, пустые ключи реестра, старые папки программ и нерабочие ярлыки от удалённых приложений. По умолчанию не отмечены; проверяйте каждую группу.",
+                "Carpetas y archivos vacíos, claves de registro vacías, carpetas antiguas y accesos directos muertos de programas desinstalados. Sin marcar por defecto; revisa cada grupo." },
+            new string[] {
+                " 项）",
+                " items)",
+                " Einträge)",
+                " éléments)",
+                " шт.)",
+                " elementos)" },
+            new string[] {
+                "扫描已卸载软件的残留...",
+                "Scanning residue of removed programs...",
+                "Programmreste werden geprüft...",
+                "Analyse des résidus de programmes...",
+                "Проверка остатков программ...",
+                "Analizando residuos de programas..." },
         };
 
         public static void Fill(Dictionary<string, string> en, Dictionary<string, string> de,

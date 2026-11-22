@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
@@ -7,7 +7,7 @@ namespace AGCleaner
 {
     public static class Program
     {
-        public static string Version = "1.7.0";
+        public static string Version = "1.7.2";
 
         private static Icon _appIcon;
 

@@ -454,7 +454,7 @@ namespace AGCleaner
                 bytes += selected[i].Bytes;
                 if (selected[i].Recycle) recycle = true;
             }
-            string mode = recycle ? Lang.T("所选项目将移入回收站（可恢复）。") : Lang.T("所选项目将被永久删除。");
+            string mode = recycle ? Lang.T("所选项目将移入回收站（可恢复，但不释放磁盘空间）。") : Lang.T("所选项目将被永久删除。");
             bool ok = Dlg.Confirm(FindForm(), Lang.T("确认清理 ") + selected.Count + Lang.T(" 项？"),
                 Lang.T("预计释放 ") + Byt.Format(bytes) + "。\n" + mode + Lang.T("\n受保护目录、白名单路径与敏感目录已自动排除，不会出现在清单里。"),
                 Lang.T("开始清理"), false);

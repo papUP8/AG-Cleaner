@@ -20,6 +20,8 @@ namespace AGCleaner.Core
         public string Hive = "HKLM";
         public string KeyPath = "";
         public bool AdminNeeded = false;
+        /// <summary>弱证据项：同名软件仍在别处安装，这里可能只是旧版本副本，默认不勾选。</summary>
+        public bool Weak = false;
         public object Data;
     }
 
@@ -54,6 +56,15 @@ namespace AGCleaner.Core
 
         private const int MinAgeDays = 90;
         private const long MinBytes = 20 * 1024 * 1024;
+
+        /// <summary>目录扫描的整体时间预算：宁可少报，也不让“扫描”变成无底洞。</summary>
+        private static DateTime _dirDeadline = DateTime.MaxValue;
+        private static readonly int DirBudgetSeconds = 40;
+
+        private static bool OutOfBudget()
+        {
+            return DateTime.Now > _dirDeadline;
+        }
 
         /// <summary>目录里有卸载程序（uninst*.exe / unins*.exe），说明它原本是一个软件安装目录。</summary>
         private static bool HasUninstaller(string dir)
@@ -203,6 +214,7 @@ namespace AGCleaner.Core
             g.Desc = Lang.T("已卸载软件留下、且没有被任何已安装程序引用的目录（默认不勾选，逐个确认）");
             g.AdminOnly = true;
             R(report, Lang.T("扫描孤儿安装目录..."));
+            _dirDeadline = DateTime.Now.AddSeconds(DirBudgetSeconds);
 
             string pf = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
             string pf86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
@@ -314,8 +326,10 @@ namespace AGCleaner.Core
             try { dirs = Directory.GetDirectories(root); }
             catch (Exception) { return; }
             int added = 0;
+            string owner;
             for (int i = 0; i < dirs.Length; i++)
             {
+                if (OutOfBudget()) return;
                 if (g.Items.Count > 90) return;
                 string dir = dirs[i];
                 string name = Path.GetFileName(dir);
@@ -324,7 +338,8 @@ namespace AGCleaner.Core
                 // 盘根目录只处理像软件安装目录的（带卸载程序、非用户常见文件夹）
                 if (driveRoot && IsCommonUserDir(name)) continue;
 
-                if (!Referenced(dir, apps))
+                int strength = RefStrength(dir, apps, out owner);
+                if (strength == 0)
                 {
                     if (!HasUninstaller(dir))
                     {
@@ -338,6 +353,11 @@ namespace AGCleaner.Core
                         continue;
                     }
                     if (Evaluate(g, root, dir, name, added)) added++;
+                    continue;
+                }
+                if (strength == 1 && HasUninstaller(dir))
+                {
+                    if (AddWeak(g, root, dir, name, owner)) added++;
                     continue;
                 }
 
@@ -354,13 +374,16 @@ namespace AGCleaner.Core
             try { subs = Directory.GetDirectories(dir); }
             catch (Exception) { return 0; }
             int added = 0;
+            string owner;
             for (int i = 0; i < subs.Length && added < max; i++)
             {
+                if (OutOfBudget()) return added;
                 string sub = subs[i];
                 string n = Path.GetFileName(sub);
                 if (Skip(n)) continue;
                 if (Guard.IsWhitelisted(sub)) continue;
-                if (Referenced(sub, apps)) continue;
+                int strength = RefStrength(sub, apps, out owner);
+                if (strength >= 2) continue;
                 if (!HasUninstaller(sub))
                 {
                     if (IsCopyDir(sub))
@@ -371,6 +394,11 @@ namespace AGCleaner.Core
                     continue;
                 }
                 string label = Path.GetFileName(dir) + "\\" + n;
+                if (strength == 1)
+                {
+                    if (AddWeak(g, dir, sub, label, owner)) added++;
+                    continue;
+                }
                 if (Evaluate(g, dir, sub, label, added)) added++;
             }
             return added;
@@ -450,15 +478,11 @@ namespace AGCleaner.Core
         /// <summary>判定一个目录是否为残留，命中则加入清单并返回 true。</summary>
         private static bool Evaluate(OrphanGroup g, string root, string dir, string label, int added)
         {
-            DateTime cutoff = DateTime.Now.AddDays(-MinAgeDays);
-            bool hasUninst = HasUninstaller(dir);
-            if (!hasUninst && ShallowNewest(dir) >= cutoff) return false;
+            // 判据只看“应用列表里有没有它”：带着卸载程序的目录没必要再按住时间条件猜
+            if (!HasUninstaller(dir)) return false;
             DateTime newest;
-            try { newest = NewestWrite(dir); }
-            catch (Exception) { return false; }
-            bool stale = newest < cutoff;
-            // 高置信：长期无人写入；中置信：确实带卸载程序、注册表也没有引用（可能是刚卸载）
-            if (!stale && !hasUninst) return false;
+            try { newest = ShallowNewest(dir); }
+            catch (Exception) { newest = DateTime.MinValue; }
             long size = 0;
             try { size = FileUtil.SizeOf(dir); }
             catch (Exception) { }
@@ -475,8 +499,33 @@ namespace AGCleaner.Core
             it.Kind = "dir";
             it.Name = label;
             it.Target = dir;
-            it.Detail = root + Lang.T(" 下 · 无已安装程序引用 · ") +
-                (stale ? Lang.T("超过 ") + MinAgeDays + Lang.T(" 天未改动") : Lang.T("含卸载程序，最近改动 ") + newest.ToString("yyyy-MM-dd") + Lang.T("，请确认该软件确实已卸载"));
+            it.Detail = root + Lang.T(" 下 · 应用列表里没有对应安装记录（按“设置-应用”核对）") +
+                (newest > DateTime.MinValue ? Lang.T(" · 最近改动 ") + newest.ToString("yyyy-MM-dd") : "");
+            it.Bytes = size;
+            it.AdminNeeded = !Native.IsAdmin();
+            g.Items.Add(it);
+            return true;
+        }
+
+        /// <summary>同名软件仍在别处安装的目录：只登记、不默认勾选，避免误删正常软件。</summary>
+        private static bool AddWeak(OrphanGroup g, string root, string dir, string label, string owner)
+        {
+            long size = 0;
+            try { size = FileUtil.SizeOf(dir); }
+            catch (Exception) { }
+            if (size < MinBytes) return false;
+            string normTarget = Guard.Norm(dir);
+            for (int i = 0; i < g.Items.Count; i++)
+            {
+                if (Guard.Norm(g.Items[i].Target) == normTarget) return false;
+            }
+            OrphanItem it = new OrphanItem();
+            it.GroupId = g.Id;
+            it.Kind = "dir";
+            it.Name = label;
+            it.Target = dir;
+            it.Weak = true;
+            it.Detail = root + Lang.T(" 下 · 同名软件“") + owner + Lang.T("”已在别处安装，此处疑似旧版本副本，请确认后再删");
             it.Bytes = size;
             it.AdminNeeded = !Native.IsAdmin();
             g.Items.Add(it);
@@ -486,6 +535,9 @@ namespace AGCleaner.Core
         private static bool Skip(string name)
         {
             string low = name.ToLowerInvariant();
+            // $Recycle.Bin 这类系统隐藏夹永远不该被当成“软件残留”，
+            // 而且安全软件会对它的目录访问做拦截，扫它只会把程序卡住
+            if (low.StartsWith("$")) return true;
             for (int i = 0; i < SkipDirs.Length; i++) if (low == SkipDirs[i]) return true;
             return false;
         }
@@ -504,7 +556,22 @@ namespace AGCleaner.Core
 
         private static bool Referenced(string dir, List<Installed> apps)
         {
+            return RefStrength(dir, apps, out _owner) >= 1;
+        }
+
+        private static string _owner = "";
+
+        /// <summary>
+        /// 2 = 应用列表里的安装路径/图标/卸载命令直接指向这个目录（确定在用，绝不动）
+        /// 1 = 同名产品在别处安装（大概率是旧版本副本，列出但不默认勾选）
+        /// 0 = 应用列表里查不到任何对应记录（才可能是残留）
+        /// 判据只有“设置-应用”里的安装清单，不看修改时间——时间新不代表在用，时间旧也不代表被卸载。
+        /// </summary>
+        private static int RefStrength(string dir, List<Installed> apps, out string owner)
+        {
+            owner = "";
             string d = Guard.Norm(dir);
+            string leaf = Path.GetFileName(dir).ToLowerInvariant();
             string token = NameToken(Path.GetFileName(dir));
             for (int i = 0; i < apps.Count; i++)
             {
@@ -512,17 +579,29 @@ namespace AGCleaner.Core
                 string loc = Guard.Norm(a.Location);
                 if (loc.Length > 0)
                 {
-                    if (loc == d) return true;
-                    if (loc.StartsWith(d + "\\")) return true;
-                    if (d.StartsWith(loc + "\\")) return true;
+                    if (loc == d) { owner = a.Name; return 2; }
+                    if (loc.StartsWith(d + "\\")) { owner = a.Name; return 2; }
+                    if (d.StartsWith(loc + "\\")) { owner = a.Name; return 2; }
                 }
                 string icon = Guard.Norm(a.Icon);
-                if (icon.Length > 0 && (icon.Contains(d + "\\") || icon.StartsWith(d))) return true;
+                if (icon.Length > 0 && (icon.Contains(d + "\\") || icon.StartsWith(d))) { owner = a.Name; return 2; }
                 string un = Guard.Norm(a.Uninstall);
-                if (un.Length > 0 && (un.Contains(d + "\\") || un.StartsWith(d))) return true;
-                if (token.Length >= 4 && NameToken(a.Name) == token) return true;
+                if (un.Length > 0 && (un.Contains(d + "\\") || un.StartsWith(d))) { owner = a.Name; return 2; }
+                if (token.Length >= 4 && NameToken(a.Name) == token) { owner = a.Name; return 2; }
             }
-            return false;
+            // 弱证据：这个目录名作为“产品名”出现在已安装程序的名字或路径里（360zip、PotPlayer 这类）
+            if (leaf.Length >= 3)
+            {
+                for (int i = 0; i < apps.Count; i++)
+                {
+                    Installed a = apps[i];
+                    if (NameToken(a.Name).Contains(token) && token.Length >= 3) { owner = a.Name; return 1; }
+                    if (Guard.Norm(a.Location).Contains(leaf) && leaf.Length >= 4) { owner = a.Name; return 1; }
+                    if (Guard.Norm(a.Icon).Contains(leaf) && leaf.Length >= 4) { owner = a.Name; return 1; }
+                    if (Guard.Norm(a.Uninstall).Contains(leaf) && leaf.Length >= 4) { owner = a.Name; return 1; }
+                }
+            }
+            return 0;
         }
 
         // ---------- 无效卸载注册表项 ----------

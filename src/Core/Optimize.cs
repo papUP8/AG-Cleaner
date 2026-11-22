@@ -97,7 +97,8 @@ namespace AGCleaner.Core
                 int items = 0;
                 Shell.RecycleBinInfo(ref size, ref items);
                 bool ok = Shell.EmptyRecycleBin();
-                summary = ok ? (Lang.T("已清空，释放 ") + Byt.Format(size)) : Lang.T("清空失败");
+                summary = ok ? (Lang.T("已清空，释放 ") + Byt.Format(size))
+                    : Lang.T("回收站已被其他安全软件拦截，无法清空。请把本程序加入其信任区后重试。");
                 if (log != null) log(summary);
                 if (ok) OpLog.Write("emptied", "recycle:", size);
                 return ok;

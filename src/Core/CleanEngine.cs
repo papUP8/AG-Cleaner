@@ -1,10 +1,10 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 
 namespace AGCleaner.Core
 {
-    public enum CleanKind { DirContents, DirItself, OldFilesInDir, OldFilesExt, RecycleBin, FileItself }
+    public enum CleanKind { DirContents, DirItself, OldFilesInDir, OldFilesExt, RecycleBin, FileItself, OrphanGroup }
 
     public class CleanItem
     {
@@ -21,6 +21,8 @@ namespace AGCleaner.Core
         public string Note = "";
         public long MinBytes = 0;
         public bool Exists = false;
+        /// <summary>OrphanGroup 类型时挂载的残留分组。</summary>
+        public object Data = null;
     }
 
     public class CleanCategory
@@ -307,6 +309,8 @@ namespace AGCleaner.Core
             if (s.CleanProjectArtifacts) cats.Add(Timed("项目产物", delegate { return ScanProjects(s, c.Msg(Lang.T("扫描项目构建产物..."))); }));
             cats.Add(Timed("大体积日志", delegate { return ScanBigLogs(c.Msg(Lang.T("扫描大体积日志与转储文件..."))); })); c.Next();
             cats.Add(Timed("回收站", delegate { return ScanRecycleBin(c.Msg(Lang.T("检查回收站..."))); })); c.Next();
+            // 残留清理并进深度清理，用户只需一个清单、一次点击
+            cats.Add(Timed("卸载残留", delegate { return ScanResidual(c.Msg(Lang.T("扫描已卸载软件的残留..."))); })); c.Next();
 
             List<CleanItem> all = new List<CleanItem>();
             for (int i = 0; i < cats.Count; i++)
@@ -314,7 +318,7 @@ namespace AGCleaner.Core
                 for (int j = 0; j < cats[i].Items.Count; j++)
                 {
                     CleanItem it = cats[i].Items[j];
-                    if (it.Kind == CleanKind.RecycleBin) continue;
+                    if (it.Kind == CleanKind.RecycleBin || it.Kind == CleanKind.OrphanGroup) continue;
                     all.Add(it);
                 }
             }
@@ -740,6 +744,8 @@ namespace AGCleaner.Core
             AddAppLeaves(cat, s, Lang.T("百度网盘缓存"), Path.Combine(la, @"baidu\BaiduNetdisk\Cache"), new string[] { "" });
             // 自动发现其余 Electron 应用（VS Code 类、Slack 类、各类客户端）的标准缓存目录
             ScanElectronGeneric(cat, s);
+            // 应用日志、更新包下载目录、npm 缓存：360 那类工具算的“常用软件垃圾”主要就是这些
+            ScanAppLogsAndUpdates(cat, s);
 
             // UWP / Microsoft Store 应用缓存
             string packages = Path.Combine(la, "Packages");
@@ -799,9 +805,110 @@ namespace AGCleaner.Core
             return cat;
         }
 
+        /// <summary>
+        /// 应用日志（sdk_storage\log、&lt;app&gt;\log）、更新包下载目录（update_download / update）、npm 缓存。
+        /// 这些是 360 等工具“常用软件垃圾”里的大头，且都能自动重建，不涉及任何用户数据。
+        /// </summary>
+        private static void ScanAppLogsAndUpdates(CleanCategory cat, Settings s)
+        {
+            string la = LocalAppData;
+            string ra = RoamingAppData;
+
+            AddDirItem(cat, "npm 缓存", Path.Combine(la, "npm-cache"), CleanKind.DirContents, 0, s.UseRecycleBin);
+
+            string[] roots = new string[] { la, ra };
+            string[] logNames = new string[] { "log", "logs", "Log", "Logs" };
+            for (int r = 0; r < roots.Length; r++)
+            {
+                string[] apps;
+                try { apps = Directory.GetDirectories(roots[r]); }
+                catch (Exception) { continue; }
+                for (int i = 0; i < apps.Length; i++)
+                {
+                    string app = apps[i];
+                    string name = Path.GetFileName(app);
+                    try
+                    {
+                        for (int j = 0; j < logNames.Length; j++)
+                        {
+                            string p = Path.Combine(app, logNames[j]);
+                            if (!Directory.Exists(p)) continue;
+                            AddDirItem(cat, name + " · " + logNames[j], p, CleanKind.DirContents, 0, s.UseRecycleBin);
+                        }
+                        // Electron/CEF 客户端把日志放在 User Data\<profile>\log 或 sdk_storage\log
+                        string ud = Path.Combine(app, "User Data");
+                        if (Directory.Exists(ud))
+                        {
+                            string sd = Path.Combine(ud, "sdk_storage");
+                            if (Directory.Exists(sd))
+                            {
+                                string sl = Path.Combine(sd, "log");
+                                if (Directory.Exists(sl)) AddDirItem(cat, name + " · sdk_storage\\log", sl, CleanKind.DirContents, 0, s.UseRecycleBin);
+                            }
+                            string[] profs;
+                            try { profs = Directory.GetDirectories(ud); }
+                            catch (Exception) { profs = new string[0]; }
+                            for (int k = 0; k < profs.Length; k++)
+                            {
+                                string prof = Path.GetFileName(profs[k]);
+                                for (int j = 0; j < logNames.Length; j++)
+                                {
+                                    string p = Path.Combine(profs[k], logNames[j]);
+                                    if (!Directory.Exists(p)) continue;
+                                    AddDirItem(cat, name + " · " + prof + "\\" + logNames[j], p, CleanKind.DirContents, 0, s.UseRecycleBin);
+                                }
+                            }
+                        }
+                        // 更新包下载目录：里面是已经下完的安装包，删了下次更新会重下
+                        string[] upds;
+                        try { upds = Directory.GetDirectories(app, "update*"); }
+                        catch (Exception) { upds = new string[0]; }
+                        for (int u = 0; u < upds.Length; u++)
+                        {
+                            AddDirItem(cat, name + " · " + Path.GetFileName(upds[u]), upds[u], CleanKind.DirContents, 0, s.UseRecycleBin);
+                        }
+                        // gecko / cef 缓存
+                        foreach (string leaf in new string[] { "gecko_cache", "cef_cache", "htmlcache" })
+                        {
+                            string p = Path.Combine(app, leaf);
+                            if (Directory.Exists(p)) AddDirItem(cat, name + " · " + leaf, p, CleanKind.DirContents, 0, s.UseRecycleBin);
+                        }
+                    }
+                    catch (Exception) { }
+                }
+            }
+        }
+
+        /// <summary>已卸载软件的残留：空目录、空文件、空注册表键、孤儿目录、失效快捷方式，按组汇总成一行。</summary>
+        private static CleanCategory ScanResidual(Action<string> report)
+        {
+            CleanCategory cat = NewCat("residual", Lang.T("卸载残留"), Lang.T("已卸载软件留下的空目录、空文件、空注册表键、旧目录与失效快捷方式；默认不勾选，逐组确认后再删"), "🧩", false);
+            R(report, Lang.T("扫描已卸载软件的残留..."));
+            List<OrphanGroup> gs = null;
+            try { gs = Orphans.Scan(null, null); }
+            catch (Exception) { return cat; }
+            if (gs == null) return cat;
+            for (int i = 0; i < gs.Count; i++)
+            {
+                OrphanGroup g = gs[i];
+                if (g.Items.Count == 0) continue;
+                long b = 0;
+                for (int j = 0; j < g.Items.Count; j++) b += g.Items[j].Bytes;
+                CleanItem it = new CleanItem();
+                it.CategoryId = cat.Id;
+                it.Name = g.Name + "（" + g.Items.Count + Lang.T(" 项）");
+                it.Path = g.Desc;
+                it.Kind = CleanKind.OrphanGroup;
+                it.Bytes = b > 0 ? b : 1;
+                it.Data = g;
+                cat.Items.Add(it);
+            }
+            return cat;
+        }
+
         private static CleanCategory ScanInstallers(Action<string> report)
         {
-            CleanCategory cat = NewCat("installer", Lang.T("旧安装包"), Lang.T("下载目录中 14 天前的 msi/exe 安装包"), "💿", true);
+            CleanCategory cat = NewCat("installer", Lang.T("旧安装包"), Lang.T("下载目录中 3 天前的 msi/exe 安装包"), "💿", true);
             R(report, Lang.T("扫描旧安装包..."));
             string dl = Downloads;
             if (!Directory.Exists(dl)) return cat;
@@ -810,7 +917,7 @@ namespace AGCleaner.Core
             try
             {
                 string[] files = Directory.GetFiles(dl);
-                DateTime cutoff = DateTime.Now.AddDays(-14);
+                DateTime cutoff = DateTime.Now.AddDays(-3);
                 for (int i = 0; i < files.Length; i++)
                 {
                     string ext = Path.GetExtension(files[i]).ToLowerInvariant();
@@ -836,7 +943,7 @@ namespace AGCleaner.Core
                 it.Path = dl;
                 it.Kind = CleanKind.OldFilesExt;
                 it.Ext = ".msi,.exe,.msix,.appx";
-                it.OlderThanDays = 14;
+                it.OlderThanDays = 3;
                 it.MinBytes = 5 * 1024 * 1024;
                 it.Bytes = total;
                 it.Files = count;
@@ -1193,7 +1300,21 @@ namespace AGCleaner.Core
                     if (label.Length > 24) label = label.Substring(0, 24) + "…";
                     Report(prog, 1 + ((i * 96) / Math.Max(1, items.Count)), Lang.T("正在清理 ") + (i + 1) + "/" + items.Count + " · " + label);
                 }
-                if (!it.Exists) continue;
+                if (!it.Exists && it.Kind != CleanKind.OrphanGroup) continue;
+                if (it.Kind == CleanKind.OrphanGroup)
+                {
+                    OrphanGroup g = it.Data as OrphanGroup;
+                    if (g == null || g.Items.Count == 0) continue;
+                    List<string> lg = null;
+                    int err2 = 0;
+                    long freed2 = 0;
+                    try { freed2 = Orphans.Execute(g.Items, out lg, out err2); }
+                    catch (Exception) { errors++; continue; }
+                    freed += freed2;
+                    errors += err2;
+                    if (lg != null) for (int k = 0; k < lg.Count; k++) log.Add(lg[k]);
+                    continue;
+                }
                 if (it.Kind == CleanKind.RecycleBin)
                 {
                     if (Shell.EmptyRecycleBin())
@@ -1205,7 +1326,7 @@ namespace AGCleaner.Core
                     else
                     {
                         errors++;
-                        log.Add(Lang.T("回收站清空失败"));
+                        log.Add(Lang.T("回收站已被其他安全软件拦截，无法清空。请把本程序加入其信任区后重试。"));
                     }
                     continue;
                 }
