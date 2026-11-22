@@ -61,6 +61,15 @@ namespace AGCleaner
             _langBtn.Click += delegate { OpenLanguageMenu(); };
             Controls.Add(_langBtn);
 
+            _langLabel = new Label();
+            _langLabel.BackColor = Theme.Bg;
+            _langLabel.ForeColor = Theme.TextDim;
+            _langLabel.Font = Theme.F(8.2f);
+            _langLabel.TextAlign = ContentAlignment.MiddleRight;
+            _langLabel.Text = Lang.T("界面语言 / Language");
+            Controls.Add(_langLabel);
+            _langLabel.BringToFront();
+
             _docBtn = new Btn();
             _docBtn.Kind = ButtonKind.Ghost;
             _docBtn.Size = new Size(118, 28);
@@ -227,10 +236,14 @@ namespace AGCleaner
             }
 
             int y4 = y2 + hs + gap;
-            _about.SetBounds(0, y4, w, Math.Max(86, Height - y4 - 4));
+            _about.SetBounds(0, y4, w, Math.Min(150, Math.Max(110, Height - y4 - 4)));
             _langBtn.SetBounds(w - 138, 6, 128, 30);
+            _langLabel.SetBounds(w - 138 - 156, 9, 150, 24);
+            _langLabel.BringToFront();
             _docBtn.SetBounds(_about.Width - 130, 40, 118, 28);
         }
+
+        private Label _langLabel;
 
         protected override void OnResize(EventArgs e)
         {
@@ -322,7 +335,7 @@ namespace AGCleaner
             Theme.Txt(g, Lang.T("许可证：GPL-3.0 · 社区版，代码开源可审计 · 所有配置与日志只保存在本机"),
                 Theme.F(7.9f), Theme.Muted, 20, 62);
             Theme.Txt(g, Lang.T("配置目录：") + Store.RootDir, Theme.F(7.6f), Theme.Hint, 20, 84);
-            Theme.Txt(g, Lang.T("界面语言 / Language"), Theme.F(8.2f), Theme.TextDim, c.Width - 268, 46);
+            // 语言标签跟着按钮走，卡片里不再重复
         }
 
         private void OpenLanguageMenu()
