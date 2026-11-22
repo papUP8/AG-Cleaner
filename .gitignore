@@ -24,3 +24,9 @@ assets/_tmp/
 Thumbs.db
 desktop.ini
 selftest.txt
+
+# 诊断输出
+emptyrb.txt
+orphans*.txt
+scan*.txt
+
