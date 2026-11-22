@@ -305,8 +305,8 @@ namespace AGCleaner.Core
             if (s.CleanGpuShaders) cats.Add(Timed("着色器", delegate { return ScanGpu(c.Msg(Lang.T("扫描显卡着色器缓存..."))); }));
             cats.Add(Timed("日志与错误报告", delegate { return ScanLogsReports(c.Msg(Lang.T("扫描崩溃转储与错误报告..."))); })); c.Next();
             cats.Add(Timed("使用痕迹", delegate { return ScanUsage(s, c.Msg(Lang.T("扫描使用痕迹..."))); })); c.Next();
+            cats.Add(Timed("浏览器 Cookie", delegate { return ScanCookies(c.Msg(Lang.T("扫描浏览器 Cookie..."))); })); c.Next();
             if (s.DeleteOldInstallers) cats.Add(Timed("旧安装包", delegate { return ScanInstallers(c.Msg(Lang.T("扫描下载目录的旧安装包..."))); }));
-            if (s.CleanProjectArtifacts) cats.Add(Timed("项目产物", delegate { return ScanProjects(s, c.Msg(Lang.T("扫描项目构建产物..."))); }));
             cats.Add(Timed("大体积日志", delegate { return ScanBigLogs(c.Msg(Lang.T("扫描大体积日志与转储文件..."))); })); c.Next();
             cats.Add(Timed("回收站", delegate { return ScanRecycleBin(c.Msg(Lang.T("检查回收站..."))); })); c.Next();
             // 残留清理并进深度清理，用户只需一个清单、一次点击
@@ -1003,11 +1003,14 @@ namespace AGCleaner.Core
             }
         }
 
-        private static void AddFileItem(CleanCategory cat, string name, string path, bool recycle)
+        private static void AddFileItem(CleanCategory cat, string name, string path, bool recycle) { AddFileItem(cat, name, path, recycle, false); }
+
+        /// <summary>optSensitive=true 时跳过“敏感段”拦截（Cookie 这类用户显式确认才清的项）。</summary>
+        private static void AddFileItem(CleanCategory cat, string name, string path, bool recycle, bool optSensitive)
         {
             if (path == null || path.Length == 0) return;
             if (!File.Exists(path)) return;
-            if (!Guard.CanDelete(path, true)) return;
+            if (!Guard.CanDelete(path, !optSensitive)) return;
             CleanItem it = new CleanItem();
             it.CategoryId = cat.Id;
             it.Name = name;
@@ -1092,7 +1095,7 @@ namespace AGCleaner.Core
             for (int b = 0; b < ubs.Length; b++)
             {
                 string ud = Path.Combine(la, ubs[b]);
-                string[] profs = new string[] { "Default", "Profile 1", "Profile 2", "Profile 3" };
+                string[] profs = new string[] { "Default", "Profile 1", "Profile 2", "Profile 3", "Profile 4", "Profile 5" };
                 for (int k = 0; k < profs.Length; k++)
                 {
                     string pd = Path.Combine(ud, profs[k]);
@@ -1116,6 +1119,38 @@ namespace AGCleaner.Core
         }
 
         /// <summary>系统级缓存与日志：Windows 临时、更新缓存、事件日志、字体缓存、转储、旧系统备份等。</summary>
+        /// <summary>浏览器 Cookie 数据库：删除后所有网站需要重新登录，属高风险项，默认不勾选。</summary>
+        private static CleanCategory ScanCookies(Action<string> report)
+        {
+            CleanCategory cat = NewCat("cookie", Lang.T("浏览器 Cookie（高风险，可选）"), Lang.T("删除后所有网站都要重新登录；默认不勾选，确认后再删"), "", false);
+            R(report, Lang.T("扫描浏览器 Cookie..."));
+            string la = LocalAppData;
+            string ra = RoamingAppData;
+            string[] ubs = new string[] { @"Google\Chrome\User Data", @"Microsoft\Edge\User Data", @"BraveSoftware\Brave-Browser\User Data" };
+            for (int b = 0; b < ubs.Length; b++)
+            {
+                string ud = Path.Combine(la, ubs[b]);
+                string[] profs = new string[] { "Default", "Profile 1", "Profile 2", "Profile 3", "Profile 4", "Profile 5" };
+                for (int k = 0; k < profs.Length; k++)
+                {
+                    string pd = Path.Combine(ud, profs[k], "Network");
+                    AddFileItem(cat, Lang.T("Cookie 数据库") + " · " + profs[k], Path.Combine(pd, "Cookies"), true, true);
+                }
+            }
+            string ff = Path.Combine(ra, @"Mozilla\Firefox\Profiles");
+            try
+            {
+                if (Directory.Exists(ff))
+                {
+                    string[] prof2 = Directory.GetDirectories(ff);
+                    for (int i2 = 0; i2 < prof2.Length; i2++)
+                        AddFileItem(cat, Lang.T("Cookie 数据库") + " · Firefox", Path.Combine(prof2[i2], "cookies.sqlite"), true, true);
+                }
+            }
+            catch (Exception) { }
+            return cat;
+        }
+
         private static CleanCategory ScanSystem(Settings s, Action<string> report)
         {
             CleanCategory cat = NewCat("sys", Lang.T("系统缓存与日志"), Lang.T("Windows 临时文件、更新下载缓存、事件日志、字体缓存、内存转储与旧系统备份"), "", true);

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
@@ -11,12 +11,11 @@ namespace AGCleaner
     public class SettingsPage : PageBase
     {
         public override string PageTitle { get { return Lang.T("设置"); } }
-        public override string PageSubtitle { get { return Lang.T("清理偏好、白名单与项目目录；所有配置保存在本地"); } }
+        public override string PageSubtitle { get { return Lang.T("清理偏好、白名单与语言设置；所有配置保存在本地"); } }
 
         private Card _pref;
         private Card _white;
         private Card _scope;
-        private Card _proj;
         private Card _about;
         private Btn _langBtn;
         private Btn _docBtn;
@@ -24,7 +23,6 @@ namespace AGCleaner
 
         private Toggle _recycle;
         private Toggle _gpu;
-        private Toggle _projects;
         private Toggle _installers;
         private Btn _days;
 
@@ -32,8 +30,6 @@ namespace AGCleaner
         private Btn _whiteSave;
         private Btn _whiteDefault;
 
-        private TextBox _projBox;
-        private Btn _projSave;
 
         private Settings _settings;
 
@@ -49,9 +45,6 @@ namespace AGCleaner
             _white.Paint += WhitePaint;
             Controls.Add(_white);
 
-            _proj = new Card();
-            _proj.Paint += ProjPaint;
-            Controls.Add(_proj);
 
             _scope = new Card();
             _scope.Paint += ScopePaint;
@@ -66,7 +59,7 @@ namespace AGCleaner
             _langBtn.Size = new Size(110, 28);
             _langBtn.Text = Lang.NativeName(Lang.Cur);
             _langBtn.Click += delegate { OpenLanguageMenu(); };
-            _about.Controls.Add(_langBtn);
+            Controls.Add(_langBtn);
 
             _docBtn = new Btn();
             _docBtn.Kind = ButtonKind.Ghost;
@@ -80,8 +73,7 @@ namespace AGCleaner
 
             _recycle = AddToggle(_pref, 0, _settings.UseRecycleBin, delegate (bool v) { _settings.UseRecycleBin = v; _settings.Save(); });
             _gpu = AddToggle(_pref, 1, _settings.CleanGpuShaders, delegate (bool v) { _settings.CleanGpuShaders = v; _settings.Save(); });
-            _projects = AddToggle(_pref, 2, _settings.CleanProjectArtifacts, delegate (bool v) { _settings.CleanProjectArtifacts = v; _settings.Save(); });
-            _installers = AddToggle(_pref, 3, _settings.DeleteOldInstallers, delegate (bool v) { _settings.DeleteOldInstallers = v; _settings.Save(); });
+            _installers = AddToggle(_pref, 2, _settings.DeleteOldInstallers, delegate (bool v) { _settings.DeleteOldInstallers = v; _settings.Save(); });
 
             _days = new Btn();
             _days.Kind = ButtonKind.Subtle;
@@ -123,18 +115,9 @@ namespace AGCleaner
             };
             _white.Controls.Add(_whiteDefault);
 
-            _projBox = MakeEditor(_proj);
-            _proj.Controls.Add(_projBox);
 
-            _projSave = new Btn();
-            _projSave.Kind = ButtonKind.Ghost;
-            _projSave.Text = Lang.T("保存目录");
-            _projSave.Size = new Size(136, 30);
-            _projSave.Click += delegate { SaveProjects(); };
-            _proj.Controls.Add(_projSave);
 
             LoadWhiteBox();
-            LoadProjectBox();
             BuildDriveChecks();
             LayoutChildren();
         }
@@ -218,7 +201,7 @@ namespace AGCleaner
             int gap = 10;
             int leftW = (int)(w * 0.56);
             int y = HeaderH + 4;
-            int h1 = 272;
+            int h1 = 250;
             _pref.SetBounds(0, y, leftW, h1);
             _white.SetBounds(leftW + gap, y, w - leftW - gap, h1);
 
@@ -229,7 +212,7 @@ namespace AGCleaner
                 int row = (int)t.Tag;
                 t.SetBounds(_pref.Width - 62, 52 + row * 44, 46, 24);
             }
-            _days.SetBounds(_pref.Width - 96, 224, 76, 28);
+            _days.SetBounds(_pref.Width - 96, 188, 76, 28);
 
             _whiteBox.SetBounds(18, 66, _white.Width - 36, h1 - 120);
             _whiteSave.SetBounds(_white.Width - 154, h1 - 44, 136, 30);
@@ -242,16 +225,11 @@ namespace AGCleaner
             {
                 _driveChecks[i].SetBounds(20 + i * 104, 48, 96, 28);
             }
-            int y3 = y2 + hs + gap;
-            int h2 = 110;
-            _proj.SetBounds(0, y3, w, h2);
-            _projBox.SetBounds(18, 56, w - 176, h2 - 70);
-            _projSave.SetBounds(w - 154, h2 - 42, 136, 30);
 
-            int y4 = y3 + h2 + gap;
+            int y4 = y2 + hs + gap;
             _about.SetBounds(0, y4, w, Math.Max(86, Height - y4 - 4));
-            _langBtn.SetBounds(_about.Width - 130, 40, 110, 28);
-            _docBtn.SetBounds(_about.Width - 268, 12, 118, 28);
+            _langBtn.SetBounds(w - 138, 6, 128, 30);
+            _docBtn.SetBounds(_about.Width - 130, 40, 118, 28);
         }
 
         protected override void OnResize(EventArgs e)
@@ -268,12 +246,6 @@ namespace AGCleaner
             _whiteBox.Text = sb.ToString().Trim();
         }
 
-        private void LoadProjectBox()
-        {
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < _settings.ProjectDirs.Count; i++) sb.AppendLine(_settings.ProjectDirs[i]);
-            _projBox.Text = sb.ToString().Trim();
-        }
 
         private void SaveWhite()
         {
@@ -288,20 +260,6 @@ namespace AGCleaner
             Dlg.Info(FindForm(), Lang.T("已保存"), Lang.T("白名单共 ") + list.Count + Lang.T(" 条，命中的路径不会被清理。"));
         }
 
-        private void SaveProjects()
-        {
-            List<string> dirs = new List<string>();
-            string[] lines = _projBox.Text.Split('\n');
-            for (int i = 0; i < lines.Length; i++)
-            {
-                string t = lines[i].Trim();
-                if (t.Length == 0) continue;
-                if (Directory.Exists(Environment.ExpandEnvironmentVariables(t))) dirs.Add(t);
-            }
-            _settings.ProjectDirs = dirs;
-            _settings.Save();
-            Dlg.Info(FindForm(), Lang.T("已保存"), Lang.T("项目扫描目录共 ") + dirs.Count + Lang.T(" 个。"));
-        }
 
         private void ScopePaint(object sender, PaintEventArgs e)
         {
@@ -319,27 +277,27 @@ namespace AGCleaner
             Theme.Smooth(g);
             Card c = (Card)sender;
             Theme.Txt(g, Lang.T("清理偏好"), Theme.F(10.5f, FontStyle.Bold), Theme.Text, 20, 18);
-            string[] titles = new string[] { Lang.T("删除时移入回收站（更安全）"), Lang.T("扫描 GPU 着色器缓存"), Lang.T("扫描项目构建产物"), Lang.T("扫描下载目录中的旧安装包") };
+            string[] titles = new string[] { Lang.T("删除时移入回收站（更安全）"), Lang.T("扫描 GPU 着色器缓存"), Lang.T("扫描下载目录中的旧安装包") };
             string[] descs = new string[]
             {
                 Lang.T("关闭则永久删除，缓存类项目默认永久删除更省空间"),
                 Lang.T("删除后游戏与应用首次启动需重新编译着色器"),
-                Lang.T("扫描 node_modules、target、dist 等可重建目录"),
-                Lang.T("仅处理 14 天前且大于 5 MB 的 msi / exe")
+                Lang.T("仅处理下载目录中 3 天前、大于 5 MB 的 msi / exe"),
+                Lang.T("仅处理下载目录中 3 天前、大于 5 MB 的 msi / exe")
             };
-            for (int i = 0; i < 4; i++)
+            for (int i = 0; i < 3; i++)
             {
                 Theme.Txt(g, titles[i], Theme.F(8.8f), Theme.Text, 20, 50 + i * 44);
                 Theme.Txt(g, descs[i], Theme.F(7.8f), Theme.Muted, 20, 68 + i * 44);
             }
-            Theme.Txt(g, Lang.T("临时文件保留天数"), Theme.F(8.8f), Theme.Text, 20, 222);
+            Theme.Txt(g, Lang.T("临时文件保留天数"), Theme.F(8.8f), Theme.Text, 20, 186);
             int descW = c.Width - 120;
             if (descW < 120) descW = 120;
             using (StringFormat sf = new StringFormat())
             {
                 sf.Trimming = StringTrimming.EllipsisCharacter;
                 Theme.Txt(g, Lang.T("“全部”表示清空临时目录里未被占用的文件；也可以只清若干天前的文件"),
-                    Theme.F(7.6f), Theme.Muted, new Rectangle(20, 240, descW, 26), sf);
+                    Theme.F(7.6f), Theme.Muted, new Rectangle(20, 204, descW, 26), sf);
             }
         }
 
@@ -352,13 +310,6 @@ namespace AGCleaner
             Theme.Txt(g, Lang.T("每行一个路径，支持 %LOCALAPPDATA% 等环境变量，命中即跳过"), Theme.F(7.8f), Theme.Muted, 18, 42);
         }
 
-        private void ProjPaint(object sender, PaintEventArgs e)
-        {
-            Graphics g = e.Graphics;
-            Theme.Smooth(g);
-            Theme.Txt(g, Lang.T("项目扫描目录"), Theme.F(10.5f, FontStyle.Bold), Theme.Text, 18, 16);
-            Theme.Txt(g, Lang.T("每行一个目录，用于查找可重建的构建产物（需开启上方开关）"), Theme.F(7.8f), Theme.Muted, 18, 40);
-        }
 
         private void AboutPaint(object sender, PaintEventArgs e)
         {

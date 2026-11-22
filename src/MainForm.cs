@@ -47,6 +47,7 @@ namespace AGCleaner
         private List<NavItem> _navs = new List<NavItem>();
         private List<PageBase> _pages = new List<PageBase>();
         private int _current = 0;
+        public static MainForm Instance = null;
         private Timer _tick;
         private Label _verLabel;
         private Label _credit;
@@ -63,6 +64,7 @@ namespace AGCleaner
 
         public MainForm()
         {
+            Instance = this;
             Text = Lang.T("AG Cleaner 桌面清理");
             Icon = Program.AppIcon();
             FormBorderStyle = FormBorderStyle.None;
@@ -370,6 +372,7 @@ namespace AGCleaner
                 _pages[i].Dispose();
             }
             _pages.Clear();
+            Instance = this;
             Text = Lang.T("AG Cleaner 桌面清理");
             RetranslateChrome();
             AddPages(CreatePages());

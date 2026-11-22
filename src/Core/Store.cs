@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -15,7 +15,7 @@ namespace AGCleaner.Core
             get
             {
                 string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-                string dir = Path.Combine(home, ".config", "agcleaner");
+                string dir = @"D:\doubao00\AGCleaner\config";
                 if (!_migrated) { _migrated = true; MigrateLegacy(home, dir); }
                 if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
                 return dir;
@@ -27,9 +27,10 @@ namespace AGCleaner.Core
         {
             try
             {
-                string old = Path.Combine(home, ".config", "ccdesk");
+                string old = Path.Combine(home, ".config", "agcleaner");
+                if (!Directory.Exists(old)) old = Path.Combine(home, ".config", "ccdesk");
                 if (!Directory.Exists(old)) return;
-                if (Directory.Exists(dir)) return;
+                if (File.Exists(Path.Combine(dir, "settings.ini"))) return;
                 Directory.CreateDirectory(dir);
                 foreach (string name in new string[] { "settings.ini", "whitelist.txt", "operations.log", "crash.log" })
                 {

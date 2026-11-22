@@ -74,6 +74,10 @@ namespace AGCleaner
         private Panel _cta;
         private Btn _ctaBtn;
         private Label _ctaHint;
+        private static bool _everScanned = false;
+        private Panel _done;
+        private Label _doneTitle;
+        private Label _doneSub;
         private bool _doneClean;
 
         public CleanPage()
@@ -132,6 +136,39 @@ namespace AGCleaner
             Controls.Add(_prog);
             _prog.BringToFront();
 
+            _done = new Panel();
+            _done.BackColor = Theme.Bg;
+            _done.Visible = false;
+            Controls.Add(_done);
+
+            _doneTitle = new Label();
+            _doneTitle.BackColor = Theme.Bg;
+            _doneTitle.ForeColor = Theme.Text;
+            _doneTitle.Font = Theme.F(15f, FontStyle.Bold);
+            _doneTitle.TextAlign = ContentAlignment.MiddleCenter;
+            _doneTitle.Text = Lang.T("清理完成");
+            _done.Controls.Add(_doneTitle);
+
+            _doneSub = new Label();
+            _doneSub.BackColor = Theme.Bg;
+            _doneSub.ForeColor = Theme.Muted;
+            _doneSub.Font = Theme.F(9.5f);
+            _doneSub.TextAlign = ContentAlignment.MiddleCenter;
+            _doneSub.Text = Lang.T("垃圾已清完，接着处理这些");
+            _done.Controls.Add(_doneSub);
+
+            string[] nexts = new string[] { Lang.T("启动项优化"), Lang.T("卸载应用"), Lang.T("磁盘分析"), Lang.T("系统优化") };
+            int[] targets = new int[] { 2, 1, 3, 4 };
+            for (int ni = 0; ni < nexts.Length; ni++)
+            {
+                Btn b = new Btn();
+                b.Kind = ni == 0 ? ButtonKind.Accent : ButtonKind.Subtle;
+                b.Text = nexts[ni];
+                b.Size = new Size(132, 42);
+                int tgt = targets[ni];
+                b.Click += delegate { if (MainForm.Instance != null) MainForm.Instance.SelectPage(tgt); };
+                _done.Controls.Add(b);
+            }
             _cta = new Panel();
             _cta.BackColor = Theme.Bg;
             Controls.Add(_cta);
@@ -216,6 +253,25 @@ namespace AGCleaner
                 _ctaBtn.SetBounds((w - 240) / 2, (freeH - 56) / 2 - 16, 240, 56);
                 _ctaHint.SetBounds(0, (freeH - 56) / 2 + 50, w, 22);
             }
+            if (_done != null)
+            {
+                int freeH = Height - listTop - 72;
+                if (freeH < 150) freeH = 150;
+                _done.SetBounds(0, listTop, w, freeH);
+                _doneTitle.SetBounds(0, freeH / 2 - 92, w, 32);
+                _doneSub.SetBounds(0, freeH / 2 - 54, w, 22);
+                int bw = 132, gap = 12, total = bw * 4 + gap * 3;
+                int bx = (w - total) / 2;
+                int by = freeH / 2 - 6;
+                int nth = 0;
+                for (int ci = 0; ci < _done.Controls.Count; ci++)
+                {
+                    Btn b = _done.Controls[ci] as Btn;
+                    if (b == null) continue;
+                    b.SetBounds(bx + nth * (bw + gap), by, bw, 42);
+                    nth++;
+                }
+            }
         }
 
         protected override void OnResize(EventArgs e)
@@ -235,6 +291,7 @@ namespace AGCleaner
             _doneClean = false;
             _modeReset();
             _busy = true;
+            _everScanned = true;
             UpdateIdleState();
             _status = Lang.T("正在扫描...");
             _list.Clear();
@@ -410,17 +467,25 @@ namespace AGCleaner
 
         private void UpdateIdleState()
         {
-            bool idle = !_doneClean && _cats.Count == 0 && !_busy;
+            bool idle = !_everScanned && _cats.Count == 0 && !_busy;
+            bool doneView = _doneClean && !_busy;
+            if (_done != null)
+            {
+                _done.Visible = doneView;
+                if (doneView) _done.BringToFront();
+            }
             if (_cta != null)
             {
                 _cta.Visible = idle;
                 if (idle) _cta.BringToFront();
             }
-            if (_list != null) _list.Visible = !idle;
-            if (_scanBtn != null) _scanBtn.Visible = !idle;
-            if (_allBtn != null) _allBtn.Visible = !idle;
-            if (_invBtn != null) _invBtn.Visible = !idle;
-            if (_bar != null) _bar.Visible = !idle;
+            if (_list != null) _list.Visible = !idle && !doneView;
+            if (_doneTitle != null && doneView)
+                _doneTitle.Text = Lang.T("清理完成 · 释放 ") + Byt.Format(_lastFreed);
+            if (_scanBtn != null) _scanBtn.Visible = !idle && !doneView;
+            if (_allBtn != null) _allBtn.Visible = !idle && !doneView;
+            if (_invBtn != null) _invBtn.Visible = !idle && !doneView;
+            if (_bar != null) _bar.Visible = !idle && !doneView;
         }
 
         private void OpenDetail()
@@ -519,13 +584,17 @@ namespace AGCleaner
                 bytes += selected[i].Bytes;
                 if (selected[i].Recycle) recycle = true;
             }
+            bool hasCookie = false;
+            for (int ci = 0; ci < selected.Count; ci++) if (selected[ci].CategoryId == "cookie") hasCookie = true;
             string mode = recycle ? Lang.T("所选项目将移入回收站（可恢复，但不释放磁盘空间）。") : Lang.T("所选项目将被永久删除。");
+            if (hasCookie) mode += Lang.T("\n注意：清单里有 Cookie 数据库，删除后这些网站的登录状态全部失效，需要重新登录。");
             bool ok = Dlg.Confirm(FindForm(), Lang.T("确认清理 ") + selected.Count + Lang.T(" 项？"),
                 Lang.T("预计释放 ") + Byt.Format(bytes) + "。\n" + mode + Lang.T("\n受保护目录、白名单路径与敏感目录已自动排除，不会出现在清单里。"),
                 Lang.T("开始清理"), false);
             if (!ok) return;
 
             _busy = true;
+            _everScanned = true;
             UpdateIdleState();
             _spinner.Spin(true);
             _scanBtn.Enabled = false;
@@ -589,6 +658,7 @@ namespace AGCleaner
                             : Lang.T("全部处理完成；来源路径与体积已写入操作日志，可在历史记录页导出 CSV");
                         Dlg.Report(FindForm(), Lang.T("清理完成"), summary, lines, hint);
                         ResetAfterClean(f);
+                        UpdateIdleState();
                     });
                 }
                 catch (Exception) { }
