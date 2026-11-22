@@ -1,0 +1,59 @@
+TEMP=C:\Users\ADMINI~1\AppData\Local\Temp
+LAD=C:\Users\Administrator\AppData\Local
+WL count=8
+CAN(deletable)=True
+SIZEOLD=409941533 bytes / 834 files
+临时文件 -> 1 items, 968 MB
+    用户临时目录 | 968 MB | C:\Users\ADMINI~1\AppData\Local\Temp
+浏览器缓存 -> 19 items, 356 MB
+    Chrome · Profile 5\Cache | 150 MB | C:\Users\Administrator\AppData\Local\Google\Chrome\User Data\Profile 5\Cache
+    Chrome · Profile 5\Code Cache | 33.3 MB | C:\Users\Administrator\AppData\Local\Google\Chrome\User Data\Profile 5\Code Cache
+    Chrome · Profile 5\GPUCache | 544 KB | C:\Users\Administrator\AppData\Local\Google\Chrome\User Data\Profile 5\GPUCache
+    Chrome · Profile 5\DawnGraphiteCache | 544 KB | C:\Users\Administrator\AppData\Local\Google\Chrome\User Data\Profile 5\DawnGraphiteCache
+    Chrome · Profile 5\DawnWebGPUCache | 544 KB | C:\Users\Administrator\AppData\Local\Google\Chrome\User Data\Profile 5\DawnWebGPUCache
+    Chrome · Profile 5\Service Worker\ScriptCache | 33.3 KB | C:\Users\Administrator\AppData\Local\Google\Chrome\User Data\Profile 5\Service Worker\ScriptCache
+    Chrome · ShaderCache | 544 KB | C:\Users\Administrator\AppData\Local\Google\Chrome\User Data\ShaderCache
+    Chrome · GrShaderCache | 544 KB | C:\Users\Administrator\AppData\Local\Google\Chrome\User Data\GrShaderCache
+应用缓存 -> 9 items, 7.27 MB
+    WPS Office 缓存 | 1.03 MB | C:\Users\Administrator\AppData\Roaming\Kingsoft\office6\cache
+    OC Ferry · Code Cache | 1.54 KB | C:\Users\Administrator\AppData\Roaming\OC Ferry\Code Cache
+    OC Ferry · GPUCache | 544 KB | C:\Users\Administrator\AppData\Roaming\OC Ferry\GPUCache
+    OC Ferry · ShaderCache | 544 KB | C:\Users\Administrator\AppData\Roaming\OC Ferry\ShaderCache
+    OC Ferry · DawnGraphiteCache | 544 KB | C:\Users\Administrator\AppData\Roaming\OC Ferry\DawnGraphiteCache
+    OC Ferry · DawnWebGPUCache | 544 KB | C:\Users\Administrator\AppData\Roaming\OC Ferry\DawnWebGPUCache
+    fontconfig · Cache | 2.22 MB | C:\Users\Administrator\AppData\Local\fontconfig\Cache
+    UWP · Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy\TempState | 943 KB | C:\Users\Administrator\AppData\Local\Packages\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy\TempState
+系统痕迹缓存 -> 4 items, 23.2 MB
+    缩略图与图标缓存 | 13.1 MB | C:\Users\Administrator\AppData\Local\Microsoft\Windows\Explorer
+    资源管理器图标缓存 | 1.07 MB | C:\Users\Administrator\AppData\Local\Microsoft\Windows\Caches
+    远程桌面连接缓存 | 8.99 MB | C:\Users\Administrator\AppData\Local\Microsoft\Terminal Server Client\Cache
+    主题缩略图缓存 | 32.5 KB | C:\Users\Administrator\AppData\Roaming\Microsoft\Windows\Themes\CachedFiles
+系统缓存与日志 -> 12 items, 131 MB
+    Windows 临时目录 | 251 B | C:\Windows\Temp
+    Windows 系统日志 | 6.13 MB | C:\Windows\Logs
+    组件服务日志 CBS | 2.28 MB | C:\Windows\Logs\CBS
+    Windows 更新日志 | 788 KB | C:\Windows\Logs\WindowsUpdate
+    Windows 事件日志 | 22.0 MB | C:\Windows\System32\winevt\Logs
+    字体缓存（系统） | 33.2 MB | C:\Windows\ServiceProfiles\LocalService\AppData\Local\FontCache
+    系统错误报告队列 | 30.5 KB | C:\ProgramData\Microsoft\Windows\WER\ReportQueue
+    系统服务日志 LogFiles | 42.0 MB | C:\Windows\System32\LogFiles
+系统深度清理 -> 3 items, 1.12 GB
+    系统组件缓存 WinSxS | 19.4 MB | C:\Windows\WinSxS\Temp
+    搜索索引数据库 | 631 MB | C:\ProgramData\Microsoft\Search\Data
+    安装包缓存 Package Cache | 493 MB | C:\ProgramData\Package Cache
+日志与错误报告 -> 3 items, 2.85 MB
+    错误报告队列（系统级） | 30.5 KB | C:\ProgramData\Microsoft\Windows\WER\ReportQueue
+    IE / INetCache 临时文件 | 1.79 MB | C:\Users\Administrator\AppData\Local\Microsoft\Windows\INetCache
+    WPS 缓存 | 1.03 MB | C:\Users\Administrator\AppData\Roaming\Kingsoft\office6\cache
+使用痕迹（可选） -> 2 items, 1.62 MB
+    最近使用的文档 | 176 KB | C:\Users\Administrator\AppData\Roaming\Microsoft\Windows\Recent
+    通知中心历史 | 1.45 MB | C:\Users\Administrator\AppData\Local\Microsoft\Windows\Notifications
+旧安装包 -> 0 items, 0 B
+大体积日志与转储 -> 3 items, 221 MB
+    20261117\sandbox_center_8460_000.log | 66.3 MB | C:\Users\Administrator\.workbuddy\logs\sandbox\20261117\sandbox_center_8460_000.log
+    20261118\sandbox_center_8460_000.log | 100 MB | C:\Users\Administrator\.workbuddy\logs\sandbox\20261118\sandbox_center_8460_000.log
+    20261118\sandbox_center_8460_001.log | 54.4 MB | C:\Users\Administrator\.workbuddy\logs\sandbox\20261118\sandbox_center_8460_001.log
+回收站 -> 1 items, 2.69 MB
+    回收站 | 2.69 MB | recycle:
+TEMP=C:\Users\ADMINI~1\AppData\Local\Temp
+CAN=True
