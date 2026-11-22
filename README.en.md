@@ -6,7 +6,7 @@ Built for people who don't want a bundled suite or a ten-article tutorial to cle
 
 ## Download
 
-Grab `AG-Cleaner.exe` (about 800 KB, portable) from [Releases](../../releases/latest).
+Grab `AG-Cleaner.exe` (about 820 KB, portable) from [Releases](../../releases/latest).
 
 - Requires the .NET Framework 4.8 shipped with Windows 10 / 11; no .NET SDK, no Node/Electron
 - No network, nothing uploaded; config and logs stay in `%USERPROFILE%\.config\agcleaner`
