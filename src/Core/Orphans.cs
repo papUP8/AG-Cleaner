@@ -127,6 +127,11 @@ namespace AGCleaner.Core
             groups.Add(ScanShortcuts(report));
             if (prog != null) prog(88, Lang.T("扫描失效启动项..."));
             groups.Add(ScanStartup(report));
+            if (prog != null) prog(92, Lang.T("扫描空目录与空文件..."));
+            groups.Add(ScanEmptyDirs(report));
+            groups.Add(ScanEmptyFiles(report));
+            if (prog != null) prog(97, Lang.T("扫描空注册表键..."));
+            groups.Add(ScanEmptyRegKeys(report));
             if (prog != null) prog(100, Lang.T("残留扫描完成"));
             return groups;
         }
@@ -854,6 +859,248 @@ namespace AGCleaner.Core
             return g;
         }
 
+        // ---------- 空目录 / 空文件 / 空注册表键 ----------
+
+        private static string[] EmptyRoots()
+        {
+            List<string> roots = new List<string>();
+            roots.Add(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory));
+            roots.Add(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments));
+            roots.Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads"));
+            roots.Add(Environment.GetFolderPath(Environment.SpecialFolder.MyPictures));
+            roots.Add(Environment.GetFolderPath(Environment.SpecialFolder.MyMusic));
+            roots.Add(Environment.GetFolderPath(Environment.SpecialFolder.MyVideos));
+            List<string> ok = new List<string>();
+            for (int i = 0; i < roots.Count; i++)
+            {
+                if (roots[i] != null && roots[i].Length > 0 && Directory.Exists(roots[i]) && !ok.Contains(roots[i])) ok.Add(roots[i]);
+            }
+            return ok.ToArray();
+        }
+
+        private static bool SkipEmptyName(string name)
+        {
+            string n = name.ToLowerInvariant();
+            return n == "system volume information" || n == "$recycle.bin" || n == ".git" ||
+                   n == "node_modules" || n == "desktop.ini" || n == ".gitkeep" || n == "thumbs.db";
+        }
+
+        private static int[] VisitBudget = new int[] { 20000 };
+
+        /// <summary>返回该目录是否（在忽略空子目录后）完全为空；顺带收集空子目录。</summary>
+        private static bool WalkEmpty(string dir, int depth, List<string> found, int limit)
+        {
+            if (depth > 4 || found.Count >= limit) return false;
+            if (VisitBudget[0]-- <= 0) return false;
+            string[] entries;
+            try { entries = Directory.GetFileSystemEntries(dir); }
+            catch (Exception) { return false; }
+            bool allEmpty = true;
+            for (int i = 0; i < entries.Length; i++)
+            {
+                string e = entries[i];
+                try
+                {
+                    FileAttributes attr = File.GetAttributes(e);
+                    if ((attr & FileAttributes.ReparsePoint) == FileAttributes.ReparsePoint) { allEmpty = false; continue; }
+                    if ((attr & FileAttributes.Directory) != FileAttributes.Directory) { allEmpty = false; continue; }
+                    if (SkipEmptyName(Path.GetFileName(e))) { allEmpty = false; continue; }
+                    if (WalkEmpty(e, depth + 1, found, limit))
+                    {
+                        if (found.Count < limit) found.Add(e);
+                    }
+                    else
+                    {
+                        allEmpty = false;
+                    }
+                }
+                catch (Exception) { allEmpty = false; }
+            }
+            return allEmpty;
+        }
+
+        private static OrphanGroup ScanEmptyDirs(Action<string> report)
+        {
+            OrphanGroup g = new OrphanGroup();
+            g.Id = "empty";
+            g.Name = Lang.T("空目录");
+            g.Desc = Lang.T("桌面、文档、下载、图片、音乐、视频里不含任何文件的目录（删除不影响任何数据）");
+            R(report, Lang.T("扫描空目录..."));
+            VisitBudget[0] = 6000;
+            string[] roots = EmptyRoots();
+            List<string> found = new List<string>();
+            for (int i = 0; i < roots.Length && found.Count < 400; i++)
+            {
+                string root = roots[i];
+                string[] entries;
+                try { entries = Directory.GetDirectories(root); }
+                catch (Exception) { continue; }
+                for (int j = 0; j < entries.Length && found.Count < 400; j++)
+                {
+                    if (SkipEmptyName(Path.GetFileName(entries[j]))) continue;
+                    try
+                    {
+                        if ((File.GetAttributes(entries[j]) & FileAttributes.ReparsePoint) == FileAttributes.ReparsePoint) continue;
+                    }
+                    catch (Exception) { continue; }
+                    if (WalkEmpty(entries[j], 0, found, 400)) found.Add(entries[j]);
+                }
+            }
+            // 只保留最外层：父目录本身也是空的就不用再单列子目录
+            List<string> top = new List<string>();
+            Dictionary<string, bool> set = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
+            for (int i = 0; i < found.Count; i++) set[Guard.Norm(found[i])] = true;
+            for (int i = 0; i < found.Count; i++)
+            {
+                string parent = Path.GetDirectoryName(found[i]);
+                if (parent != null && set.ContainsKey(Guard.Norm(parent))) continue;
+                top.Add(found[i]);
+            }
+            found = top;
+            for (int i = 0; i < found.Count; i++)
+            {
+                OrphanItem it = new OrphanItem();
+                it.GroupId = g.Id;
+                it.Kind = "emptyDir";
+                it.Name = Path.GetFileName(found[i]);
+                it.Target = found[i];
+                it.Detail = found[i];
+                it.Bytes = 0;
+                g.Items.Add(it);
+            }
+            R(report, Lang.T("空目录：") + g.Items.Count + Lang.T(" 项"));
+            return g;
+        }
+
+        private static OrphanGroup ScanEmptyFiles(Action<string> report)
+        {
+            OrphanGroup g = new OrphanGroup();
+            g.Id = "emptyfile";
+            g.Name = Lang.T("空文件");
+            g.Desc = Lang.T("桌面、文档、下载、图片、音乐、视频里 7 天前创建、大小为 0 的文件");
+            R(report, Lang.T("扫描空文件..."));
+            VisitBudget[0] = 6000;
+            string[] roots = EmptyRoots();
+            DateTime cutoff = DateTime.Now.AddDays(-7);
+            for (int r = 0; r < roots.Length && g.Items.Count < 400; r++)
+            {
+                CollectEmptyFiles(g, roots[r], cutoff, 0, report);
+            }
+            R(report, Lang.T("空文件：") + g.Items.Count + Lang.T(" 项"));
+            return g;
+        }
+
+        private static void CollectEmptyFiles(OrphanGroup g, string dir, DateTime cutoff, int depth, Action<string> report)
+        {
+            if (depth > 4 || g.Items.Count >= 400) return;
+            if (VisitBudget[0]-- <= 0) return;
+            string[] files;
+            try { files = Directory.GetFiles(dir); }
+            catch (Exception) { files = new string[0]; }
+            for (int i = 0; i < files.Length && g.Items.Count < 400; i++)
+            {
+                string f = files[i];
+                string n = Path.GetFileName(f).ToLowerInvariant();
+                if (n == "desktop.ini" || n == ".gitkeep" || n == "thumbs.db") continue;
+                try
+                {
+                    FileInfo fi = new FileInfo(f);
+                    if (fi.Length != 0 || fi.LastWriteTime >= cutoff) continue;
+                    if (!Guard.CanDelete(f, true)) continue;
+                    OrphanItem it = new OrphanItem();
+                    it.GroupId = g.Id;
+                    it.Kind = "emptyFile";
+                    it.Name = Path.GetFileName(f);
+                    it.Target = f;
+                    it.Detail = f;
+                    it.Bytes = 0;
+                    g.Items.Add(it);
+                }
+                catch (Exception) { }
+            }
+            string[] subs;
+            try { subs = Directory.GetDirectories(dir); }
+            catch (Exception) { return; }
+            for (int i = 0; i < subs.Length; i++)
+            {
+                try
+                {
+                    FileAttributes attr = File.GetAttributes(subs[i]);
+                    if ((attr & FileAttributes.ReparsePoint) == FileAttributes.ReparsePoint) continue;
+                }
+                catch (Exception) { continue; }
+                if (SkipEmptyName(Path.GetFileName(subs[i]))) continue;
+                CollectEmptyFiles(g, subs[i], cutoff, depth + 1, report);
+            }
+        }
+
+        private static readonly string[] RegSkipNames = new string[]
+        {
+            "microsoft", "classes", "policies", "wow6432node", "registeredapplications", "clients",
+            "licensedposix", "microsoft\\windows", "microsoft\\office", "microsoft\\internet"
+        };
+
+        private static OrphanGroup ScanEmptyRegKeys(Action<string> report)
+        {
+            OrphanGroup g = new OrphanGroup();
+            g.Id = "emptyreg";
+            g.Name = Lang.T("空注册表键");
+            g.Desc = Lang.T("HKCU\\Software 下既没有值也没有子键的空壳键（删除前自动导出备份，软件会按需重建）");
+            R(report, Lang.T("扫描空注册表键..."));
+            try
+            {
+                using (RegistryKey soft = Registry.CurrentUser.OpenSubKey("Software"))
+                {
+                    if (soft != null)
+                    {
+                        string[] names = soft.GetSubKeyNames();
+                        for (int i = 0; i < names.Length && g.Items.Count < 200; i++)
+                        {
+                            string vendor = names[i];
+                            if (vendor.ToLowerInvariant() == "agcleaner") continue;
+                            using (RegistryKey vk = soft.OpenSubKey(vendor))
+                            {
+                                if (vk == null) continue;
+                                if (vk.ValueCount == 0 && vk.SubKeyCount == 0)
+                                {
+                                    AddEmptyReg(g, "Software\\" + vendor, vendor);
+                                    continue;
+                                }
+                                string[] subs = vk.GetSubKeyNames();
+                                for (int j = 0; j < subs.Length && g.Items.Count < 200; j++)
+                                {
+                                    using (RegistryKey sk = vk.OpenSubKey(subs[j]))
+                                    {
+                                        if (sk == null) continue;
+                                        if (sk.ValueCount == 0 && sk.SubKeyCount == 0)
+                                        {
+                                            AddEmptyReg(g, "Software\\" + vendor + "\\" + subs[j], vendor + "\\" + subs[j]);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception) { }
+            R(report, Lang.T("空注册表键：") + g.Items.Count + Lang.T(" 项"));
+            return g;
+        }
+
+        private static void AddEmptyReg(OrphanGroup g, string path, string label)
+        {
+            OrphanItem it = new OrphanItem();
+            it.GroupId = g.Id;
+            it.Kind = "reg";
+            it.Name = label;
+            it.Target = "HKCU\\" + path;
+            it.Detail = Lang.T("空键，无任何值与子键");
+            it.Hive = "HKCU";
+            it.KeyPath = path;
+            g.Items.Add(it);
+        }
+
         // ---------- 执行 ----------
 
         public static long Execute(List<OrphanItem> items, out List<string> log, out int errors)
@@ -889,6 +1136,29 @@ namespace AGCleaner.Core
                             errors++;
                             log.Add(Lang.T("回收站拒绝（可能被占用）：") + it.Target);
                         }
+                    }
+                    else if (it.Kind == "emptyDir")
+                    {
+                        if (!Guard.CanDelete(it.Target, true)) { errors++; log.Add(Lang.T("跳过（受保护）：") + it.Target); continue; }
+                        try
+                        {
+                            Directory.Delete(it.Target, false);
+                            if (Directory.Exists(it.Target)) { errors++; log.Add(Lang.T("目录仍存在：") + it.Target); continue; }
+                            log.Add(Lang.T("已删除空目录：") + it.Target);
+                            OpLog.Write("orphan", Lang.T("删除空目录 ") + it.Target, 0);
+                        }
+                        catch (Exception ex) { errors++; log.Add(Lang.T("删除失败：") + it.Target + " · " + ex.Message); }
+                    }
+                    else if (it.Kind == "emptyFile")
+                    {
+                        try
+                        {
+                            File.Delete(it.Target);
+                            if (File.Exists(it.Target)) { errors++; log.Add(Lang.T("文件仍存在：") + it.Target); continue; }
+                            log.Add(Lang.T("已删除空文件：") + it.Target);
+                            OpLog.Write("orphan", Lang.T("删除空文件 ") + it.Target, 0);
+                        }
+                        catch (Exception ex) { errors++; log.Add(Lang.T("删除失败：") + it.Target + " · " + ex.Message); }
                     }
                     else if (it.Kind == "reg")
                     {
