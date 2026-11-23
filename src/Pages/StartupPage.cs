@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Threading;
@@ -122,10 +122,11 @@ namespace AGCleaner
         {
             if (_busy) return;
             _busy = true;
-            _spinner.Spin(true);
-            _prog.Visible = true;
-            _prog.BringToFront();
-            _prog.SetProgress(5, Lang.T("读取注册表与服务列表..."));
+            _spinner.Spin(false); // 加载提示统一放在列表正中
+            _prog.Visible = false;
+            _list.SetLoading(true, Lang.T("正在检查启动项..."), Lang.T("正在读取注册表、启动文件夹与计划任务"));
+            _status = Lang.T("正在读取注册表与服务列表...");
+            _bar.Invalidate();
             LayoutChildren();
             ThreadPool.QueueUserWorkItem(delegate
             {
@@ -139,6 +140,7 @@ namespace AGCleaner
                         _busy = false;
                         _spinner.Spin(false);
                         _prog.Visible = false;
+                        _list.SetLoading(false, null);
                         LayoutChildren();
                         _items = on == null ? new List<StartupItem>() : on;
                         BuildChips();

@@ -348,19 +348,35 @@ namespace AGCleaner
         {
             base.OnPaint(e);
             if (!ScrollbarNeeded) return;
+            Theme.FillRound(e.Graphics, ThumbRect(), 4, Theme.Scroll);
+        }
+
+        private Rectangle ThumbRect()
+        {
             int h = ClientSize.Height;
             int thumbH = Math.Max(40, (int)(h * (double)h / Math.Max(1, _contentHeight)));
-            int max = _contentHeight - h;
+            int max = Math.Max(1, _contentHeight - h);
             int y = max <= 0 ? 0 : (int)((h - thumbH) * ((double)_scroll / max));
-            Rectangle bar = new Rectangle(ClientSize.Width - 9, y, 4, thumbH);
-            Theme.FillRound(e.Graphics, bar, 2, Theme.Scroll);
+            return new Rectangle(ClientSize.Width - 13, y, 9, thumbH);
         }
 
         protected override void OnMouseDown(MouseEventArgs e)
         {
             base.OnMouseDown(e);
-            if (ScrollbarNeeded && e.X >= ClientSize.Width - 16)
+            if (ScrollbarNeeded && e.X >= ClientSize.Width - 20)
             {
+                // 点在轨道空白处先跳到该位置，再进入拖动，操作起来更接近系统滚动条
+                int h = ClientSize.Height;
+                int thumbH = Math.Max(40, (int)(h * (double)h / Math.Max(1, _contentHeight)));
+                int max = Math.Max(1, _contentHeight - h);
+                if (e.Y < ThumbRect().Top || e.Y > ThumbRect().Bottom)
+                {
+                    int target = (int)((e.Y - thumbH / 2.0) / Math.Max(1, h - thumbH) * max);
+                    _scroll = Math.Max(0, Math.Min(target, max));
+                    Clamp();
+                    Invalidate();
+                    Canvas.Invalidate();
+                }
                 _dragging = true;
                 _dragStartY = e.Y;
                 _dragStartScroll = _scroll;
@@ -372,7 +388,8 @@ namespace AGCleaner
             base.OnMouseMove(e);
             if (!_dragging) return;
             int max = Math.Max(1, _contentHeight - ClientSize.Height);
-            int span = Math.Max(1, ClientSize.Height);
+            int thumbH = Math.Max(40, (int)(ClientSize.Height * (double)ClientSize.Height / Math.Max(1, _contentHeight)));
+            int span = Math.Max(1, ClientSize.Height - thumbH);
             int delta = (int)((e.Y - _dragStartY) * (double)max / span);
             _scroll = _dragStartScroll + delta;
             Clamp();
@@ -402,6 +419,8 @@ namespace AGCleaner
         public bool Checked = false;
         public bool Disabled = false;
         public bool Alarm = false;
+        /// <summary>高风险项：标题、标签与右侧数字统一用警示色，方便一眼挑出来。</summary>
+        public bool Risk = false;
         public double Fraction = -1;
         public Color BarColor = Theme.Accent;
         public object Data;
@@ -428,6 +447,16 @@ namespace AGCleaner
         private int _hover = -1;
         private int _selected = -1;
         private bool _anyAction = false;
+        private bool _sbDrag = false;
+        private int _sbDragY = 0;
+        private int _sbDragScroll = 0;
+
+        // 加载态：列表还空着在等数据时，画一个居中的转圈和提示，避免让人以为程序停了
+        private bool _loading = false;
+        private string _loadingText = "";
+        private string _loadingHint = "";
+        private double _spin = 0;
+        private Timer _spinTimer;
 
         public event EventHandler CheckChanged;
         public event EventHandler RowActivated;
@@ -438,7 +467,28 @@ namespace AGCleaner
             SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint |
                      ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
             BackColor = Theme.Bg;
+            _spinTimer = new Timer();
+            _spinTimer.Interval = 60;
+            _spinTimer.Tick += delegate { _spin += 12; if (_spin >= 360) _spin -= 360; if (_loading) Invalidate(); };
         }
+
+        /// <summary>进入/退出加载态。on=true 时列表不再显示“暂无内容”，改画居中的转圈与提示文字。</summary>
+        public void SetLoading(bool on, string text)
+        {
+            SetLoading(on, text, "");
+        }
+
+        public void SetLoading(bool on, string text, string hint)
+        {
+            _loading = on;
+            if (text != null) _loadingText = text;
+            if (hint != null) _loadingHint = hint;
+            if (_loading) { if (!_spinTimer.Enabled) _spinTimer.Start(); }
+            else _spinTimer.Stop();
+            Invalidate();
+        }
+
+        public bool Loading { get { return _loading; } }
 
         public List<VRow> Rows { get { return _rows; } }
 
@@ -518,6 +568,34 @@ namespace AGCleaner
 
         private int HeaderHeight { get { return RightHeader.Length > 0 ? 30 : 4; } }
 
+        /// <summary>滚动条宽度与可点区域：条本身 10px，连同留白 22px 都可抓，免得点不中。</summary>
+        public const int ScrollBarW = 10;
+        private const int ScrollHitW = 22;
+
+        private int TotalHeight { get { return _view.Count * RowHeight + HeaderHeight; } }
+        private bool HasScrollBar { get { return TotalHeight > Height; } }
+
+        private Rectangle ThumbRect()
+        {
+            int total = TotalHeight;
+            if (total <= Height) return Rectangle.Empty;
+            int thumbH = Math.Max(48, (int)(Height * (double)Height / total));
+            int max = Math.Max(1, total - Height);
+            int y = (int)((Height - thumbH) * ((double)_scroll / max));
+            return new Rectangle(Width - ScrollBarW - 6, y, ScrollBarW, thumbH);
+        }
+
+        private void DragTo(int y)
+        {
+            int total = TotalHeight;
+            if (total <= Height) return;
+            Rectangle th = ThumbRect();
+            int span = Math.Max(1, Height - th.Height);
+            int max = Math.Max(1, total - Height);
+            int delta = (int)((y - _sbDragY) * (double)max / span);
+            SetScroll(_sbDragScroll + delta);
+        }
+
         private int IndexAt(int y)
         {
             int i = (y + _scroll - HeaderHeight) / RowHeight;
@@ -535,6 +613,13 @@ namespace AGCleaner
         protected override void OnMouseMove(MouseEventArgs e)
         {
             base.OnMouseMove(e);
+            if (_sbDrag)
+            {
+                DragTo(e.Y);
+                return;
+            }
+            bool overBar = HasScrollBar && e.X >= Width - ScrollHitW;
+            Cursor = overBar ? Cursors.Hand : Cursors.Default;
             int idx = IndexAt(e.Y);
             if (idx != _hover)
             {
@@ -546,13 +631,36 @@ namespace AGCleaner
         protected override void OnMouseLeave(EventArgs e)
         {
             _hover = -1;
+            Cursor = Cursors.Default;
             Invalidate();
             base.OnMouseLeave(e);
+        }
+
+        protected override void OnMouseUp(MouseEventArgs e)
+        {
+            _sbDrag = false;
+            base.OnMouseUp(e);
         }
 
         protected override void OnMouseDown(MouseEventArgs e)
         {
             base.OnMouseDown(e);
+            if (HasScrollBar && e.X >= Width - ScrollHitW)
+            {
+                // 轨道空白处点击先跳到该位置，再进入拖动；按在滑块上则直接拖
+                Rectangle th = ThumbRect();
+                if (e.Y < th.Top || e.Y > th.Bottom)
+                {
+                    int max = Math.Max(1, TotalHeight - Height);
+                    int span = Math.Max(1, Height - th.Height);
+                    int target = (int)((e.Y - th.Height / 2.0) / span * max);
+                    SetScroll(target);
+                }
+                _sbDrag = true;
+                _sbDragY = e.Y;
+                _sbDragScroll = _scroll;
+                return;
+            }
             int idx = IndexAt(e.Y);
             if (idx < 0) return;
             VRow row = _view[idx];
@@ -589,7 +697,7 @@ namespace AGCleaner
             if (row.Action.Length <= 0) return Rectangle.Empty;
             int w = 62;
             int top = HeaderHeight + idx * RowHeight - _scroll;
-            return new Rectangle(Width - w - 16, top + (RowHeight - 26) / 2, w, 26);
+            return new Rectangle(Width - w - 26, top + (RowHeight - 26) / 2, w, 26);
         }
 
         protected override void OnPaint(PaintEventArgs e)
@@ -611,12 +719,41 @@ namespace AGCleaner
                 {
                     int hw = RightW;
                     int ax = _anyAction ? 90 : 0;
-                    Theme.Txt(g, RightHeader, Theme.F(8.5f), Theme.Muted, new Rectangle(Width - hw - ax - 6, 6, hw - 6, 20), sf);
+                    Theme.Txt(g, RightHeader, Theme.F(8.5f), Theme.Muted, new Rectangle(Width - hw - ax - 14, 6, hw - 6, 20), sf);
                 }
                 using (Pen p = new Pen(Theme.BorderSoft))
                 {
                     g.DrawLine(p, 4, HeaderHeight - 8, Width - 4, HeaderHeight - 8);
                 }
+            }
+
+            if (_loading)
+            {
+                // 与清理页的进度圆环同尺寸：同样的直径算法、同样的描边粗细，各页看起来一致
+                int d = Math.Min(Math.Min(Width - 160, Height - 190), 200);
+                if (d < 104) d = 104;
+                int cy = Math.Max(8, Height / 2 - d / 2 - 46);
+                Rectangle ringRect = new Rectangle(Width / 2 - d / 2, cy, d, d);
+                int pen = Math.Max(10, d / 14);
+                using (Pen p = new Pen(Theme.Track, pen))
+                {
+                    g.DrawEllipse(p, ringRect);
+                }
+                using (Pen p = new Pen(Theme.Accent, pen))
+                {
+                    p.StartCap = System.Drawing.Drawing2D.LineCap.Round;
+                    p.EndCap = System.Drawing.Drawing2D.LineCap.Round;
+                    g.DrawArc(p, ringRect, (float)(-90 + _spin), 90f);
+                }
+                using (StringFormat sf = Theme.SF(StringAlignment.Center, StringAlignment.Near))
+                {
+                    Theme.Txt(g, _loadingText.Length == 0 ? Lang.T("正在加载...") : _loadingText, Theme.F(10f), Theme.TextDim,
+                              new Rectangle(0, ringRect.Bottom + 18, Width, 26), sf);
+                    if (_loadingHint.Length > 0)
+                        Theme.Txt(g, _loadingHint, Theme.F(8.5f), Theme.Hint,
+                                  new Rectangle(0, ringRect.Bottom + 50, Width, 22), sf);
+                }
+                return;
             }
 
             if (_view.Count == 0)
@@ -644,10 +781,7 @@ namespace AGCleaner
             int total = _view.Count * RowHeight + HeaderHeight;
             if (total > Height)
             {
-                int thumbH = Math.Max(36, (int)(Height * (double)Height / total));
-                int max = total - Height;
-                int y = (int)((Height - thumbH) * ((double)_scroll / Math.Max(1, max)));
-                Theme.FillRound(g, new Rectangle(Width - 7, y, 4, thumbH), 2, Theme.Scroll);
+                Theme.FillRound(g, ThumbRect(), ScrollBarW / 2, Theme.Scroll);
             }
         }
 
@@ -685,9 +819,9 @@ namespace AGCleaner
             // 右侧“体积/状态”列与操作按钮列宽固定，标题、标签、数字互相避让，不再叠字
             int rightW = RightW;
             int actionW = row.Action.Length > 0 ? 78 : 0;
-            int rightX = Width - rightW - actionW - 6;
+            int rightX = Width - rightW - actionW - 20;
 
-            Color titleColor = row.Disabled ? Theme.Muted : Theme.Text;
+            Color titleColor = row.Disabled ? Theme.Muted : (row.Risk ? Theme.Danger : Theme.Text);
             int textW = Math.Max(40, rightX - textX - 34);
             using (StringFormat sf = Theme.SF(StringAlignment.Near, StringAlignment.Near))
             {
@@ -723,12 +857,13 @@ namespace AGCleaner
             if (row.Tag.Length > 0)
             {
                 Font tf = Theme.F(7.5f);
+                Color tagColor = row.Risk ? Theme.Danger : row.TagColor;
                 int tw = Math.Min(rightX - textX - 120, (int)g.MeasureString(row.Tag, tf).Width + 14);
                 Rectangle tagRect = new Rectangle(rightX - tw, top + (RowHeight - 18) / 2, tw, 18);
-                Theme.FillRound(g, tagRect, 4, Theme.Alpha(row.TagColor, 26));
+                Theme.FillRound(g, tagRect, 4, Theme.Alpha(tagColor, row.Risk ? 34 : 26));
                 using (StringFormat sf = Theme.SF(StringAlignment.Center, StringAlignment.Center))
                 {
-                    Theme.Txt(g, row.Tag, tf, row.TagColor, tagRect, sf);
+                    Theme.Txt(g, row.Tag, tf, tagColor, tagRect, sf);
                 }
             }
 
@@ -745,7 +880,7 @@ namespace AGCleaner
 
             using (StringFormat sf = Theme.SF(StringAlignment.Far, StringAlignment.Center))
             {
-                Theme.Txt(g, row.Right, Theme.F(9f), row.Alarm ? Theme.Warn : Theme.TextDim, new Rectangle(rightX, top, rightW - 6, RowHeight), sf);
+                Theme.Txt(g, row.Right, Theme.F(9f), row.Risk ? Theme.Danger : (row.Alarm ? Theme.Warn : Theme.TextDim), new Rectangle(rightX, top, rightW - 6, RowHeight), sf);
             }
         }
     }
@@ -1143,7 +1278,20 @@ namespace AGCleaner
                      ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
             BackColor = Theme.Card;
             Height = 52;
+            // 百分数还是 0 的时候画一段转动的弧，避免刚扫描时看起来完全静止
+            _pulse = new Timer();
+            _pulse.Interval = 70;
+            _pulse.Tick += delegate
+            {
+                _angle += 12;
+                if (_angle >= 360) _angle -= 360;
+                if (Visible && Percent <= 0) Invalidate();
+            };
+            _pulse.Start();
         }
+
+        private Timer _pulse;
+        private double _angle = 0;
 
         public void SetProgress(int percent, string caption)
         {
@@ -1157,7 +1305,13 @@ namespace AGCleaner
         {
             Graphics g = e.Graphics;
             Theme.Smooth(g);
-            // 卡片式进度条：标题在左上，百分比在右上，底部整条轨道
+            if (Height < 150) { PaintCompact(g); return; }
+            PaintCentered(g);
+        }
+
+        /// <summary>矮条形态：列表上方的单行卡片，标题左、百分比右、轨道在底部。</summary>
+        private void PaintCompact(Graphics g)
+        {
             Rectangle panel = new Rectangle(0, 0, Width - 1, Height - 1);
             Theme.FillRound(g, panel, 8, Theme.Card);
             Theme.StrokeRound(g, panel, 8, Theme.BorderSoft, 1);
@@ -1182,6 +1336,70 @@ namespace AGCleaner
             Theme.FillRound(g, track, 4, Theme.Track);
             int w = (int)(track.Width * Percent / 100.0);
             if (w > 3) Theme.FillRound(g, new Rectangle(track.X, track.Y, w, track.Height), 4, BarColor);
+        }
+
+        /// <summary>居中形态：圆环与百分比落在区域正中，进度条与说明文字排在其下。</summary>
+        private void PaintCentered(Graphics g)
+        {
+            using (SolidBrush b = new SolidBrush(Theme.Bg))
+            {
+                g.FillRectangle(b, ClientRectangle);
+            }
+
+            int d = Math.Min(Math.Min(Width - 160, Height - 190), 200);
+            if (d < 104) d = 104;
+            int cx = Width / 2;
+            int cy = Math.Max(8, Height / 2 - d / 2 - 46);
+            Rectangle ring = new Rectangle(cx - d / 2, cy, d, d);
+            int pen = Math.Max(10, d / 14);
+
+            using (Pen p = new Pen(Theme.Track, pen))
+            {
+                g.DrawEllipse(p, ring);
+            }
+            float sweep = 360f * Percent / 100f;
+            if (sweep > 0.4f)
+            {
+                using (Pen p = new Pen(BarColor, pen))
+                {
+                    p.StartCap = System.Drawing.Drawing2D.LineCap.Round;
+                    p.EndCap = System.Drawing.Drawing2D.LineCap.Round;
+                    g.DrawArc(p, ring, -90f, sweep);
+                }
+            }
+            else
+            {
+                using (Pen p = new Pen(Theme.Alpha(BarColor, 170), pen))
+                {
+                    p.StartCap = System.Drawing.Drawing2D.LineCap.Round;
+                    p.EndCap = System.Drawing.Drawing2D.LineCap.Round;
+                    g.DrawArc(p, ring, (float)(-90 + _angle), 90f);
+                }
+            }
+
+            float pctSize = d >= 170 ? 26f : (d >= 130 ? 21f : 17f);
+            using (StringFormat sf = Theme.SF(StringAlignment.Center, StringAlignment.Center))
+            {
+                Theme.Txt(g, Percent + "%", Theme.F(pctSize, FontStyle.Bold), Theme.Accent,
+                          new Rectangle(ring.X, ring.Y, ring.Width, ring.Height), sf);
+            }
+
+            // 说明文字：环下方一行，过长自动居中省略
+            int capW = Math.Min(Width - 60, 620);
+            using (StringFormat sf = Theme.SF(StringAlignment.Center, StringAlignment.Near))
+            {
+                sf.Trimming = StringTrimming.EllipsisCharacter;
+                Theme.Txt(g, Caption.Length == 0 ? Lang.T("准备中...") : Caption, Theme.F(10f), Theme.TextDim,
+                          new Rectangle((Width - capW) / 2, ring.Bottom + 18, capW, 24), sf);
+            }
+
+            // 进度条：环下方，较宽的一条，长度与环径分离，视觉上“环是主角、条是刻度”
+            int barW = Math.Min(Width - 120, 460);
+            int barH = 10;
+            Rectangle track = new Rectangle((Width - barW) / 2, ring.Bottom + 52, barW, barH);
+            Theme.FillRound(g, track, 5, Theme.Track);
+            int w = (int)(track.Width * Percent / 100.0);
+            if (w > 5) Theme.FillRound(g, new Rectangle(track.X, track.Y, w, track.Height), 5, BarColor);
         }
     }
 

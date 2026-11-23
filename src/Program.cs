@@ -7,7 +7,7 @@ namespace AGCleaner
 {
     public static class Program
     {
-        public static string Version = "1.8.2";
+        public static string Version = "1.8.5";
 
         private static Icon _appIcon;
 
@@ -391,6 +391,101 @@ namespace AGCleaner
                 return;
             }
 
+            if (args.Length >= 2 && args[0] == "--progresshot")
+            {
+                // 扫描进行中截图：验证进度圆环与百分比是否落在内容区正中、进度条在其下方
+                int holdMs = 4000;
+                if (args.Length >= 3) int.TryParse(args[2], out holdMs);
+                MainForm f = new MainForm();
+                f.StartPosition = FormStartPosition.Manual;
+                f.Location = new Point(-4000, 0);
+                f.ShowInTaskbar = false;
+                f.Show();
+                f.SelectPage(0);
+                Application.DoEvents();
+                CleanPage cp = f.PageAt(0) as CleanPage;
+                if (cp != null) cp.StartScan();
+                int waited = 0;
+                while (waited < holdMs)
+                {
+                    Application.DoEvents();
+                    System.Threading.Thread.Sleep(50);
+                    waited += 50;
+                }
+                Application.DoEvents();
+                f.ExportShot(args[1]);
+                System.Text.StringBuilder sb = new System.Text.StringBuilder();
+                DumpControls(cp, sb, 0);
+                System.IO.File.WriteAllText(args[1] + ".txt", sb.ToString(), System.Text.Encoding.UTF8);
+                Environment.Exit(0);
+                return;
+            }
+
+            if (args.Length >= 2 && args[0] == "--cleanshot")
+            {
+                // 先真扫一遍再离屏渲染清理清单：验证排序按钮、默认勾选规则与“打开”动作的排版
+                int waitMs = 120000;
+                if (args.Length >= 3) int.TryParse(args[2], out waitMs);
+                int sortMode = 0;
+                if (args.Length >= 4) int.TryParse(args[3], out sortMode);
+                int scrollRow = 0;
+                if (args.Length >= 5) int.TryParse(args[4], out scrollRow);
+                string filterId = null;
+                if (args.Length >= 6) filterId = args[5];
+                MainForm f = new MainForm();
+                f.StartPosition = FormStartPosition.Manual;
+                f.Location = new Point(-4000, 0);
+                f.ShowInTaskbar = false;
+                f.Show();
+                f.SelectPage(0);
+                Application.DoEvents();
+                CleanPage cp = f.PageAt(0) as CleanPage;
+                if (cp != null) cp.StartScan();
+                int waited = 0;
+                while (waited < waitMs)
+                {
+                    Application.DoEvents();
+                    System.Threading.Thread.Sleep(50);
+                    waited += 50;
+                    if (cp != null && cp.ScanDone) break;
+                }
+                Application.DoEvents();
+                if (cp != null && sortMode > 0) { cp.SetSort(sortMode); Application.DoEvents(); }
+                if (cp != null && scrollRow > 0) { cp.ScrollListTo(scrollRow); Application.DoEvents(); }
+                if (cp != null && filterId != null) { cp.FilterTo(filterId); Application.DoEvents(); }
+                // 扫描刚结束时进度环/进度条才收起，等一帧让界面把收起后的区域重画干净再截图
+                int settle = 0;
+                while (settle < 800)
+                {
+                    Application.DoEvents();
+                    System.Threading.Thread.Sleep(50);
+                    settle += 50;
+                }
+                f.ExportShot(args[1]);
+                // 诊断：把页面上的控件可见性与坐标一并写出，便于核对进度环是否真的收起来了
+                try
+                {
+                    System.Text.StringBuilder sb = new System.Text.StringBuilder();
+                    DumpControls(cp, sb, 0);
+                    if (cp != null)
+                    {
+                        sb.AppendLine("--- 未勾选项 ---");
+                        for (int i = 0; i < cp.Categories.Count; i++)
+                        {
+                            Core.CleanCategory cat = cp.Categories[i];
+                            for (int j = 0; j < cat.Items.Count; j++)
+                            {
+                                if (!cat.Items[j].Checked)
+                                    sb.AppendLine("  [" + cat.Name + "] " + cat.Items[j].Name + " | " + cat.Items[j].Path);
+                            }
+                        }
+                    }
+                    System.IO.File.WriteAllText(args[1] + ".txt", sb.ToString(), System.Text.Encoding.UTF8);
+                }
+                catch (Exception) { }
+                return;
+            }
+
             if (args.Length >= 2 && args[0] == "--shot")
             {
                 int page = 0;
@@ -442,6 +537,16 @@ namespace AGCleaner
 
             MainForm form = new MainForm();
             Application.Run(form);
+        }
+
+        /// <summary>离屏截图诊断用：递归列出控件的类型、可见性与位置。</summary>
+        private static void DumpControls(System.Windows.Forms.Control c, System.Text.StringBuilder sb, int depth)
+        {
+            if (c == null || depth > 4) return;
+            sb.AppendLine(new string(' ', depth * 2) + c.GetType().Name + " visible=" + c.Visible + " handle=" + (c.IsHandleCreated ? c.Handle.ToString() : "0") +
+                          " idx=" + (c.Parent == null ? -1 : c.Parent.Controls.GetChildIndex(c)) + " of=" + (c.Parent == null ? 0 : c.Parent.Controls.Count) +
+                          " bounds=" + c.Bounds + " text=" + (c.Text == null ? "" : c.Text.Replace("\r", "").Replace("\n", " ")));
+            for (int i = 0; i < c.Controls.Count; i++) DumpControls(c.Controls[i], sb, depth + 1);
         }
 
         /// <summary>把未处理异常写入 crash.log，并弹出可读提示，避免直接出现系统错误框。</summary>

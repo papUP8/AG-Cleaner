@@ -163,6 +163,20 @@ namespace AGCleaner
                 "Analyse des résidus de programmes...",
                 "Проверка остатков программ...",
                 "Analizando residuos de programas..." },
+            new string[] { "排序：默认", "Sort: default", "Sortierung: Standard", "Tri : par défaut", "Сортировка: по умолчанию", "Orden: predeterminado" },
+            new string[] { "排序：体积", "Sort: size", "Sortierung: Größe", "Tri : taille", "Сортировка: размер", "Orden: tamaño" },
+            new string[] { "排序：名称", "Sort: name", "Sortierung: Name", "Tri : nom", "Сортировка: имя", "Orden: nombre" },
+            new string[] { "排序：路径", "Sort: path", "Sortierung: Pfad", "Tri : chemin", "Сортировка: путь", "Orden: ruta" },
+            new string[] { "打开", "Open", "Öffnen", "Ouvrir", "Открыть", "Abrir" },
+            new string[] { "并行扫描 ", "Scanning in parallel ", "Parallele Suche ", "Analyse en parallèle ", "Параллельный анализ ", "Análisis en paralelo " },
+            new string[] { " 类目 · ", " categories · ", " Kategorien · ", " catégories · ", " категорий · ", " categorías · " },
+            new string[] {
+                "不可撤销，需手动勾选",
+                "Cannot be undone; tick manually",
+                "Nicht rückgängig zu machen; manuell markieren",
+                "Irréversible ; à cocher manuellement",
+                "Необратимо; отметьте вручную",
+                "Irreversible; marca manualmente" },
         };
 
         public static void Fill(Dictionary<string, string> en, Dictionary<string, string> de,

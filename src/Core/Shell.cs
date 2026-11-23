@@ -24,52 +24,88 @@ namespace AGCleaner.Core
         [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
         private static extern int SHEmptyRecycleBin(IntPtr hwnd, string pszRootPath, uint dwFlags);
 
-        /// <summary>回收站体积统计：逐块固定盘查询，整体加 8 秒超时——个别磁盘（外置盘、休眠中的机械盘）会让 shell 接口卡住。</summary>
+        /// <summary>
+        /// 回收站体积统计：逐块固定盘各自起线程查询，单盘最多等 1.2 秒。
+        /// 不用 SHQueryRecycleBin("") 汇总整机——实测本机它会把所有卷（含慢速卷）全走一遍，
+        /// 121 秒才返回；单盘查询只要 7 毫秒。卡住的单盘直接放弃，不拖累整轮扫描。
+        /// </summary>
         public static bool RecycleBinInfo(ref long size, ref int items)
         {
-            long[] totalSize = new long[] { 0 };
-            int[] totalItems = new int[] { 0 };
-            bool[] ok = new bool[] { false };
-            Thread worker = new Thread(delegate ()
+            long totalSize = 0;
+            int totalItems = 0;
+            bool any = false;
+            DriveInfo[] drives;
+            try { drives = DriveInfo.GetDrives(); }
+            catch (Exception) { return false; }
+            for (int i = 0; i < drives.Length; i++)
             {
+                DriveInfo d = drives[i];
                 try
                 {
-                    DriveInfo[] drives = DriveInfo.GetDrives();
-                    for (int i = 0; i < drives.Length; i++)
+                    if (d.DriveType != DriveType.Fixed) continue;
+                    if (!d.IsReady) continue;
+                    string root = d.RootDirectory.FullName;
+                    if (!Directory.Exists(Path.Combine(root, "$Recycle.Bin"))) continue;
+                    long s = 0;
+                    int n = 0;
+                    if (QueryOneDrive(root, ref s, ref n, 1200))
                     {
-                        DriveInfo d = drives[i];
-                        try
-                        {
-                            if (d.DriveType != DriveType.Fixed) continue;
-                            if (!d.IsReady) continue;
-                            string root = d.RootDirectory.FullName;
-                            if (!Directory.Exists(Path.Combine(root, "$Recycle.Bin"))) continue;
-                            SHQUERYRBINFO info = new SHQUERYRBINFO();
-                            info.cbSize = Marshal.SizeOf(typeof(SHQUERYRBINFO));
-                            int hr = SHQueryRecycleBin(root, ref info);
-                            if (hr != 0) continue;
-                            lock (totalSize) { totalSize[0] += info.i64Size; }
-                            lock (totalItems) { totalItems[0] += (int)info.i64NumItems; }
-                            ok[0] = true;
-                        }
-                        catch (Exception) { }
+                        totalSize += s;
+                        totalItems += n;
+                        any = true;
                     }
                 }
                 catch (Exception) { }
+            }
+            size = totalSize;
+            items = totalItems;
+            return any;
+        }
+
+        /// <summary>单块盘的回收站查询，独立超时；超时不等待结果，直接当这块盘没查到。</summary>
+        private static bool QueryOneDrive(string root, ref long size, ref int items, int timeoutMs)
+        {
+            long[] sz = new long[] { 0 };
+            int[] cnt = new int[] { 0 };
+            bool[] ok = new bool[] { false };
+            Thread t = new Thread(delegate ()
+            {
+                try
+                {
+                    SHQUERYRBINFO info = new SHQUERYRBINFO();
+                    info.cbSize = Marshal.SizeOf(typeof(SHQUERYRBINFO));
+                    if (SHQueryRecycleBin(root, ref info) != 0) return;
+                    lock (sz) { sz[0] = info.i64Size; }
+                    lock (cnt) { cnt[0] = (int)info.i64NumItems; }
+                    ok[0] = true;
+                }
+                catch (Exception) { }
             });
-            worker.IsBackground = true;
-            try { worker.SetApartmentState(ApartmentState.STA); }
+            t.IsBackground = true;
+            try { t.Start(); }
+            catch (Exception) { return false; }
+            try { t.Join(timeoutMs); }
             catch (Exception) { }
-            worker.Start();
-            try { worker.Join(8000); }
-            catch (Exception) { }
-            lock (totalSize) { size = totalSize[0]; }
-            lock (totalItems) { items = totalItems[0]; }
-            return ok[0];
+            if (!ok[0]) return false;
+            size += sz[0];
+            items += cnt[0];
+            return true;
         }
 
         public static bool EmptyRecycleBin()
         {
+            int hr;
+            return EmptyRecycleBin(out hr);
+        }
+
+        /// <summary>
+        /// 清空回收站。三级尝试：直接删 $R/$I → 资源管理器「清空」动词 → shell API。
+        /// <paramref name="hr"/> 返回 shell API 的错误码（成功 0，被拦截为负数，没走到这一步为 -1），
+        /// 让调用方能把真实 HRESULT 写进日志，而不是只报一句“失败了”。
+        /// </summary>
+        public static bool EmptyRecycleBin(out int hr)
+        {
+            hr = -1;
             // 第一级：直接清 $Recycle.Bin 里的 $R/$I 数据（可绕过 shell 卡死，也能逐项汇报失败）
             bool fsOk = false;
             try
@@ -99,16 +135,20 @@ namespace AGCleaner.Core
             catch (Exception) { }
             if (RecycleEmpty()) return true;
 
-            // 第三级：交给 shell API（部分机器上只有它能清掉受保护项），5 秒没回来就当失败，不再等
+            // 第三级：交给 shell API，成败以返回的 HRESULT 为准；5 秒没回来就当失败，不再等
+            int[] shellHr = new int[] { unchecked((int)0x80004005) };
             Thread t2 = new Thread(delegate ()
             {
-                try { SHEmptyRecycleBin(IntPtr.Zero, null, 0x1 | 0x2 | 0x4); } catch (Exception) { }
+                try { shellHr[0] = SHEmptyRecycleBin(IntPtr.Zero, null, 0x1 | 0x2 | 0x4); } catch (Exception) { }
             });
             t2.IsBackground = true;
             try { t2.SetApartmentState(ApartmentState.STA); } catch (Exception) { }
             t2.Start();
             try { t2.Join(5000); } catch (Exception) { }
 
+            hr = shellHr[0];
+            if (hr == 0) return true;
+            // shell 报了错，但偶尔仍会清掉一部分，复核一次再下结论
             return RecycleEmpty();
         }
 

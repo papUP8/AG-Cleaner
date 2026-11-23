@@ -17,10 +17,17 @@ namespace AGCleaner.Core
         public long Bytes = 0;
         public int Files = 0;
         public bool Recycle = false;
+        /// <summary>高风险/不可逆项：扫描出来但不预先勾选，必须用户自己点。</summary>
+        public bool OptIn = false;
+        /// <summary>界面上要用警示色标出来的高风险项（Cookie、回收站、旧系统备份这类删了回不来的）。</summary>
+        public bool HighRisk = false;
         public bool AdminNeeded = false;
         public string Note = "";
         public long MinBytes = 0;
         public bool Exists = false;
+        /// <summary>界面勾选状态，缓存在清单项上，切换筛选/排序时不丢。</summary>
+        public bool Checked = false;
+        public bool CheckInit = false;
         /// <summary>OrphanGroup 类型时挂载的残留分组。</summary>
         public object Data = null;
     }
@@ -256,15 +263,12 @@ namespace AGCleaner.Core
             p(percent, text);
         }
 
-        /// <summary>扫描阶段的分段进度：前 30% 用于列举候选项，后 70% 用于统计体积。</summary>
-        private class ScanCtx
+        /// <summary>一个类目的扫描任务；Run 为 null 表示本次设置下跳过这个类目。</summary>
+        private class ScanJob
         {
-            public StepProgress P;
-            public int Step;
-            public int Total = 13;
-            public void Begin(string text) { Report(P, 4 + Step * 32 / Total, text); }
-            public Action<string> Msg(string text) { return delegate (string m) { Report(P, 4 + Step * 32 / Total, text); }; }
-            public void Next() { Step++; Report(P, 4 + Step * 32 / Total, Lang.T("已完成分类列举 ") + Step + "/" + Total); }
+            public string Key;
+            public Func<CleanCategory> Run;
+            public ScanJob(string key, Func<CleanCategory> run) { Key = key; Run = run; }
         }
 
         public static string LocalAppData { get { return Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData); } }
@@ -275,14 +279,6 @@ namespace AGCleaner.Core
         /// <summary>各类扫描耗时（诊断用，--scan 时一并写出）。</summary>
         public static List<string> Timings = new List<string>();
 
-        private static CleanCategory Timed(string name, Func<CleanCategory> f)
-        {
-            DateTime t0 = DateTime.Now;
-            CleanCategory c = f();
-            Timings.Add(name + "\t" + ((int)(DateTime.Now - t0).TotalMilliseconds) + " ms\t" + c.Items.Count);
-            return c;
-        }
-
         public static List<CleanCategory> Scan(Settings s, Action<string> report)
         {
             return Scan(s, delegate (int pc, string msg) { if (report != null) report(msg); });
@@ -292,25 +288,56 @@ namespace AGCleaner.Core
         {
             List<CleanCategory> cats = new List<CleanCategory>();
             Timings.Clear();
-            ScanCtx c = new ScanCtx();
-            c.P = prog;
             Report(prog, 3, Lang.T("正在列举可清理目录..."));
 
-            cats.Add(Timed("临时文件", delegate { return ScanUserTemp(s, c.Msg(Lang.T("扫描临时文件与临时目录..."))); })); c.Next();
-            cats.Add(Timed("浏览器缓存", delegate { return ScanBrowser(s, c.Msg(Lang.T("扫描浏览器缓存..."))); })); c.Next();
-            cats.Add(Timed("应用缓存", delegate { return ScanApps(s, c.Msg(Lang.T("扫描应用缓存与 UWP 缓存..."))); })); c.Next();
-            cats.Add(Timed("系统痕迹", delegate { return ScanTraces(s, c.Msg(Lang.T("扫描缩略图与图标数据库..."))); })); c.Next();
-            cats.Add(Timed("系统缓存与日志", delegate { return ScanSystem(s, c.Msg(Lang.T("扫描系统缓存与日志..."))); })); c.Next();
-            cats.Add(Timed("深度清理", delegate { return ScanDeep(s, c.Msg(Lang.T("扫描旧系统备份与组件缓存..."))); })); c.Next();
-            if (s.CleanGpuShaders) cats.Add(Timed("着色器", delegate { return ScanGpu(c.Msg(Lang.T("扫描显卡着色器缓存..."))); }));
-            cats.Add(Timed("日志与错误报告", delegate { return ScanLogsReports(c.Msg(Lang.T("扫描崩溃转储与错误报告..."))); })); c.Next();
-            cats.Add(Timed("使用痕迹", delegate { return ScanUsage(s, c.Msg(Lang.T("扫描使用痕迹..."))); })); c.Next();
-            cats.Add(Timed("浏览器 Cookie", delegate { return ScanCookies(c.Msg(Lang.T("扫描浏览器 Cookie..."))); })); c.Next();
-            if (s.DeleteOldInstallers) cats.Add(Timed("旧安装包", delegate { return ScanInstallers(c.Msg(Lang.T("扫描下载目录的旧安装包..."))); }));
-            cats.Add(Timed("大体积日志", delegate { return ScanBigLogs(c.Msg(Lang.T("扫描大体积日志与转储文件..."))); })); c.Next();
-            cats.Add(Timed("回收站", delegate { return ScanRecycleBin(c.Msg(Lang.T("检查回收站..."))); })); c.Next();
+            // 各类目要走的根目录彼此独立，串行扫一轮（浏览器 34 s + 应用缓存 51 s + 残留 45 s）没必要排队，
+            // 这里按类目并行，并行度压在 2-6，避免机械盘上开太多线程反而更慢。
+            List<ScanJob> jobs = new List<ScanJob>();
+            jobs.Add(new ScanJob("临时文件", delegate { return ScanUserTemp(s, null); }));
+            jobs.Add(new ScanJob("浏览器缓存", delegate { return ScanBrowser(s, null); }));
+            jobs.Add(new ScanJob("应用缓存", delegate { return ScanApps(s, null); }));
+            jobs.Add(new ScanJob("系统痕迹", delegate { return ScanTraces(s, null); }));
+            jobs.Add(new ScanJob("系统缓存与日志", delegate { return ScanSystem(s, null); }));
+            jobs.Add(new ScanJob("深度清理", delegate { return ScanDeep(s, null); }));
+            jobs.Add(new ScanJob("着色器", s.CleanGpuShaders ? (Func<CleanCategory>)delegate { return ScanGpu(null); } : null));
+            jobs.Add(new ScanJob("日志与错误报告", delegate { return ScanLogsReports(null); }));
+            jobs.Add(new ScanJob("使用痕迹", delegate { return ScanUsage(s, null); }));
+            jobs.Add(new ScanJob("浏览器 Cookie", delegate { return ScanCookies(null); }));
+            jobs.Add(new ScanJob("旧安装包", s.DeleteOldInstallers ? (Func<CleanCategory>)delegate { return ScanInstallers(null); } : null));
+            jobs.Add(new ScanJob("大体积日志", delegate { return ScanBigLogs(null); }));
+            jobs.Add(new ScanJob("回收站", delegate { return ScanRecycleBin(null); }));
             // 残留清理并进深度清理，用户只需一个清单、一次点击
-            cats.Add(Timed("卸载残留", delegate { return ScanResidual(c.Msg(Lang.T("扫描已卸载软件的残留..."))); })); c.Next();
+            jobs.Add(new ScanJob("卸载残留", delegate { return ScanResidual(null); }));
+
+            int dop = Math.Max(2, Math.Min(6, Environment.ProcessorCount));
+            CleanCategory[] res = new CleanCategory[jobs.Count];
+            string[] timeRows = new string[jobs.Count];
+            int finished = 0;
+            int active = 0;
+            for (int i = 0; i < jobs.Count; i++) if (jobs[i].Run != null) active++;
+
+            System.Threading.Tasks.Parallel.For(0, jobs.Count, new System.Threading.Tasks.ParallelOptions { MaxDegreeOfParallelism = dop },
+                delegate (int idx)
+                {
+                    ScanJob job = jobs[idx];
+                    if (job.Run == null) return;
+                    DateTime t0 = DateTime.Now;
+                    CleanCategory got = null;
+                    try { got = job.Run(); }
+                    catch (Exception) { got = null; }
+                    if (got == null) got = new CleanCategory();
+                    res[idx] = got;
+                    timeRows[idx] = job.Key + "\t" + ((int)(DateTime.Now - t0).TotalMilliseconds) + " ms\t" + got.Items.Count;
+                    int done = System.Threading.Interlocked.Increment(ref finished);
+                    Report(prog, 4 + done * 32 / Math.Max(1, active),
+                        Lang.T("并行扫描 ") + done + "/" + active + Lang.T(" 类目 · ") + job.Key);
+                });
+
+            for (int i = 0; i < jobs.Count; i++)
+            {
+                if (res[i] != null) cats.Add(res[i]);
+                if (timeRows[i] != null) Timings.Add(timeRows[i]);
+            }
 
             List<CleanItem> all = new List<CleanItem>();
             for (int i = 0; i < cats.Count; i++)
@@ -371,6 +398,11 @@ namespace AGCleaner.Core
 
         private static void AddDirItem(CleanCategory cat, string name, string path, CleanKind kind, int days, bool recycle)
         {
+            AddDirItem(cat, name, path, kind, days, recycle, false);
+        }
+
+        private static void AddDirItem(CleanCategory cat, string name, string path, CleanKind kind, int days, bool recycle, bool optIn)
+        {
             if (path == null || path.Length == 0) return;
             if (!Directory.Exists(path)) return;
             if (!Guard.CanDelete(path, true))
@@ -391,6 +423,8 @@ namespace AGCleaner.Core
             it.Kind = kind;
             it.OlderThanDays = days;
             it.Recycle = recycle;
+            it.OptIn = optIn;
+            it.HighRisk = optIn; // 需手动开启的目录项都属于“删了没有退路”，界面标红
             it.Exists = true;
             it.Bytes = 0;
             it.Files = 0;
@@ -1148,6 +1182,8 @@ namespace AGCleaner.Core
                 }
             }
             catch (Exception) { }
+            // Cookie 删掉等于所有网站退出登录，一律按高风险项标红
+            for (int i3 = 0; i3 < cat.Items.Count; i3++) cat.Items[i3].HighRisk = true;
             return cat;
         }
 
@@ -1232,7 +1268,8 @@ namespace AGCleaner.Core
             {
                 string sysDrive = Environment.GetEnvironmentVariable("SystemDrive");
                 if (sysDrive == null || sysDrive.Length == 0) sysDrive = "C:";
-                AddDirItem(cat, Lang.T("Windows.old 旧系统备份"), @"C:\Windows.old", CleanKind.DirItself, 0, false);
+                // 删了 Windows.old 就失去系统回滚/卸载更新的退路，属于不可逆操作：不预先勾选
+                AddDirItem(cat, Lang.T("Windows.old 旧系统备份"), @"C:\Windows.old", CleanKind.DirItself, 0, false, true);
                 AddDirItem(cat, Lang.T("系统升级镜像 $WINDOWS.~BT"), sysDrive + @"\$WINDOWS.~BT", CleanKind.DirItself, 0, false);
                 AddDirItem(cat, Lang.T("系统升级临时 $WINDOWS.~WS"), sysDrive + @"\$WINDOWS.~WS", CleanKind.DirItself, 0, false);
                 AddDirItem(cat, Lang.T("系统组件缓存 WinSxS"), @"C:\Windows\WinSxS\Temp", CleanKind.DirContents, 0, false);
@@ -1320,7 +1357,8 @@ namespace AGCleaner.Core
 
         private static CleanCategory ScanRecycleBin(Action<string> report)
         {
-            CleanCategory cat = NewCat("recycle", Lang.T("回收站"), Lang.T("回收站中已删除的文件（勾选后彻底清空，清空不可撤销）"), "🗑", true);
+            // 清空回收站不可撤销，属于“必须用户自己点”的一项：扫描出来但不预先勾选
+            CleanCategory cat = NewCat("recycle", Lang.T("回收站"), Lang.T("回收站中已删除的文件（勾选后彻底清空，清空不可撤销）"), "🗑", false);
             R(report, Lang.T("检查回收站..."));
             long size = 0;
             int count = 0;
@@ -1334,6 +1372,9 @@ namespace AGCleaner.Core
                 it.Bytes = size;
                 it.Files = count;
                 it.Recycle = false;
+                it.OptIn = true;
+                it.HighRisk = true;
+                it.Note = Lang.T("不可撤销，需手动勾选");
                 it.Exists = true;
                 cat.Items.Add(it);
             }
@@ -1377,7 +1418,9 @@ namespace AGCleaner.Core
                 }
                 if (it.Kind == CleanKind.RecycleBin)
                 {
-                    if (Shell.EmptyRecycleBin())
+                    int hr = -1;
+                    bool ok = Shell.EmptyRecycleBin(out hr);
+                    if (ok)
                     {
                         freed += it.Bytes;
                         log.Add(Lang.T("已清空回收站 ") + Theme_Size(it.Bytes));
@@ -1386,7 +1429,8 @@ namespace AGCleaner.Core
                     else
                     {
                         errors++;
-                        log.Add(Lang.T("回收站已被其他安全软件拦截，无法清空。请把本程序加入其信任区后重试。"));
+                        string code = hr == -1 ? "" : " (HRESULT 0x" + unchecked((uint)hr).ToString("X8") + ")";
+                        log.Add(Lang.T("回收站已被其他安全软件拦截，无法清空。请把本程序加入其信任区后重试。") + code);
                     }
                     continue;
                 }

@@ -133,7 +133,8 @@ namespace AGCleaner
             if (!Directory.Exists(path)) return;
             _busy = true;
             _bigMode = false;
-            _spinner.Spin(true);
+            _spinner.Spin(false); // 加载提示统一放在列表正中
+            _list.SetLoading(true, Lang.T("正在扫描磁盘..."), Lang.T("统计各目录体积，条目会边扫边出现"));
             lock (_liveLock) { _live.Clear(); }
             _liveDone = 0;
             _liveTotal = 0;
@@ -169,6 +170,7 @@ namespace AGCleaner
                     {
                         _busy = false;
                         _spinner.Spin(false);
+                        _list.SetLoading(false, null);
                         _path = target;
                         _result = res;
                         if (res != null)
@@ -234,6 +236,8 @@ namespace AGCleaner
             long sum = 0;
             for (int i = 0; i < snap.Count; i++) sum += snap[i].Bytes;
             _status = Lang.T("已统计 ") + _liveDone + "/" + _liveTotal + Lang.T(" 项 · 累计 ") + Byt.Format(sum);
+            // 一旦有真实条目就先给用户看进度，加载动画让位
+            if (_list.Loading && snap.Count > 0) _list.SetLoading(false, null);
             _list.SetRows(BuildDirRows(snap));
             _bar.Invalidate();
         }

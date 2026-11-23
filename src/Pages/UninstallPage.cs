@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Threading;
@@ -84,7 +84,8 @@ namespace AGCleaner
         {
             if (_busy) return;
             _busy = true;
-            _spinner.Spin(true);
+            _spinner.Spin(false); // 加载提示统一放到列表正中，不再用右上角小转圈
+            _list.SetLoading(true, Lang.T("正在获取应用列表..."), Lang.T("正在读取注册表中的已安装程序"));
             _status = Lang.T("正在读取注册表中的已安装程序...");
             _bar.Invalidate();
             ThreadPool.QueueUserWorkItem(delegate
@@ -106,6 +107,7 @@ namespace AGCleaner
                     {
                         _busy = false;
                         _spinner.Spin(false);
+                        _list.SetLoading(false, null);
                         if (list != null)
                         {
                             _apps = list;
@@ -174,7 +176,7 @@ namespace AGCleaner
             if (!ok) return;
 
             _busy = true;
-            _spinner.Spin(true);
+            _spinner.Spin(false);
             _status = Lang.T("正在卸载 ") + a.Name + Lang.T("（请在弹出的卸载窗口中完成操作）...");
             _bar.Invalidate();
             ThreadPool.QueueUserWorkItem(delegate

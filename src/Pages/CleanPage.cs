@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
 using System.Threading;
 using System.Windows.Forms;
 using AGCleaner.Core;
@@ -62,6 +63,9 @@ namespace AGCleaner
         private Btn _cleanBtn;
         private Btn _allBtn;
         private Btn _invBtn;
+        private Btn _sortBtn;
+        /// <summary>0=扫描原始顺序 1=体积从大到小 2=名称 3=路径。</summary>
+        private int _sortMode;
         private List<Chip> _chips = new List<Chip>();
         private List<CleanCategory> _cats = new List<CleanCategory>();
         private string _filter = "all";
@@ -80,6 +84,29 @@ namespace AGCleaner
         private Label _doneSub;
         private bool _doneClean;
 
+        /// <summary>扫描是否已结束并拿到清单（供离屏截图脚本等待，不影响界面逻辑）。</summary>
+        public bool ScanDone { get { return !_busy && _cats.Count > 0; } }
+
+        /// <summary>诊断用：把清单滚到指定行，便于离屏截图核对高风险项的配色。</summary>
+        public void ScrollListTo(int rowIndex)
+        {
+            _list.SetScroll(rowIndex * _list.RowHeight);
+            _list.Invalidate();
+        }
+
+        /// <summary>诊断用：暴露清单分类，便于命令行核对默认勾选规则。</summary>
+        public List<CleanCategory> Categories { get { return _cats; } }
+
+        /// <summary>诊断用：命令行直接指定排序维度，验证排序后的顺序。</summary>
+        public void SetSort(int mode)
+        {
+            _sortMode = ((mode % 4) + 4) % 4;
+            if (_sortBtn != null) _sortBtn.Text = SortLabel();
+            FillList();
+            UpdateSummary();
+            _bar.Invalidate();
+        }
+
         public CleanPage()
         {
             _list = new VList();
@@ -89,6 +116,7 @@ namespace AGCleaner
             _list.EmptyHint = Lang.T("点上方「开始扫描」，检查完再逐项决定删除");
             _list.CheckChanged += delegate { UpdateSummary(); };
             _list.RowActivated += delegate { OpenDetail(); };
+            _list.ActionClicked += delegate { OpenSelectedPath(); };
             Controls.Add(_list);
 
             _bar = new ActionBar();
@@ -115,6 +143,13 @@ namespace AGCleaner
             _invBtn.Size = new Size(52, 30);
             _invBtn.Click += delegate { _list.InvertChecks(); UpdateSummary(); };
             Controls.Add(_invBtn);
+
+            _sortBtn = new Btn();
+            _sortBtn.Kind = ButtonKind.Link;
+            _sortBtn.Text = Lang.T("排序：默认");
+            _sortBtn.Size = new Size(96, 30);
+            _sortBtn.Click += delegate { CycleSort(); };
+            _bar.Controls.Add(_sortBtn);
 
             _cleanBtn = new Btn();
             _cleanBtn.Kind = ButtonKind.Accent;
@@ -201,7 +236,11 @@ namespace AGCleaner
             _prog.SetProgress(percent, caption);
             _prog.BackColor = Theme.Bg;
             if (needLayout) LayoutChildren();
-            _prog.BringToFront();
+            _prog.CreateControl(); // 之前一直 Visible=false，句柄没建过，先建句柄再画
+            // 本工程里子控件的绘制顺序是“索引大的画在后”，所以放到最后一个索引才是真正压在最上层
+            Controls.SetChildIndex(_prog, Controls.Count - 1);
+            _prog.Invalidate();
+            _prog.Update();
         }
 
         private void HideProgress()
@@ -218,7 +257,7 @@ namespace AGCleaner
             _scanBtn.SetBounds(0, y, 96, 32);
             _allBtn.SetBounds(104, y + 1, 96, 30);
             _invBtn.SetBounds(206, y + 1, 64, 30);
-            int cx = 216;
+            int cx = 278; // 从「反选」按钮右侧起排，否则第一个胶囊会被按钮压住，只剩一条边
             int cy = y + 2;
             int rows = 1;
             for (int i = 0; i < _chips.Count; i++)
@@ -239,9 +278,10 @@ namespace AGCleaner
             _bar.SetBounds(0, Height - 58, w, 58);
             if (_prog != null && _prog.Visible)
             {
-                // 进度条放在列表上方，扫一眼就能看到，不躲在底部操作栏后
-                _prog.SetBounds(0, listTop, w, 44);
-                listTop += 52;
+                // 进度改成整块居中：圆环 + 百分比落在内容区正中，进度条在其下方，不再挤在列表顶上一条
+                int freeH = Height - listTop - 72;
+                if (freeH < 170) freeH = 170;
+                _prog.SetBounds(0, listTop, w, freeH);
             }
             _list.SetBounds(0, listTop, w, Height - listTop - 72);
             _spinner.SetBounds(w - 56, y, 44, 44);
@@ -295,7 +335,8 @@ namespace AGCleaner
             UpdateIdleState();
             _status = Lang.T("正在扫描...");
             _list.Clear();
-            _spinner.Spin(true);
+            _list.SetLoading(true, Lang.T("正在扫描磁盘..."));
+            _spinner.Spin(false); // 进度已改成内容区正中的大圆环，右上角的小转圈不再重复
             _scanBtn.Enabled = false;
             _cleanBtn.Enabled = false;
             _prog.Parent = this;
@@ -330,6 +371,7 @@ namespace AGCleaner
                         _busy = false;
                         _spinner.Spin(false);
                         HideProgress();
+                        _list.SetLoading(false, null);
                         _scanBtn.Enabled = true;
                         _scanBtn.Text = Lang.T("重新扫描");
                         _cleanBtn.Enabled = true;
@@ -394,6 +436,20 @@ namespace AGCleaner
             LayoutChildren();
         }
 
+        /// <summary>诊断用：按分类过滤清单，离屏截图时核对某一类（如 Cookie、回收站）的排版与配色。</summary>
+        public void FilterTo(string id)
+        {
+            _filter = id == null || id.Length == 0 ? "all" : id;
+            string label = _filter == "all" ? Lang.T("全部") : CatLabel(_filter);
+            for (int i = 0; i < _chips.Count; i++)
+            {
+                _chips[i].Active = _chips[i].Text == label;
+                _chips[i].Invalidate();
+            }
+            FillList();
+            UpdateSummary();
+        }
+
         private Chip MakeChip(string name, int count, string id)
         {
             Chip chip = new Chip();
@@ -437,15 +493,103 @@ namespace AGCleaner
                     r.Right = Byt.Format(it.Bytes);
                     r.Tag = c.Name;
                     r.TagColor = TagColor(c.Id);
-                    r.Checked = c.DefaultOn;
+                    r.Risk = it.HighRisk;
+                    // 勾选状态记在清单项上：切筛选、切排序都不会把用户的勾选重置掉
+                    if (!it.CheckInit)
+                    {
+                        it.Checked = c.DefaultOn && !it.OptIn;
+                        it.CheckInit = true;
+                    }
+                    r.Checked = it.Checked;
                     r.Checkable = true;
+                    if (it.Kind != CleanKind.RecycleBin && it.Kind != CleanKind.OrphanGroup &&
+                        (Directory.Exists(it.Path) || File.Exists(it.Path)))
+                    {
+                        r.Action = Lang.T("打开");
+                        r.ActionColor = Theme.Blue;
+                    }
                     r.Data = it;
                     r.Data2 = c;
                     rows.Add(r);
                 }
             }
+            if (_sortMode == 1)
+            {
+                rows.Sort(delegate (VRow a, VRow b)
+                {
+                    CleanItem x = (CleanItem)a.Data, y = (CleanItem)b.Data;
+                    return y.Bytes.CompareTo(x.Bytes);
+                });
+            }
+            else if (_sortMode == 2)
+            {
+                rows.Sort(delegate (VRow a, VRow b)
+                {
+                    CleanItem x = (CleanItem)a.Data, y = (CleanItem)b.Data;
+                    return string.Compare(x.Name, y.Name, StringComparison.CurrentCultureIgnoreCase);
+                });
+            }
+            else if (_sortMode == 3)
+            {
+                rows.Sort(delegate (VRow a, VRow b)
+                {
+                    CleanItem x = (CleanItem)a.Data, y = (CleanItem)b.Data;
+                    return string.Compare(x.Path, y.Path, StringComparison.OrdinalIgnoreCase);
+                });
+            }
             _list.SetRows(rows);
             _list.Invalidate();
+        }
+
+        /// <summary>排序按钮在三个维度间轮换，点一次换一种，文案直接说明当前维度。</summary>
+        private void CycleSort()
+        {
+            _sortMode = (_sortMode + 1) % 4;
+            _sortBtn.Text = SortLabel();
+            FillList();
+            UpdateSummary();
+            _bar.Invalidate();
+        }
+
+        private string SortLabel()
+        {
+            if (_sortMode == 1) return Lang.T("排序：体积");
+            if (_sortMode == 2) return Lang.T("排序：名称");
+            if (_sortMode == 3) return Lang.T("排序：路径");
+            return Lang.T("排序：默认");
+        }
+
+        /// <summary>行的勾选回写到清单项，保证切筛选后不丢选择。</summary>
+        private void SyncChecks()
+        {
+            for (int i = 0; i < _list.VisibleCount; i++)
+            {
+                VRow r = _list.RowAt(i);
+                CleanItem it = r.Data as CleanItem;
+                if (it != null) it.Checked = r.Checked;
+            }
+        }
+
+        /// <summary>行内「打开」：在资源管理器里定位这一项的路径，只定位不删除。</summary>
+        private void OpenSelectedPath()
+        {
+            VRow r = _list.SelectedRow;
+            if (r == null) return;
+            CleanItem it = r.Data as CleanItem;
+            if (it == null) return;
+            try
+            {
+                if (it.Kind == CleanKind.RecycleBin)
+                {
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe", "shell:RecycleBinFolder") { UseShellExecute = true });
+                    return;
+                }
+                if (File.Exists(it.Path))
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe", "/select,\"" + it.Path + "\"") { UseShellExecute = true });
+                else if (Directory.Exists(it.Path))
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe", "\"" + it.Path + "\"") { UseShellExecute = true });
+            }
+            catch (Exception) { }
         }
 
         private Color TagColor(string id)
@@ -479,7 +623,7 @@ namespace AGCleaner
                 _cta.Visible = idle;
                 if (idle) _cta.BringToFront();
             }
-            if (_list != null) _list.Visible = !idle && !doneView;
+            if (_list != null) _list.Visible = !idle && !doneView && !_busy; // 扫描/清理期间把列表让出来，居中进度才看得见
             if (_doneTitle != null && doneView)
                 _doneTitle.Text = Lang.T("清理完成 · 释放 ") + Byt.Format(_lastFreed);
             if (_scanBtn != null) _scanBtn.Visible = !idle && !doneView;
@@ -503,6 +647,7 @@ namespace AGCleaner
 
         private void UpdateSummary()
         {
+            SyncChecks();
             long bytes = 0;
             int count = 0;
             for (int i = 0; i < _list.VisibleCount; i++)
@@ -538,6 +683,7 @@ namespace AGCleaner
             Theme.Txt(g, Lang.T("已选 ") + count + Lang.T(" 项 · 预计释放 ") + Byt.Format(bytes), Theme.F(9.5f, FontStyle.Bold), Theme.Text, 4, 12);
             Theme.Txt(g, _status, Theme.F(8f), Theme.Muted, 4, 34);
             _cleanBtn.SetBounds(_bar.Width - 148, 10, 128, 38);
+            if (_sortBtn != null) _sortBtn.SetBounds(_bar.Width - 148 - 102, 14, 96, 30);
         }
 
         /// <summary>清理结束后回到干净状态：清空清单与分类，再返回概览页。</summary>
@@ -596,7 +742,7 @@ namespace AGCleaner
             _busy = true;
             _everScanned = true;
             UpdateIdleState();
-            _spinner.Spin(true);
+            _spinner.Spin(false); // 清理过程同样用居中的大圆环，不再额外挂小转圈
             _scanBtn.Enabled = false;
             _cleanBtn.Enabled = false;
             _status = Lang.T("正在清理...");
@@ -639,6 +785,7 @@ namespace AGCleaner
                         _lastCleanEnd = Environment.TickCount;
                         _spinner.Spin(false);
                         HideProgress();
+                        _list.SetLoading(false, null);
                         _cleanBtn.Enabled = true;
                         UpdateIdleState();
                         _status = Lang.T("已释放 ") + Byt.Format(f) + (err > 0 ? "，" + err + Lang.T(" 项被占用或跳过") : "") + Lang.T("；点“重新扫描”查看最新清单");

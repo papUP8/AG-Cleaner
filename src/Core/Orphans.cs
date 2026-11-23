@@ -1126,7 +1126,7 @@ namespace AGCleaner.Core
             OrphanGroup g = new OrphanGroup();
             g.Id = "emptyreg";
             g.Name = Lang.T("空注册表键");
-            g.Desc = Lang.T("HKCU\\Software 下既没有值也没有子键的空壳键（删除前自动导出备份，软件会按需重建）");
+            g.Desc = Lang.T("HKCU\\Software 下既没有值也没有子键的空壳键（直接删除，软件会按需重建）");
             R(report, Lang.T("扫描空注册表键..."));
             try
             {
