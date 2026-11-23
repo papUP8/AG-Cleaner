@@ -7,7 +7,7 @@ namespace AGCleaner
 {
     public static class Program
     {
-        public static string Version = "1.8.5";
+        public static string Version = "1.9.0";
 
         private static Icon _appIcon;
 
@@ -555,10 +555,13 @@ namespace AGCleaner
                     }
                     if (args[i].StartsWith("done:"))
                     {
-                        long n = 0;
-                        long.TryParse(args[i].Substring(5), out n);
+                        string spec = args[i].Substring(5);
+                        long[] nums = new long[2];
+                        string[] pp = spec.Split(':');
+                        for (int k = 0; k < pp.Length && k < 2; k++) long.TryParse(pp[k], out nums[k]);
+                        if (nums[1] <= 0) nums[1] = nums[0];
                         CleanPage cp = f.PageAt(page) as CleanPage;
-                        if (cp != null) cp.SimulateDoneForShot(n);
+                        if (cp != null) cp.SimulateDoneForShot(nums[0], nums[1]);
                         Application.DoEvents();
                     }
                 }

@@ -64,6 +64,8 @@ namespace AGCleaner
         private Btn _allBtn;
         private Btn _invBtn;
         private Btn _sortBtn;
+        /// <summary>按分类过滤时，底部中央的“返回全部”按钮。</summary>
+        private Btn _backBtn;
         /// <summary>0=扫描原始顺序 1=体积从大到小 2=名称 3=路径。</summary>
         private int _sortMode;
         private List<Chip> _chips = new List<Chip>();
@@ -82,6 +84,8 @@ namespace AGCleaner
         private long _lastFreed = 0;
         /// <summary>本次清理实际释放的体积；单独存一份，避免清单清空后被重算成 0。</summary>
         private long _doneFreed = 0;
+        private long _donePlan = 0;    // 确认框里给用户看的预计释放量
+        private long _doneActual = 0;  // 真正删掉、磁盘上实际减少的量
         private Panel _cta;
         private Btn _ctaBtn;
         private Label _ctaHint;
@@ -165,6 +169,14 @@ namespace AGCleaner
             _cleanBtn.Size = new Size(128, 38);
             _cleanBtn.Click += delegate { ExecuteClean(); };
             _bar.Controls.Add(_cleanBtn);
+
+            // 按分类看清单时，底部中央给一个明显的返回入口，不用再去顶上的胶囊里找“全部”
+            _backBtn = new Btn();
+            _backBtn.Kind = ButtonKind.Subtle;
+            _backBtn.Text = "← " + Lang.T("返回全部");
+            _backBtn.Visible = false;
+            _backBtn.Click += delegate { FilterTo("all"); };
+            _bar.Controls.Add(_backBtn);
 
             _spinner = new Spinner();
             _spinner.BackColor = Theme.Bg;
@@ -494,6 +506,7 @@ namespace AGCleaner
                 Chip chip = MakeChip(c.Name, c.Items.Count, c.Id);
                 _chips.Add(chip);
             }
+            UpdateBackButton();
             LayoutChildren();
         }
 
@@ -509,6 +522,23 @@ namespace AGCleaner
             }
             FillList();
             UpdateSummary();
+            UpdateBackButton();
+        }
+
+        /// <summary>只有按分类过滤时才显示底部中央的返回入口，回到“全部”后自动收起。</summary>
+        private void UpdateBackButton()
+        {
+            if (_backBtn == null) return;
+            bool show = _filter != "all" && _cats != null && _cats.Count > 0;
+            _backBtn.Visible = show;
+            if (show)
+            {
+                int total = 0;
+                for (int i = 0; i < _cats.Count; i++) total += _cats[i].Items.Count;
+                _backBtn.Text = "← " + Lang.T("返回全部") + " (" + total + ")";
+            }
+            _backBtn.Invalidate();
+            if (_bar != null) _bar.Invalidate();
         }
 
         private Chip MakeChip(string name, int count, string id)
@@ -526,6 +556,7 @@ namespace AGCleaner
                 }
                 FillList();
                 UpdateSummary();
+                UpdateBackButton();
             };
             Controls.Add(chip);
             chip.BringToFront();
@@ -686,7 +717,15 @@ namespace AGCleaner
             }
             if (_list != null) _list.Visible = !idle && !doneView && !_busy; // 扫描/清理期间把列表让出来，居中进度才看得见
             if (_doneTitle != null && doneView)
-                _doneTitle.Text = Lang.T("清理完成 · 释放 ") + Byt.Format(_doneFreed);
+                _doneTitle.Text = Lang.T("清理完成 · 释放 ") + Byt.Format(_donePlan > 0 ? _donePlan : _doneFreed);
+            if (_doneSub != null && doneView)
+            {
+                // 主数字用用户确认时看到的那个值；实际删掉的量放在下一行说明，避免两个页面出现两个数
+                if (_doneActual > 0 && _donePlan - _doneActual > 65536)
+                    _doneSub.Text = Lang.T("实际释放 ") + Byt.Format(_doneActual) + Lang.T("，其余被程序占用或已不存在");
+                else
+                    _doneSub.Text = Lang.T("垃圾已清完，接着处理这些");
+            }
             if (_scanBtn != null) _scanBtn.Visible = !idle && !doneView;
             if (_allBtn != null) _allBtn.Visible = !idle && !doneView;
             if (_invBtn != null) _invBtn.Visible = !idle && !doneView;
@@ -746,14 +785,30 @@ namespace AGCleaner
             Theme.Txt(g, _status, Theme.F(8f), Theme.Muted, 4, 34);
             _cleanBtn.SetBounds(_bar.Width - 148, 10, 128, 38);
             if (_sortBtn != null) _sortBtn.SetBounds(_bar.Width - 148 - 102, 14, 96, 30);
+            if (_backBtn != null)
+            {
+                Graphics g2 = _bar.CreateGraphics();
+                int bw2 = (int)g2.MeasureString(_backBtn.Text, _backBtn.Font).Width + 34;
+                g2.Dispose();
+                int bx2 = (_bar.Width - bw2) / 2;
+                // 底部中央的返回按钮不能和右侧的排序/清理按钮挤在一起
+                if (bx2 + bw2 > _bar.Width - 160) bx2 = _bar.Width - 160 - bw2;
+                if (bx2 < 120) bx2 = 120;
+                _backBtn.SetBounds(bx2, 12, bw2, 34);
+            }
         }
 
         /// <summary>诊断用：把“清理完成”页摆到界面上（不做任何真实删除），用于离屏核对释放体积的显示。</summary>
-        public void SimulateDoneForShot(long freed)
+        public void SimulateDoneForShot(long planned, long actual)
         {
-            ResetAfterClean(freed, true);
+            ResetAfterClean(actual, true, planned);
             UpdateIdleState();
             LayoutChildren();
+        }
+
+        public void SimulateDoneForShot(long freed)
+        {
+            SimulateDoneForShot(freed, freed);
         }
 
         /// <summary>清理结束后回到干净状态：清空清单与分类，再返回概览页。</summary>
@@ -762,7 +817,7 @@ namespace AGCleaner
             ResetAfterClean(freed, false);
         }
 
-        private void ResetAfterClean(long freed, bool stayOnPage)
+        private void ResetAfterClean(long freed, bool stayOnPage, long planned = -1)
         {
             _cats = new List<CleanCategory>();
             for (int i = 0; i < _chips.Count; i++) Controls.Remove(_chips[i]);
@@ -772,10 +827,13 @@ namespace AGCleaner
             _list.Clear();
             _list.EmptyText = Lang.T("本次清理已完成");
             _list.EmptyHint = Lang.T("如需再次查看可清理项，请点击上方“重新扫描”；本次运行期间不会自动重扫");
-            _status = Lang.T("清理完成，本次释放 ") + Byt.Format(freed) + Lang.T("；已回到概览页");
+            _status = Lang.T("清理完成，本次释放 ") + Byt.Format(planned >= 0 ? planned : freed) + Lang.T("；已回到概览页");
+            UpdateBackButton();
             _bar.Invalidate();
             UpdateSummary();
             _doneFreed = freed; // UpdateSummary 会按空清单把 _lastFreed 归零，完成页必须用这份原始值
+            _doneActual = freed;
+            _donePlan = planned >= 0 ? planned : freed;
             MainForm mf = FindForm() as MainForm;
             if (mf != null && !stayOnPage) mf.SelectPage(0);
         }
@@ -862,6 +920,7 @@ namespace AGCleaner
                     log = new List<string>(new string[] { Lang.T("执行失败：") + ex.Message });
                 }
                 long f = freed;
+                long plannedNow = CleanEngine.Planned;
                 List<string> lg = log;
                 int err = errors;
                 int sel = selected.Count;
@@ -876,7 +935,7 @@ namespace AGCleaner
                         _list.SetLoading(false, null);
                         _cleanBtn.Enabled = true;
                         UpdateIdleState();
-                        _status = Lang.T("已释放 ") + Byt.Format(f) + (err > 0 ? "，" + err + Lang.T(" 项被占用或跳过") : "") + Lang.T("；点“重新扫描”查看最新清单");
+                        _status = Lang.T("已释放 ") + Byt.Format(plannedNow > 0 ? plannedNow : f) + (err > 0 ? "，" + err + Lang.T(" 项被占用或跳过") : "") + Lang.T("；点“重新扫描”查看最新清单");
                         _bar.Invalidate();
 
                         List<string> lines = new List<string>();
@@ -887,18 +946,18 @@ namespace AGCleaner
                                 lines.Add(lg[i]);
                             }
                         }
-                        string summary = Lang.T("释放空间 ") + Byt.Format(f) + Lang.T(" · 处理 ") + sel + Lang.T(" 项 · 明细 ") + lines.Count + Lang.T(" 条");
-                        long planned = CleanEngine.Planned;
+                        string summary = Lang.T("释放空间 ") + Byt.Format(plannedNow > 0 ? plannedNow : f) + Lang.T(" · 处理 ") + sel + Lang.T(" 项 · 明细 ") + lines.Count + Lang.T(" 条");
+                        long planned = plannedNow > 0 ? plannedNow : CleanEngine.Planned;
                         if (planned > f + 1024 * 64)
                         {
                             // 预计与实际对不上时把差额说清楚：多半是文件被程序占用、无权限或被保护规则挡住
-                            summary += Lang.T("（预计 ") + Byt.Format(planned) + Lang.T("，差额 ") + Byt.Format(planned - f) + Lang.T(" 未能删除）");
+                            summary += Lang.T("（其中实际释放 ") + Byt.Format(f) + Lang.T("，差额 ") + Byt.Format(planned - f) + Lang.T(" 未能删除）");
                         }
                         string hint = err > 0
                             ? Lang.T("有 ") + err + Lang.T(" 项被系统占用或无权删除，已记入日志，可选择重启后再清理")
                             : Lang.T("全部处理完成；来源路径与体积已写入操作日志，可在历史记录页导出 CSV");
                         Dlg.Report(FindForm(), Lang.T("清理完成"), summary, lines, hint);
-                        ResetAfterClean(f);
+                        ResetAfterClean(f, false, plannedNow);
                         UpdateIdleState();
                     });
                 }

@@ -1580,7 +1580,10 @@ namespace AGCleaner.Core
         /// <summary>浏览器 Cookie 数据库：删除后所有网站需要重新登录，属高风险项，默认不勾选。</summary>
         private static CleanCategory ScanCookies(Action<string> report)
         {
-            CleanCategory cat = NewCat("cookie", Lang.T("浏览器 Cookie（高风险，可选）"), Lang.T("删除后所有网站都要重新登录；默认不勾选，确认后再删"), "", false);
+            // 不写“高风险”这种没信息量的词，直接说清删掉之后会发生什么：
+            // 这些网站要重新登录、购物车清空、部分站点偏好重置；只腾空间的话可以先只清缓存
+            CleanCategory cat = NewCat("cookie", Lang.T("浏览器 Cookie（清后需重新登录）"),
+                Lang.T("删除后这些网站在浏览器里会退出登录，购物车与部分站点偏好会重置，需要重新登录一次；只腾空间可以先只清缓存，Cookie 默认不勾选"), "", false);
             R(report, Lang.T("扫描浏览器 Cookie..."));
             string la = LocalAppData;
             string ra = RoamingAppData;
