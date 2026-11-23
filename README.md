@@ -23,10 +23,6 @@
 | --- | --- |
 | ![深色](docs/screenshots/01-clean-dark.png) | ![浅色](docs/screenshots/02-clean-light.png) |
 
-| 浅色 · 概览 |
-| --- |
-| ![概览](docs/screenshots/04-dashboard-light.png) |
-
 | 启动项管理 · 五类筛选 | 进度条（列表上方） |
 | --- | --- |
 | ![启动项](docs/screenshots/03-startup-dark.png) | ![进度](docs/screenshots/06-progress-light.png) |

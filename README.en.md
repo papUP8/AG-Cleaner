@@ -27,10 +27,6 @@ Grab `AG-Cleaner.exe` (about 820 KB, portable) from [Releases](../../releases/la
 | --- | --- |
 | ![dark](docs/screenshots/01-clean-dark.png) | ![light](docs/screenshots/02-clean-light.png) |
 
-| Light · Overview |
-| --- |
-| ![overview](docs/screenshots/04-dashboard-light.png) |
-
 | Startup items · six groups | Progress bar (above the list) |
 | --- | --- |
 | ![startup](docs/screenshots/03-startup-dark.png) | ![progress](docs/screenshots/06-progress-light.png) |
