@@ -64,7 +64,7 @@ namespace AGCleaner
             _langLabel = new Label();
             _langLabel.BackColor = Theme.Bg;
             _langLabel.ForeColor = Theme.TextDim;
-            _langLabel.Font = Theme.F(8.2f);
+            _langLabel.Font = Theme.F(8.8f);
             _langLabel.TextAlign = ContentAlignment.MiddleRight;
             _langLabel.Text = Lang.T("界面语言 / Language");
             Controls.Add(_langLabel);
@@ -281,7 +281,7 @@ namespace AGCleaner
             Card c = (Card)sender;
             Theme.Txt(g, Lang.T("残留扫描范围"), Theme.F(10.5f, FontStyle.Bold), Theme.Text, 20, 14);
             Theme.Txt(g, Lang.T("勾选要扫描的磁盘（只影响“残留清理”）；全部勾选或全部取消都表示全部固定盘"),
-                Theme.F(7.8f), Theme.Muted, 20, 33);
+                Theme.F(8.8f), Theme.Muted, 20, 32);
         }
 
         private void PrefPaint(object sender, PaintEventArgs e)
@@ -301,7 +301,7 @@ namespace AGCleaner
             for (int i = 0; i < 3; i++)
             {
                 Theme.Txt(g, titles[i], Theme.F(8.8f), Theme.Text, 20, 50 + i * 44);
-                Theme.Txt(g, descs[i], Theme.F(7.8f), Theme.Muted, 20, 68 + i * 44);
+                Theme.Txt(g, descs[i], Theme.F(8.8f), Theme.TextDim, 20, 68 + i * 44);
             }
             Theme.Txt(g, Lang.T("临时文件保留天数"), Theme.F(8.8f), Theme.Text, 20, 186);
             int descW = c.Width - 120;
@@ -310,7 +310,7 @@ namespace AGCleaner
             {
                 sf.Trimming = StringTrimming.EllipsisCharacter;
                 Theme.Txt(g, Lang.T("“全部”表示清空临时目录里未被占用的文件；也可以只清若干天前的文件"),
-                    Theme.F(7.6f), Theme.Muted, new Rectangle(20, 204, descW, 26), sf);
+                    Theme.F(8.8f), Theme.TextDim, new Rectangle(20, 203, descW, 28), sf);
             }
         }
 
@@ -320,7 +320,7 @@ namespace AGCleaner
             Theme.Smooth(g);
             Card c = (Card)sender;
             Theme.Txt(g, Lang.T("白名单"), Theme.F(10.5f, FontStyle.Bold), Theme.Text, 18, 18);
-            Theme.Txt(g, Lang.T("每行一个路径，支持 %LOCALAPPDATA% 等环境变量，命中即跳过"), Theme.F(7.8f), Theme.Muted, 18, 42);
+            Theme.Txt(g, Lang.T("每行一个路径，支持 %LOCALAPPDATA% 等环境变量，命中即跳过"), Theme.F(8.8f), Theme.TextDim, 18, 41);
         }
 
 
@@ -331,9 +331,9 @@ namespace AGCleaner
             Card c = (Card)sender;
             Theme.Txt(g, Lang.T("关于 AG Cleaner"), Theme.F(10.5f, FontStyle.Bold), Theme.Text, 20, 14);
             Theme.Txt(g, "AG Cleaner " + Program.Version + Lang.T("  ·  Windows 图形桌面清理与优化工具"),
-                Theme.F(8.2f), Theme.TextDim, 20, 40);
+                Theme.F(8.8f), Theme.TextDim, 20, 39);
             Theme.Txt(g, Lang.T("许可证：GPL-3.0 · 社区版，代码开源可审计 · 所有配置与日志只保存在本机"),
-                Theme.F(7.9f), Theme.Muted, 20, 62);
+                Theme.F(8.8f), Theme.TextDim, 20, 62);
             
             // 语言标签跟着按钮走，卡片里不再重复
         }

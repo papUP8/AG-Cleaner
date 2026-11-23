@@ -108,6 +108,13 @@ namespace AGCleaner
         /// <summary>诊断用：暴露清单分类，便于命令行核对默认勾选规则。</summary>
         public List<CleanCategory> Categories { get { return _cats; } }
 
+        /// <summary>诊断用：取当前清单可见行对应的条目，用于离屏渲染详情弹窗。</summary>
+        public CleanItem RowItem(int index)
+        {
+            VRow r = _list.RowAt(index);
+            return r == null ? null : r.Data as CleanItem;
+        }
+
         /// <summary>诊断用：命令行直接指定排序维度，验证排序后的顺序。</summary>
         public void SetSort(int mode)
         {

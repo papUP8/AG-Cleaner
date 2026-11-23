@@ -7,7 +7,7 @@ namespace AGCleaner
 {
     public static class Program
     {
-        public static string Version = "1.9.1";
+        public static string Version = "1.9.2";
 
         private static Icon _appIcon;
 
@@ -497,6 +497,28 @@ namespace AGCleaner
                     settle += 50;
                 }
                 f.ExportShot(args[1]);
+                // 诊断：额外把详情弹窗离屏渲染出来，检查换行、滚动条与右下角按钮是否完整
+                if (cp != null && filterId != null && filterId.Length > 0)
+                {
+                    Core.CleanItem it = cp.RowItem(0);
+                    if (it != null)
+                    {
+                        using (DetailForm df = new DetailForm(it))
+                        {
+                            df.StartPosition = FormStartPosition.Manual;
+                            df.Location = new Point(-5000, 0);
+                            df.Show();
+                            Application.DoEvents();
+                            df.Refresh();
+                            Application.DoEvents();
+                            Bitmap bmp = new Bitmap(df.Width, df.Height);
+                            df.DrawToBitmap(bmp, new Rectangle(0, 0, df.Width, df.Height));
+                            bmp.Save(args[1].Replace(".png", "") + "-detail.png", System.Drawing.Imaging.ImageFormat.Png);
+                            bmp.Dispose();
+                            df.Close();
+                        }
+                    }
+                }
                 // 诊断：把页面上的控件可见性与坐标一并写出，便于核对进度环是否真的收起来了
                 try
                 {

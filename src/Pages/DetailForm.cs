@@ -16,16 +16,27 @@ namespace AGCleaner
             Text = Lang.T("详情") + " · " + item.Name;
             FormBorderStyle = FormBorderStyle.Sizable;
             StartPosition = FormStartPosition.CenterParent;
-            Size = new Size(660, 520);
-            MinimumSize = new Size(460, 320);
             BackColor = Theme.Bg;
             ForeColor = Theme.Text;
             Font = Theme.F(9.5f);
             Padding = new Padding(18, 0, 18, 4);
 
+            string text = Describe(item);
+            Font bodyFont = Theme.F(9.5f);
+            int wrapW = 740;
+            int textH = TextRenderer.MeasureText(text, bodyFont, new Size(wrapW, 20000),
+                TextFormatFlags.WordBreak | TextFormatFlags.TextBoxControl).Height + 24;
+            // 窗口按内容定高：字不多时一屏放下，不逼用户去拖滚动条；内容太长才出现竖向滚动
+            int wantH = 84 + textH + 56 + 8;
+            int capH = (int)(Screen.FromControl(this).WorkingArea.Height * 0.86);
+            if (wantH > capH) wantH = capH;
+            if (wantH < 360) wantH = 360;
+            ClientSize = new Size(800, wantH);
+            MinimumSize = new Size(560, 360);
+
             Panel head = new Panel();
             head.Dock = DockStyle.Top;
-            head.Height = 86;
+            head.Height = 84;
             head.BackColor = Theme.Bg;
             Controls.Add(head);
 
@@ -33,36 +44,28 @@ namespace AGCleaner
             t.Text = item.Name;
             t.Font = Theme.F(12.5f, FontStyle.Bold);
             t.ForeColor = Theme.Text;
-            t.SetBounds(18, 12, 600, 26);
             t.AutoSize = false;
+            t.SetBounds(0, 12, head.Width, 28);
+            t.Anchor = AnchorStyles.Left | AnchorStyles.Top | AnchorStyles.Right;
             head.Controls.Add(t);
 
             Label s = new Label();
             s.Text = (item.Path.Length > 0 ? item.Path : "") + "    " + Byt.Format(item.Bytes);
             s.ForeColor = Theme.Muted;
             s.Font = Theme.F(9f);
-            s.SetBounds(18, 42, 620, 20);
             s.AutoSize = false;
+            s.SetBounds(0, 46, head.Width, 20);
+            s.Anchor = AnchorStyles.Left | AnchorStyles.Top | AnchorStyles.Right;
             head.Controls.Add(s);
-
-            TextBox body = new TextBox();
-            body.Multiline = true;
-            body.ReadOnly = true;
-            body.ScrollBars = ScrollBars.Both;
-            body.WordWrap = false;
-            body.BackColor = Theme.Card;
-            body.ForeColor = Theme.Text;
-            body.BorderStyle = BorderStyle.None;
-            body.Font = Theme.F(9.5f);
-            body.Dock = DockStyle.Fill;
-            body.Text = Describe(item);
-            body.Select(0, 0);
-            Controls.Add(body);
-            body.BringToFront();
+            head.Resize += delegate
+            {
+                t.Width = head.ClientSize.Width;
+                s.Width = head.ClientSize.Width;
+            };
 
             Panel foot = new Panel();
             foot.Dock = DockStyle.Bottom;
-            foot.Height = 52;
+            foot.Height = 56;
             foot.BackColor = Theme.Bg;
             Controls.Add(foot);
 
@@ -70,13 +73,27 @@ namespace AGCleaner
             close.Kind = ButtonKind.Accent;
             close.Text = Lang.T("关闭");
             close.Size = new Size(96, 34);
-            close.SetBounds(660 - 18 - 96, 9, 96, 34);
-            close.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            close.Dock = DockStyle.Right;
             close.Click += delegate { Close(); };
+            // 靠 Dock 贴右侧，随窗口宽度自适应，不会再被右边距切掉一半
+            foot.Padding = new Padding(0, 11, 8, 11);
             foot.Controls.Add(close);
 
-            head.Padding = new Padding(0);
-            body.Margin = new Padding(18, 0, 18, 0);
+            TextBox body = new TextBox();
+            body.Multiline = true;
+            body.ReadOnly = true;
+            // 自动换行 + 只保留竖向滚动条：长句不再被横向截断，也不用左右拖
+            body.ScrollBars = ScrollBars.Vertical;
+            body.WordWrap = true;
+            body.BackColor = Theme.Card;
+            body.ForeColor = Theme.Text;
+            body.BorderStyle = BorderStyle.None;
+            body.Font = bodyFont;
+            body.Dock = DockStyle.Fill;
+            body.Text = text;
+            body.Select(0, 0);
+            Controls.Add(body);
+            body.BringToFront();
         }
 
         private static string CatName(string id)
