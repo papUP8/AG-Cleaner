@@ -86,6 +86,8 @@ namespace AGCleaner.Core
         public string ScanDrives = "";   // 逗号分隔的盘符（如 "C,D"）；空表示全部固定盘
         public List<string> ProjectDirs = new List<string>();
         public bool ConfirmBeforeDelete = true;
+        /// <summary>上一次扫描各类目的耗时（key:秒，逗号分隔），用于把进度条按真实耗时分配。</summary>
+        public string ScanWeights = "";
         public bool TempMigrated = false;
 
         public static Settings Load()
@@ -111,6 +113,7 @@ namespace AGCleaner.Core
                 else if (k == "scandrives") s.ScanDrives = v;
                 else if (k == "tempmig") s.TempMigrated = v == "1";
                 else if (k == "dir") { if (v.Length > 0) s.ProjectDirs.Add(v); }
+                else if (k == "scanw") s.ScanWeights = v;
             }
             // 老版本默认把删除项移入回收站，结果垃圾只是换了位置、空间一点没释放；
             // 迁移一次改为永久删除，之后以用户在设置页的选择为准
@@ -150,6 +153,7 @@ namespace AGCleaner.Core
             sb.AppendLine("theme=" + ThemeMode);
             sb.AppendLine("lang=" + Language);
             sb.AppendLine("scandrives=" + ScanDrives);
+            sb.AppendLine("scanw=" + ScanWeights);
             foreach (string d in ProjectDirs) sb.AppendLine("dir=" + d);
             Store.WriteAll(Store.SettingsFile, sb.ToString());
         }

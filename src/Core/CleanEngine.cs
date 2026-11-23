@@ -19,6 +19,8 @@ namespace AGCleaner.Core
         public bool Recycle = false;
         /// <summary>高风险/不可逆项：扫描出来但不预先勾选，必须用户自己点。</summary>
         public bool OptIn = false;
+        /// <summary>默认不勾，但不算高风险（例如重建代价较高的开发缓存）。</summary>
+        public bool DefaultOff = false;
         /// <summary>界面上要用警示色标出来的高风险项（Cookie、回收站、旧系统备份这类删了回不来的）。</summary>
         public bool HighRisk = false;
         public bool AdminNeeded = false;
@@ -208,7 +210,14 @@ namespace AGCleaner.Core
                 ClearReadOnly(safe[i]);
                 if (!File.Exists(safe[i]) && !Directory.Exists(safe[i])) freed += before;
                 else if (Native.DelayDelete(safe[i])) freed += before;
-                else errors++;
+                else
+                {
+                    // 目录里部分文件被占用时，ClearReadOnly 可能只删掉了一部分，
+                    // 这里按“少了多少”记账，避免清单说删了 664 MB、实际只少了 370 MB 的对不上
+                    long after = SizeOf(safe[i]);
+                    if (after < before) freed += before - after;
+                    errors++;
+                }
                 if (sub != null) sub(i + 1, total);
             }
             return freed;
@@ -319,6 +328,8 @@ namespace AGCleaner.Core
             public double Frac = 0;      // 本类目内部完成度 0..1
             public int Done = 0;
             public int Expect = 0;       // 0 表示总量未知，用饱和曲线估算
+            public long StartMs = 0;     // 本类目开始扫描的时刻，进度按“已跑时间/预计耗时”推进
+            public bool Finished = false;
             public string Note = "";
             public bool Active = true;
         }
@@ -341,7 +352,7 @@ namespace AGCleaner.Core
             if (step < 1) step = 1;
             s.Done += step;
             if (note != null && note.Length > 0) s.Note = note;
-            double f = s.Expect > 0 ? (double)s.Done / s.Expect : (double)s.Done / (s.Done + 24.0);
+            double f = s.Expect > 0 ? (double)s.Done / s.Expect : (double)s.Done / (s.Done + 8.0);
             if (f > 0.94) f = 0.94; // 最后 6% 留给类目真正收尾，避免“显示满了其实还在跑”
             if (f > s.Frac) s.Frac = f;
             if (_hub != null) _hub.Report();
@@ -378,43 +389,98 @@ namespace AGCleaner.Core
             public StepProgress Prog;
             public double Lo = 3;
             public double Hi = 22;
+            public long T0 = 0;            // 发现阶段的起点
+            public double PredTotal = 0;   // 上次发现阶段的总耗时（秒），用于给整体节奏兜底
             private int _lastPct = -1;
             private long _lastMs = 0;
 
             public void Report()
             {
-                double w = 0, f = 0;
-                JobSlice noteSrc = null;
-                double noteRemain = -1;
                 lock (Slices)
                 {
+                    double w = 0, f = 0;
+                    JobSlice noteSrc = null;
+                    double noteRemain = -1;
+                    long now = Environment.TickCount;
                     for (int i = 0; i < Slices.Count; i++)
                     {
                         JobSlice s = Slices[i];
                         if (s == null || !s.Active) continue;
                         w += s.Weight;
-                        f += s.Weight * s.Frac;
-                        double remain = s.Weight * (1.0 - s.Frac);
+                        // 百分比按“已用时间 ÷ 该类目上次耗时”推进，而不是按跑了几个子步骤：
+                        // 子步骤数量和真实耗时不成比例（有的目录枚举一次就 10 秒）。
+                        // 曲线在预计耗时处只到 95%，剩下的几个点由真实完成来补齐，收尾就不会突然跳一大截。
+                        double e = (now - s.StartMs) / 1000.0;
+                        if (e < 0) e = 0;
+                        double exp = s.Weight;
+                        if (exp < 0.4) exp = 0.4;
+                        double frac;
+                        if (e <= exp) frac = 0.95 * e / exp;
+                        else frac = 0.95 + 0.05 * (1.0 - Math.Exp(-(e - exp) / Math.Max(3.0, exp * 0.5)));
+                        f += s.Weight * frac;
+                        double remain = s.Weight * (1.0 - frac);
                         if (remain > noteRemain && s.Note.Length > 0) { noteRemain = remain; noteSrc = s; }
                     }
+                    if (w <= 0) return;
+                    double fracTotal = f / w;
+                    // 单个类目严重超时的时候，按权重算的完成度会几乎不动；再用“整体已用时间 ÷ 上次总用时”
+                    // 兜一层，保证进度条始终在往前走，而不是停在某个数字上等最后一个类目
+                    double globalFrac = 0;
+                    if (PredTotal > 1 && T0 > 0)
+                    {
+                        globalFrac = (now - T0) / 1000.0 / PredTotal;
+                        if (globalFrac > 0.97) globalFrac = 0.97;
+                    }
+                    if (globalFrac > fracTotal) fracTotal = globalFrac;
+                    int pct = (int)Math.Round(Lo + (Hi - Lo) * fracTotal);
+                    if (pct > Hi) pct = (int)Hi;
+                    if (pct < _lastPct) pct = _lastPct;
+                    if (pct == _lastPct && now - _lastMs < 120) return;
+                    if (pct == _lastPct && noteSrc == null) return;
+                    _lastPct = pct;
+                    _lastMs = now;
+                    string text = noteSrc == null || noteSrc.Note.Length == 0
+                        ? Lang.T("正在扫描...")
+                        : noteSrc.Note;
+                    CleanEngine.Report(Prog, pct, text);
                 }
-                if (w <= 0) return;
-                double frac = f / w;
-                int pct = (int)Math.Round(Lo + (Hi - Lo) * frac);
-                if (pct < _lastPct) pct = _lastPct;
-                long now = Environment.TickCount;
-                if (pct == _lastPct && now - _lastMs < 150) return;
-                if (pct == _lastPct && noteSrc == null) return;
-                _lastPct = pct;
-                _lastMs = now;
-                string text = noteSrc == null || noteSrc.Note.Length == 0
-                    ? Lang.T("正在扫描...")
-                    : noteSrc.Note;
-                CleanEngine.Report(Prog, pct, text);
             }
         }
 
         private static Hub _hub;
+
+        /// <summary>上一次扫描实测耗时（秒），key 为类目名。</summary>
+        private static Dictionary<string, double> _weightMap = new Dictionary<string, double>();
+
+        private static Dictionary<string, double> ParseWeights(string text)
+        {
+            Dictionary<string, double> m = new Dictionary<string, double>();
+            if (text == null || text.Length == 0) return m;
+            string[] parts = text.Split(',');
+            for (int i = 0; i < parts.Length; i++)
+            {
+                string p = parts[i].Trim();
+                int c = p.LastIndexOf(':');
+                if (c <= 0) continue;
+                double v = 0;
+                try { v = double.Parse(p.Substring(c + 1), System.Globalization.CultureInfo.InvariantCulture); }
+                catch (Exception) { continue; }
+                if (v > 0) m[p.Substring(0, c)] = v;
+            }
+            return m;
+        }
+
+        private static double WeightFor(string key, double fallback)
+        {
+            if (_weightMap != null && _weightMap.ContainsKey(key))
+            {
+                double v = _weightMap[key];
+                if (v < 0.5) v = 0.5;
+                if (v > 90) v = 90;
+                return v;
+            }
+            return fallback;
+        }
 
         /// <summary>一个类目的扫描任务；Run 为 null 表示本次设置下跳过这个类目。</summary>
         private class ScanJob
@@ -435,6 +501,9 @@ namespace AGCleaner.Core
         /// <summary>体积统计阶段当前百分比，供大目录里的“活着”提示复用，不改变进度值。</summary>
         private static volatile int _sizePct = -1;
         private static long _sizeLastMs = 0;
+
+        /// <summary>本次清理按扫描结果“预计要处理”的总体积，用于和实际释放量对照。</summary>
+        public static long Planned = 0;
 
         public static List<CleanCategory> Scan(Settings s, Action<string> report)
         {
@@ -471,25 +540,46 @@ namespace AGCleaner.Core
             string[] timeRows = new string[jobs.Count];
             int finished = 0;
 
-            // 权重按各类目的典型耗时分配，慢类目占更长的进度段；类目内部再由 SliceTick 细分
-            double[] weights = new double[] { 2, 7, 10, 3, 5, 3, 2, 4, 3, 2, 2, 9, 1, 10 };
+            // 权重决定每个类目在进度条上占多长。上一次扫描的实测耗时优先（存在设置里），
+            // 这样“浏览器 15 秒、残留 20 秒”的差异能按比例反映到进度上；没有历史就用经验值。
+            double[] defaults = new double[] { 2, 7, 10, 3, 5, 3, 2, 4, 3, 2, 2, 9, 1, 10 };
+            _weightMap = ParseWeights(s == null ? null : s.ScanWeights);
             Hub hub = new Hub();
             hub.Prog = prog;
             hub.Lo = 3;
-            hub.Hi = 22;
+            hub.Hi = 70;
             JobSlice[] slices = new JobSlice[jobs.Count];
             for (int i = 0; i < jobs.Count; i++)
             {
                 if (jobs[i].Run == null) continue;
                 JobSlice sl = new JobSlice();
                 sl.Key = jobs[i].Key;
-                sl.Weight = i < weights.Length ? weights[i] : 3;
+                sl.Weight = WeightFor(jobs[i].Key, i < defaults.Length ? defaults[i] : 3);
+                // 起点先记为建表时刻：并行线程还没轮到某个类目时，它不能凭空算出一大段“已用时间”
+                sl.StartMs = Environment.TickCount;
                 slices[i] = sl;
                 hub.Slices.Add(sl);
             }
             _hub = hub;
             int active = hub.Slices.Count;
+            long hubStart = Environment.TickCount;
+            hub.T0 = hubStart;
+            hub.PredTotal = WeightFor("hub", 0);
+            if (hub.PredTotal <= 1)
+            {
+                double sum = 0;
+                for (int i = 0; i < hub.Slices.Count; i++) sum += hub.Slices[i].Weight;
+                hub.PredTotal = sum * 1.15;
+            }
             SliceNote(Lang.T("正在列举可清理目录..."));
+
+            // 心跳：有的类目一次目录枚举要十几秒、期间没有任何回调，只靠子步骤上报就会停住；
+            // 每 200 ms 重算一次进度，保证“目录在变、进度也在走”
+            System.Threading.Timer heartbeat = new System.Threading.Timer(delegate
+            {
+                Hub h = _hub;
+                if (h != null) h.Report();
+            }, null, 120, 200);
 
             System.Threading.Tasks.Parallel.For(0, jobs.Count, new System.Threading.Tasks.ParallelOptions { MaxDegreeOfParallelism = dop },
                 delegate (int idx)
@@ -498,6 +588,7 @@ namespace AGCleaner.Core
                     JobSlice sl = slices[idx];
                     if (job.Run == null || sl == null) return;
                     _slice = sl;
+                    sl.StartMs = Environment.TickCount;
                     DateTime t0 = DateTime.Now;
                     CleanCategory got = null;
                     try { got = job.Run(); }
@@ -506,12 +597,14 @@ namespace AGCleaner.Core
                     res[idx] = got;
                     timeRows[idx] = job.Key + "\t" + ((int)(DateTime.Now - t0).TotalMilliseconds) + " ms\t" + got.Items.Count;
                     sl.Note = job.Key + Lang.T(" · 扫描完成");
-                    sl.Frac = 1.0;
+                    sl.Finished = true;
                     _slice = null;
                     int done = System.Threading.Interlocked.Increment(ref finished);
                     hub.Report();
                 });
             _hub = null;
+            if (heartbeat != null) heartbeat.Dispose();
+            long hubMs = Environment.TickCount - hubStart;
             hub.Slices.Clear(); // 类目都跑完了，切片不再参与合成
 
             for (int i = 0; i < jobs.Count; i++)
@@ -519,6 +612,29 @@ namespace AGCleaner.Core
                 if (res[i] != null) cats.Add(res[i]);
                 if (timeRows[i] != null) Timings.Add(timeRows[i]);
             }
+
+            // 把这次各类目的真实耗时记进设置，下一次扫描按它分配进度段：
+            // 慢类目分到更长的段，进度条就不会长时间钉在一个数字上
+            string weightText = "";
+            if (timeRows != null)
+            {
+                for (int i = 0; i < timeRows.Length; i++)
+                {
+                    if (timeRows[i] == null) continue;
+                    string[] p = timeRows[i].Split('\t');
+                    if (p.Length < 2) continue;
+                    double ms = 0;
+                    try { ms = double.Parse(p[1].Replace(" ms", "").Trim(), System.Globalization.CultureInfo.InvariantCulture); }
+                    catch (Exception) { continue; }
+                    if (ms < 300) ms = 300;
+                    if (weightText.Length > 0) weightText += ",";
+                    weightText += p[0] + ":" + (ms / 1000.0).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture);
+                }
+            }
+            // 发现阶段用掉的时间也要能对上整体节奏，体积统计阶段的预计耗时单独记
+            double hubSec = Math.Max(0.3, hubMs / 1000.0);
+            if (weightText.Length > 0) weightText += ",";
+            weightText += "hub" + ":" + hubSec.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture);
 
             List<CleanItem> all = new List<CleanItem>();
             for (int i = 0; i < cats.Count; i++)
@@ -533,11 +649,15 @@ namespace AGCleaner.Core
 
             if (all.Count > 0)
             {
-                Report(prog, 22, Lang.T("正在统计 ") + all.Count + Lang.T(" 个项目的体积..."));
+                Report(prog, 70, Lang.T("正在统计 ") + all.Count + Lang.T(" 个项目的体积..."));
                 int done = 0;
-                int lastPct = 22;
-                _sizePct = 22;
+                int lastPct = 70;
+                _sizePct = 70;
                 _sizeLastMs = 0;
+                long sizeStart = Environment.TickCount;
+                // 体积统计的耗时和项目数不成正比（少数几 GB 的目录占掉大半时间），
+                // 所以进度同时看“已统计项数”和“已用时间 / 上次用时”，谁快跟谁，避免项目数扫完就冲到 96
+                double predSize = WeightFor(Lang.T("体积统计"), 0);
                 FileUtil.SizeHook = delegate (long bytes)
                 {
                     long now = Environment.TickCount;
@@ -551,7 +671,15 @@ namespace AGCleaner.Core
                     try { SizeItem(it); }
                     catch (Exception) { }
                     int d = System.Threading.Interlocked.Increment(ref done);
-                    int pct = 22 + (int)(d * 74L / all.Count);
+                    double itemFrac = (double)d / all.Count;
+                    if (itemFrac > 1.0) itemFrac = 1.0;
+                    double timeFrac = 0;
+                    // 体积统计的耗时集中在少数几个大目录上：按项目数算会几秒冲到 90% 再干等，
+                    // 所以有历史用时之后以“已用时间 / 上次用时”为主，项目数只用来给文案
+                    if (predSize > 0.3) timeFrac = (Environment.TickCount - sizeStart) / 1000.0 / predSize;
+                    if (timeFrac > 0) itemFrac = timeFrac;
+                    if (itemFrac > 0.97) itemFrac = 0.97;
+                    int pct = 70 + (int)(26 * itemFrac);
                     if (pct > lastPct)
                     {
                         System.Threading.Interlocked.Exchange(ref lastPct, pct);
@@ -562,6 +690,15 @@ namespace AGCleaner.Core
                     }
                 });
                 FileUtil.SizeHook = null;
+                double sizeSec = Math.Max(0.3, (Environment.TickCount - sizeStart) / 1000.0);
+                if (weightText.Length > 0) weightText += ",";
+                weightText += "sizing" + ":" + sizeSec.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture);
+            }
+
+            if (s != null && weightText.Length > 0)
+            {
+                s.ScanWeights = weightText;
+                try { s.Save(); } catch (Exception) { }
             }
 
             // 去掉体积为 0 的空项
@@ -573,6 +710,14 @@ namespace AGCleaner.Core
                     if (cats[i].Items[j].Bytes > 0) keep.Add(cats[i].Items[j]);
                 }
                 cats[i].Items = keep;
+            }
+            // 设置里关掉“移入回收站”后，所有条目一律永久删除：确认框与实际行为必须一致
+            if (!s.UseRecycleBin)
+            {
+                for (int i = 0; i < cats.Count; i++)
+                {
+                    for (int j = 0; j < cats[i].Items.Count; j++) cats[i].Items[j].Recycle = false;
+                }
             }
             Report(prog, 97, Lang.T("整理清单..."));
             Report(prog, 100, Lang.T("扫描完成"));
@@ -595,6 +740,11 @@ namespace AGCleaner.Core
 
         private static void AddDirItem(CleanCategory cat, string name, string path, CleanKind kind, int days, bool recycle, bool optIn)
         {
+            AddDirItem(cat, name, path, kind, days, recycle, optIn, false);
+        }
+
+        private static void AddDirItem(CleanCategory cat, string name, string path, CleanKind kind, int days, bool recycle, bool optIn, bool defaultOff)
+        {
             if (path == null || path.Length == 0) return;
             if (!Directory.Exists(path)) return;
             if (!Guard.CanDelete(path, true))
@@ -616,6 +766,7 @@ namespace AGCleaner.Core
             it.OlderThanDays = days;
             it.Recycle = recycle;
             it.OptIn = optIn;
+            it.DefaultOff = defaultOff;
             it.HighRisk = optIn; // 需手动开启的目录项都属于“删了没有退路”，界面标红
             it.Exists = true;
             it.Bytes = 0;
@@ -840,7 +991,10 @@ namespace AGCleaner.Core
 
         private static string[] ChromiumLeaves()
         {
-            return new string[] { "Cache", "Code Cache", "GPUCache", "DawnGraphiteCache", "DawnWebGPUCache", @"Service Worker\ScriptCache" };
+            // DawnCache / Media Cache / Shared Dictionary\cache 来自 MangoDisk 与 Mole 的规则集：
+            // 都是可重建的渲染缓存，不涉及登录态、书签、扩展本体
+            return new string[] { "Cache", "Code Cache", "GPUCache", "DawnCache", "DawnGraphiteCache", "DawnWebGPUCache",
+                                  "Media Cache", @"Service Worker\ScriptCache", @"Shared Dictionary\cache" };
         }
 
         private static void ScanChromium(CleanCategory cat, Settings s, string label, string root, string[] rootLeaves)
@@ -875,7 +1029,8 @@ namespace AGCleaner.Core
             R(report, Lang.T("扫描浏览器缓存..."));
             string la = LocalAppData;
 
-            string[] rootLeaves = new string[] { "ShaderCache", "GrShaderCache", "Crashpad", "BrowserMetrics" };
+            string[] rootLeaves = new string[] { "ShaderCache", "GrShaderCache", "Crashpad", "BrowserMetrics",
+                                                 "GraphiteDawnCache", "GPUPersistentCache", "component_crx_cache", "extensions_crx_cache" };
             ScanChromium(cat, s, "Chrome", Path.Combine(la, @"Google\Chrome\User Data"), rootLeaves);
             ScanChromium(cat, s, "Chrome Beta", Path.Combine(la, @"Google\Chrome Beta\User Data"), rootLeaves);
             ScanChromium(cat, s, "Chrome Canary", Path.Combine(la, @"Google\Chrome SxS\User Data"), rootLeaves);
@@ -975,6 +1130,9 @@ namespace AGCleaner.Core
             ScanElectronGeneric(cat, s);
             // 应用日志、更新包下载目录、npm 缓存：360 那类工具算的“常用软件垃圾”主要就是这些
             ScanAppLogsAndUpdates(cat, s);
+            // 以下两组规则取自 MangoDisk / Mole 的规则集：开发缓存与微信 Chromium 渲染缓存，都是可重建产物
+            ScanDevCaches(cat, s);
+            ScanWeChatCaches(cat, s);
 
             // UWP / Microsoft Store 应用缓存
             string packages = Path.Combine(la, "Packages");
@@ -1106,6 +1264,72 @@ namespace AGCleaner.Core
                     catch (Exception) { }
                 }
             }
+        }
+
+        /// <summary>
+        /// 开发工具的包与编译缓存。规则来自 MangoDisk / Mole 的 dev 类目：
+        /// 都是「删了会重新下载或重新编译、但不丢源码与配置」的可重建产物。
+        /// 重建代价高的（cargo / go / gradle / ccache / sccache）默认不勾，但不算高风险。
+        /// </summary>
+        private static void ScanDevCaches(CleanCategory cat, Settings s)
+        {
+            string la = LocalAppData;
+            string up = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+
+            AddDirItem(cat, "pnpm · 包存储", Path.Combine(la, @"pnpm\store"), CleanKind.DirContents, 0, s.UseRecycleBin);
+            AddDirItem(cat, "pnpm · 旧缓存", Path.Combine(la, "pnpm-cache"), CleanKind.DirContents, 0, s.UseRecycleBin);
+            AddDirItem(cat, "Yarn · 缓存", Path.Combine(la, @"Yarn\Cache"), CleanKind.DirContents, 0, s.UseRecycleBin);
+            AddDirItem(cat, "Yarn Berry · 缓存", Path.Combine(la, @"Yarn\Berry\cache"), CleanKind.DirContents, 0, s.UseRecycleBin);
+            AddDirItem(cat, "pip · 包缓存", Path.Combine(la, @"pip\Cache"), CleanKind.DirContents, 0, s.UseRecycleBin);
+            AddDirItem(cat, "uv · 缓存", Path.Combine(la, @"uv\cache"), CleanKind.DirContents, 0, s.UseRecycleBin);
+            AddDirItem(cat, "NuGet · 包缓存", Path.Combine(la, @"NuGet\v3-cache"), CleanKind.DirContents, 0, s.UseRecycleBin);
+            AddDirItem(cat, "NuGet · 旧缓存", Path.Combine(la, @"NuGet\Cache"), CleanKind.DirContents, 0, s.UseRecycleBin);
+
+            AddDirItem(cat, "Cargo · 注册表包缓存", Path.Combine(up, @".cargo\registry\cache"), CleanKind.DirContents, 0, s.UseRecycleBin, false, true);
+            AddDirItem(cat, "Go · 构建缓存", Path.Combine(la, "go-build"), CleanKind.DirContents, 0, s.UseRecycleBin, false, true);
+            AddDirItem(cat, "Gradle · 依赖缓存", Path.Combine(up, @".gradle\caches"), CleanKind.DirContents, 0, s.UseRecycleBin, false, true);
+            AddDirItem(cat, "ccache · 编译缓存", Path.Combine(la, "ccache"), CleanKind.DirContents, 0, s.UseRecycleBin, false, true);
+            AddDirItem(cat, "sccache · 编译缓存", Path.Combine(la, @"Mozilla\sccache"), CleanKind.DirContents, 0, s.UseRecycleBin, false, true);
+        }
+
+        /// <summary>
+        /// 微信 / Weixin 的 Chromium 渲染缓存（规则取自 MangoDisk 的 app.wechat-rendering-cache）：
+        /// 只清 Profile 下的固定缓存叶子与小程序的编译缓存，聊天数据库、账号、接收文件一律不碰。
+        /// </summary>
+        private static void ScanWeChatCaches(CleanCategory cat, Settings s)
+        {
+            string ra = RoamingAppData;
+            string[] roots = new string[] { @"Tencent\xwechat\radium\web\profiles", @"Tencent\WeChat\radium\web\profiles" };
+            string[] leaves = new string[] { "Cache", "Code Cache", "GPUCache", "DawnCache", "DawnGraphiteCache", "DawnWebGPUCache",
+                                             "GrShaderCache", "GraphiteDawnCache", @"Shared Dictionary\cache" };
+            for (int r = 0; r < roots.Length; r++)
+            {
+                string root = Path.Combine(ra, roots[r]);
+                string brand = r == 0 ? Lang.T("微信 Weixin") : Lang.T("微信 WeChat");
+                string[] profs;
+                try { profs = Directory.GetDirectories(root); }
+                catch (Exception) { profs = new string[0]; }
+                for (int i = 0; i < profs.Length && cat.Items.Count < 1200; i++)
+                {
+                    SliceTick(Lang.T("检查微信缓存 · ") + Path.GetFileName(profs[i]));
+                    for (int j = 0; j < leaves.Length; j++)
+                    {
+                        AddDirItem(cat, brand + " · " + Path.GetFileName(profs[i]) + "\\" + leaves[j],
+                                   Path.Combine(profs[i], leaves[j]), CleanKind.DirContents, 0, s.UseRecycleBin);
+                    }
+                }
+                // 小程序编译缓存：users\<账号>\applet\codecache（数据库与包在同级目录，不会误伤）
+                string users = Path.Combine(ra, r == 0 ? @"Tencent\xwechat\radium\users" : @"Tencent\WeChat\radium\users");
+                string[] us;
+                try { us = Directory.GetDirectories(users); }
+                catch (Exception) { us = new string[0]; }
+                for (int i = 0; i < us.Length && cat.Items.Count < 1200; i++)
+                {
+                    AddDirItem(cat, brand + Lang.T(" · 小程序编译缓存"), Path.Combine(us[i], @"applet\codecache"),
+                               CleanKind.DirContents, 0, s.UseRecycleBin);
+                }
+            }
+            AddDirItem(cat, Lang.T("微信 WmpfCache"), Path.Combine(ra, @"Tencent\WeChat\radium\WmpfCache"), CleanKind.DirContents, 0, s.UseRecycleBin);
         }
 
         /// <summary>已卸载软件的残留：空目录、空文件、空注册表键、孤儿目录、失效快捷方式，按组汇总成一行。</summary>
@@ -1592,6 +1816,13 @@ namespace AGCleaner.Core
         {
             long freed = 0;
             errors = 0;
+            Planned = 0;
+            // 预计量按“用户在清单里勾选、且会被真正删除”的条目统计，和确认框里的数字同源；
+            // 缺少权限、被占用或已不存在的条目会计入差额，完成页据此给出解释
+            for (int i = 0; i < items.Count; i++)
+            {
+                if (!items[i].Recycle && items[i].Bytes > 0) Planned += items[i].Bytes;
+            }
             log = new List<string>();
             int n = Math.Max(1, items.Count);
             for (int i = 0; i < items.Count; i++)
@@ -1674,7 +1905,13 @@ namespace AGCleaner.Core
                     else
                     {
                         FileUtil.ClearReadOnly(it.Path);
-                        if (!Directory.Exists(it.Path)) before = size; else errors++;
+                        if (!Directory.Exists(it.Path)) before = size;
+                        else
+                        {
+                            long after = FileUtil.SizeOf(it.Path);
+                            if (after < size) before = size - after;
+                            errors++;
+                        }
                     }
                 }
                 else if (it.Kind == CleanKind.OldFilesInDir)

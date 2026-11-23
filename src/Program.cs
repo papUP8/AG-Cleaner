@@ -124,6 +124,20 @@ namespace AGCleaner
                 return;
             }
 
+            if (args.Length >= 1 && args[0] == "--confirmtext")
+            {
+                // 诊断用：把清理确认框的三种组合文案写出来，核对文案与设置里的回收站开关是否一致
+                System.Text.StringBuilder sb = new System.Text.StringBuilder();
+                sb.AppendLine("[永久删除 / 设置关闭回收站]");
+                sb.AppendLine(CleanPage.ConfirmBody(3, 0, 664L * 1024 * 1024, false));
+                sb.AppendLine("[全部回收站]");
+                sb.AppendLine(CleanPage.ConfirmBody(3, 3, 0, false));
+                sb.AppendLine("[混合 2 回收站 + 1 永久]");
+                sb.AppendLine(CleanPage.ConfirmBody(3, 2, 120L * 1024 * 1024, false));
+                System.IO.File.WriteAllText(args.Length >= 2 ? args[1] : "confirm.txt", sb.ToString(), System.Text.Encoding.UTF8);
+                return;
+            }
+
             if (args.Length >= 1 && args[0] == "--progtrace")
             {
                 // 诊断用：把扫描过程中每一次进度回调连时间戳写出来，核对是否有长时间停滞或大跳

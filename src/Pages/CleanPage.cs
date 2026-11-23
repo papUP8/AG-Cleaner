@@ -558,7 +558,7 @@ namespace AGCleaner
                     // 勾选状态记在清单项上：切筛选、切排序都不会把用户的勾选重置掉
                     if (!it.CheckInit)
                     {
-                        it.Checked = c.DefaultOn && !it.OptIn;
+                        it.Checked = c.DefaultOn && !it.OptIn && !it.DefaultOff;
                         it.CheckInit = true;
                     }
                     r.Checked = it.Checked;
@@ -780,6 +780,20 @@ namespace AGCleaner
             if (mf != null && !stayOnPage) mf.SelectPage(0);
         }
 
+        /// <summary>确认框正文：预计释放只统计会真正删除的部分，回收站与永久删除分开说清楚。</summary>
+        internal static string ConfirmBody(int total, int recycleCount, long permBytes, bool hasCookie)
+        {
+            string mode;
+            if (recycleCount <= 0) mode = Lang.T("所选项目将被永久删除。");
+            else if (recycleCount >= total) mode = Lang.T("所选项目将移入回收站（可恢复）。");
+            else mode = Lang.T("其中 ") + recycleCount + Lang.T(" 项移入回收站（可恢复），其余 ") + (total - recycleCount) + Lang.T(" 项永久删除。");
+            if (hasCookie) mode += Lang.T("\n注意：清单里有 Cookie 数据库，删除后这些网站的登录状态全部失效，需要重新登录。");
+            string head;
+            if (permBytes > 0) head = Lang.T("预计释放 ") + Byt.Format(permBytes) + Lang.T("（被占用的文件会自动跳过）。\n");
+            else head = Lang.T("本次不会释放磁盘空间。\n");
+            return head + mode + Lang.T("\n受保护目录、白名单路径与敏感目录已自动排除，不会出现在清单里。");
+        }
+
         private void ExecuteClean()
         {
             // 清理刚结束时忽略连续的点击，避免“完成”按钮的残留点击再次触发清理
@@ -798,19 +812,17 @@ namespace AGCleaner
                 return;
             }
 
-            long bytes = 0;
-            bool recycle = false;
+            long permBytes = 0;        // 其中会被真正删掉、能释放空间的体积
+            int recycleCount = 0;
             for (int i = 0; i < selected.Count; i++)
             {
-                bytes += selected[i].Bytes;
-                if (selected[i].Recycle) recycle = true;
+                if (selected[i].Recycle) recycleCount++;
+                else permBytes += selected[i].Bytes;
             }
             bool hasCookie = false;
             for (int ci = 0; ci < selected.Count; ci++) if (selected[ci].CategoryId == "cookie") hasCookie = true;
-            string mode = recycle ? Lang.T("所选项目将移入回收站（可恢复，但不释放磁盘空间）。") : Lang.T("所选项目将被永久删除。");
-            if (hasCookie) mode += Lang.T("\n注意：清单里有 Cookie 数据库，删除后这些网站的登录状态全部失效，需要重新登录。");
             bool ok = Dlg.Confirm(FindForm(), Lang.T("确认清理 ") + selected.Count + Lang.T(" 项？"),
-                Lang.T("预计释放 ") + Byt.Format(bytes) + "。\n" + mode + Lang.T("\n受保护目录、白名单路径与敏感目录已自动排除，不会出现在清单里。"),
+                ConfirmBody(selected.Count, recycleCount, permBytes, hasCookie),
                 Lang.T("开始清理"), false);
             if (!ok) return;
 
@@ -876,6 +888,12 @@ namespace AGCleaner
                             }
                         }
                         string summary = Lang.T("释放空间 ") + Byt.Format(f) + Lang.T(" · 处理 ") + sel + Lang.T(" 项 · 明细 ") + lines.Count + Lang.T(" 条");
+                        long planned = CleanEngine.Planned;
+                        if (planned > f + 1024 * 64)
+                        {
+                            // 预计与实际对不上时把差额说清楚：多半是文件被程序占用、无权限或被保护规则挡住
+                            summary += Lang.T("（预计 ") + Byt.Format(planned) + Lang.T("，差额 ") + Byt.Format(planned - f) + Lang.T(" 未能删除）");
+                        }
                         string hint = err > 0
                             ? Lang.T("有 ") + err + Lang.T(" 项被系统占用或无权删除，已记入日志，可选择重启后再清理")
                             : Lang.T("全部处理完成；来源路径与体积已写入操作日志，可在历史记录页导出 CSV");
