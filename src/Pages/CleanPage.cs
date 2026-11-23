@@ -581,7 +581,14 @@ namespace AGCleaner
                     CleanItem it = c.Items[j];
                     VRow r = new VRow();
                     r.Title = it.Name;
-                    r.Sub = it.Note.Length > 0 ? it.Path + "  ·  " + it.Note : it.Path;
+                    // 有影响说明的项（Cookie 这类）把说明放在标题后面，路径留给详情页看
+                    if (it.Impact.Length > 0)
+                    {
+                        string first = it.Impact.Split('\n')[0].Trim();
+                        if (first.StartsWith("•")) first = first.Substring(1).Trim();
+                        r.Sub = first;
+                    }
+                    else r.Sub = it.Note.Length > 0 ? it.Path + "  ·  " + it.Note : it.Path;
                     r.Right = Byt.Format(it.Bytes);
                     r.Tag = c.Name;
                     r.TagColor = TagColor(c.Id);
@@ -769,22 +776,31 @@ namespace AGCleaner
         {
             Graphics g = e.Graphics;
             Theme.Smooth(g);
-            long bytes = 0;
-            int count = 0;
-            for (int i = 0; i < _list.VisibleCount; i++)
+            // 扫描/清理进行中，底栏左侧不显示“已选 0 项 · 预计释放 0 B”这类还没意义的数字，
+            // 免得用户以为选了东西或者以为估算出错；扫描完再按真实勾选显示
+            if (!_busy)
             {
-                VRow r = _list.RowAt(i);
-                if (r.Checked)
+                long bytes = 0;
+                int count = 0;
+                for (int i = 0; i < _list.VisibleCount; i++)
                 {
-                    count++;
-                    CleanItem it = r.Data as CleanItem;
-                    if (it != null) bytes += it.Bytes;
+                    VRow r = _list.RowAt(i);
+                    if (r.Checked)
+                    {
+                        count++;
+                        CleanItem it = r.Data as CleanItem;
+                        if (it != null) bytes += it.Bytes;
+                    }
                 }
+                Theme.Txt(g, Lang.T("已选 ") + count + Lang.T(" 项 · 预计释放 ") + Byt.Format(bytes), Theme.F(9.5f, FontStyle.Bold), Theme.Text, 4, 12);
+                Theme.Txt(g, _status, Theme.F(8f), Theme.Muted, 4, 34);
             }
-            Theme.Txt(g, Lang.T("已选 ") + count + Lang.T(" 项 · 预计释放 ") + Byt.Format(bytes), Theme.F(9.5f, FontStyle.Bold), Theme.Text, 4, 12);
-            Theme.Txt(g, _status, Theme.F(8f), Theme.Muted, 4, 34);
             _cleanBtn.SetBounds(_bar.Width - 148, 10, 128, 38);
             if (_sortBtn != null) _sortBtn.SetBounds(_bar.Width - 148 - 102, 14, 96, 30);
+            // 扫描/清理期间底栏只留状态，按钮和返回入口都收起来，避免点得动不该点的东西
+            if (_cleanBtn != null) _cleanBtn.Visible = !_busy;
+            if (_sortBtn != null) _sortBtn.Visible = !_busy;
+            if (_backBtn != null) _backBtn.Visible = !_busy && _filter != "all" && _cats != null && _cats.Count > 0;
             if (_backBtn != null)
             {
                 Graphics g2 = _bar.CreateGraphics();
@@ -845,11 +861,16 @@ namespace AGCleaner
             if (recycleCount <= 0) mode = Lang.T("所选项目将被永久删除。");
             else if (recycleCount >= total) mode = Lang.T("所选项目将移入回收站（可恢复）。");
             else mode = Lang.T("其中 ") + recycleCount + Lang.T(" 项移入回收站（可恢复），其余 ") + (total - recycleCount) + Lang.T(" 项永久删除。");
-            if (hasCookie) mode += Lang.T("\n注意：清单里有 Cookie 数据库，删除后这些网站的登录状态全部失效，需要重新登录。");
+            if (hasCookie) mode += Lang.T("\n\n清单里有 Cookie 数据库，删除后：\n") +
+                Lang.T("• 这些网站会退出登录，需要重新输入账号或走一次验证\n") +
+                Lang.T("• 购物车、站点记住的语言/主题/显示偏好会重置\n") +
+                Lang.T("• 部分网站的“记住此设备”会失效，可能要重新做短信/邮箱验证\n") +
+                Lang.T("• 保存的密码不受影响（密码在浏览器的 Login Data 里，不在 Cookies 里）\n") +
+                Lang.T("• 书签、浏览历史、下载文件与聊天记录不会被删除");
             string head;
             if (permBytes > 0) head = Lang.T("预计释放 ") + Byt.Format(permBytes) + Lang.T("（被占用的文件会自动跳过）。\n");
             else head = Lang.T("本次不会释放磁盘空间。\n");
-            return head + mode + Lang.T("\n受保护目录、白名单路径与敏感目录已自动排除，不会出现在清单里。");
+            return head + mode + Lang.T("\n\n受保护目录、白名单路径与敏感目录已自动排除，不会出现在清单里。");
         }
 
         private void ExecuteClean()

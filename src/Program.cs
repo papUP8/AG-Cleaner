@@ -7,7 +7,7 @@ namespace AGCleaner
 {
     public static class Program
     {
-        public static string Version = "1.9.0";
+        public static string Version = "1.9.1";
 
         private static Icon _appIcon;
 
@@ -134,6 +134,8 @@ namespace AGCleaner
                 sb.AppendLine(CleanPage.ConfirmBody(3, 3, 0, false));
                 sb.AppendLine("[混合 2 回收站 + 1 永久]");
                 sb.AppendLine(CleanPage.ConfirmBody(3, 2, 120L * 1024 * 1024, false));
+                sb.AppendLine("[永久删除 + 含 Cookie]");
+                sb.AppendLine(CleanPage.ConfirmBody(3, 0, 664L * 1024 * 1024, true));
                 System.IO.File.WriteAllText(args.Length >= 2 ? args[1] : "confirm.txt", sb.ToString(), System.Text.Encoding.UTF8);
                 return;
             }

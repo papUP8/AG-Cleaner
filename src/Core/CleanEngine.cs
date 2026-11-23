@@ -24,6 +24,8 @@ namespace AGCleaner.Core
         /// <summary>界面上要用警示色标出来的高风险项（Cookie、回收站、旧系统备份这类删了回不来的）。</summary>
         public bool HighRisk = false;
         public bool AdminNeeded = false;
+        /// <summary>清单上要给用户看的影响说明（Cookie 这类删了有代价的项），多行用 \n 分隔。</summary>
+        public string Impact = "";
         public string Note = "";
         public long MinBytes = 0;
         public bool Exists = false;
@@ -1580,10 +1582,8 @@ namespace AGCleaner.Core
         /// <summary>浏览器 Cookie 数据库：删除后所有网站需要重新登录，属高风险项，默认不勾选。</summary>
         private static CleanCategory ScanCookies(Action<string> report)
         {
-            // 不写“高风险”这种没信息量的词，直接说清删掉之后会发生什么：
-            // 这些网站要重新登录、购物车清空、部分站点偏好重置；只腾空间的话可以先只清缓存
-            CleanCategory cat = NewCat("cookie", Lang.T("浏览器 Cookie（清后需重新登录）"),
-                Lang.T("删除后这些网站在浏览器里会退出登录，购物车与部分站点偏好会重置，需要重新登录一次；只腾空间可以先只清缓存，Cookie 默认不勾选"), "", false);
+            CleanCategory cat = NewCat("cookie", Lang.T("浏览器 Cookie"),
+                Lang.T("删掉会让这些网站退出登录；具体影响见每一项的说明，默认不勾选"), "", false);
             R(report, Lang.T("扫描浏览器 Cookie..."));
             string la = LocalAppData;
             string ra = RoamingAppData;
@@ -1609,8 +1609,18 @@ namespace AGCleaner.Core
                 }
             }
             catch (Exception) { }
-            // Cookie 删掉等于所有网站退出登录，一律按高风险项标红
-            for (int i3 = 0; i3 < cat.Items.Count; i3++) cat.Items[i3].HighRisk = true;
+            // Cookie 删掉等于这些网站退出登录，一律按高风险项标红；
+            // 同时给每一项挂上完整的影响说明，别只说“需要重新登录”就完事
+            string impact = Lang.T("• 这些网站会退出登录，需要重新输入账号或走一次验证\n") +
+                Lang.T("• 购物车、站点记住的语言/主题/显示偏好会重置\n") +
+                Lang.T("• 部分网站的“记住此设备”会失效，可能要重新做短信/邮箱验证\n") +
+                Lang.T("• 保存的密码不受影响：密码存在浏览器的密码数据库（Login Data）里，不在 Cookies 里\n") +
+                Lang.T("• 不会删除书签、浏览历史、下载文件与聊天记录");
+            for (int i3 = 0; i3 < cat.Items.Count; i3++)
+            {
+                cat.Items[i3].HighRisk = true;
+                cat.Items[i3].Impact = impact;
+            }
             return cat;
         }
 

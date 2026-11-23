@@ -103,6 +103,13 @@ namespace AGCleaner
             lines.Add(Lang.T("分类：") + CatName(item.CategoryId));
             lines.Add(Lang.T("完整路径：") + item.Path);
             lines.Add(Lang.T("体积：") + Byt.Format(item.Bytes) + "   " + Lang.T("文件数：") + item.Files);
+            if (item.Impact.Length > 0)
+            {
+                lines.Add("");
+                lines.Add(Lang.T("删除后的影响："));
+                string[] ip = item.Impact.Split('\n');
+                for (int i = 0; i < ip.Length; i++) lines.Add("  " + ip[i]);
+            }
             if (item.Note.Length > 0) lines.Add(Lang.T("说明：") + item.Note);
 
             if (item.Kind == CleanKind.OrphanGroup)
@@ -163,7 +170,7 @@ namespace AGCleaner
             else if (item.Kind == CleanKind.FileItself || item.Kind == CleanKind.OldFilesExt)
             {
                 lines.Add("");
-                lines.Add(Lang.T("这是一个文件，删除后不会保留。"));
+                lines.Add(Lang.T("这是一个单个文件，清理时会被直接删除，不会进回收站；删除路径会写进操作日志，可在历史记录里核对。"));
             }
             return string.Join("\r\n", lines.ToArray());
         }
