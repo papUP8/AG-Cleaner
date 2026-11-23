@@ -73,8 +73,15 @@ namespace AGCleaner
         private bool _busy;
         private Spinner _spinner;
         private ProgressBar2 _prog;
+        private System.Windows.Forms.Timer _ease;  // 进度缓动定时器
+        private double _shownPct = 0;        // 界面当前显示的百分比
+        private int _targetPct = 0;          // 引擎上报的真实百分比
+        private string _progCaption = "";
+        private long _progSetMs = 0;
         private long _lastCleanEnd;
         private long _lastFreed = 0;
+        /// <summary>本次清理实际释放的体积；单独存一份，避免清单清空后被重算成 0。</summary>
+        private long _doneFreed = 0;
         private Panel _cta;
         private Btn _ctaBtn;
         private Label _ctaHint;
@@ -231,23 +238,76 @@ namespace AGCleaner
         private void ShowProgress(int percent, string caption)
         {
             if (_prog == null) return;
+            if (caption != null && caption.Length > 0) _progCaption = caption;
+            int t = percent;
+            if (t < 0) t = 0;
+            if (t > 100) t = 100;
+            if (t > _targetPct) _targetPct = t;
+            _progSetMs = Environment.TickCount;
             bool needLayout = !_prog.Visible;
             _prog.Visible = true;
-            _prog.SetProgress(percent, caption);
             _prog.BackColor = Theme.Bg;
             if (needLayout) LayoutChildren();
             _prog.CreateControl(); // 之前一直 Visible=false，句柄没建过，先建句柄再画
             // 本工程里子控件的绘制顺序是“索引大的画在后”，所以放到最后一个索引才是真正压在最上层
             Controls.SetChildIndex(_prog, Controls.Count - 1);
-            _prog.Invalidate();
-            _prog.Update();
+            if (_ease == null)
+            {
+                _ease = new System.Windows.Forms.Timer();
+                _ease.Interval = 120;
+                _ease.Tick += delegate { EaseTick(); };
+            }
+            if (!_ease.Enabled) _ease.Start();
+            RenderProgress();
+        }
+
+        /// <summary>
+        /// 进度缓动：引擎上报的是真实完成度，界面按 120ms 一小步往目标值走。
+        /// 目的是“匀速观察”——真实值一次跳 50 个点时，环和条也会在几秒内连续走完，
+        /// 而不是一帧之内从 33% 蹦到 87%。上报停了的时候最多再缓 2 个点，不谎报太多。
+        /// </summary>
+        private void EaseTick()
+        {
+            if (_prog == null || !_prog.Visible) return;
+            double want = _targetPct;
+            if (Environment.TickCount - _progSetMs > 900 && _targetPct < 96) want = _targetPct + 2.0;
+            if (_shownPct < want)
+            {
+                double gap = want - _shownPct;
+                double step = gap / 8.0;      // 越接近目标越慢
+                if (step < 0.7) step = 0.7;
+                if (step > 5.0) step = 5.0;
+                _shownPct += step;
+                if (_shownPct > want) _shownPct = want;
+                if (_shownPct > 99.4 && _targetPct < 100) _shownPct = 99.4; // 没真正结束前不显示 100%
+                RenderProgress();
+            }
+        }
+
+        private void RenderProgress()
+        {
+            if (_prog == null || !_prog.Visible) return;
+            int shown = (int)Math.Round(_shownPct);
+            if (shown < 0) shown = 0;
+            if (shown > 100) shown = 100;
+            _prog.SetProgress(shown, _progCaption);
         }
 
         private void HideProgress()
         {
             if (_prog == null || !_prog.Visible) return;
             _prog.Visible = false;
+            if (_ease != null) _ease.Stop();
             LayoutChildren();
+        }
+
+        /// <summary>新一轮开始前把缓动状态清零。</summary>
+        private void ResetProgress()
+        {
+            _shownPct = 0;
+            _targetPct = 0;
+            _progCaption = "";
+            _progSetMs = Environment.TickCount;
         }
 
         public void LayoutChildren()
@@ -340,6 +400,7 @@ namespace AGCleaner
             _scanBtn.Enabled = false;
             _cleanBtn.Enabled = false;
             _prog.Parent = this;
+            ResetProgress();
             ShowProgress(0, Lang.T("准备扫描..."));
             _bar.Invalidate();
             ThreadPool.QueueUserWorkItem(delegate
@@ -625,7 +686,7 @@ namespace AGCleaner
             }
             if (_list != null) _list.Visible = !idle && !doneView && !_busy; // 扫描/清理期间把列表让出来，居中进度才看得见
             if (_doneTitle != null && doneView)
-                _doneTitle.Text = Lang.T("清理完成 · 释放 ") + Byt.Format(_lastFreed);
+                _doneTitle.Text = Lang.T("清理完成 · 释放 ") + Byt.Format(_doneFreed);
             if (_scanBtn != null) _scanBtn.Visible = !idle && !doneView;
             if (_allBtn != null) _allBtn.Visible = !idle && !doneView;
             if (_invBtn != null) _invBtn.Visible = !idle && !doneView;
@@ -647,6 +708,7 @@ namespace AGCleaner
 
         private void UpdateSummary()
         {
+            if (_doneClean) return; // 完成后清单已清空，这里重算只会把“释放体积”抹成 0
             SyncChecks();
             long bytes = 0;
             int count = 0;
@@ -686,14 +748,26 @@ namespace AGCleaner
             if (_sortBtn != null) _sortBtn.SetBounds(_bar.Width - 148 - 102, 14, 96, 30);
         }
 
+        /// <summary>诊断用：把“清理完成”页摆到界面上（不做任何真实删除），用于离屏核对释放体积的显示。</summary>
+        public void SimulateDoneForShot(long freed)
+        {
+            ResetAfterClean(freed, true);
+            UpdateIdleState();
+            LayoutChildren();
+        }
+
         /// <summary>清理结束后回到干净状态：清空清单与分类，再返回概览页。</summary>
         private void ResetAfterClean(long freed)
+        {
+            ResetAfterClean(freed, false);
+        }
+
+        private void ResetAfterClean(long freed, bool stayOnPage)
         {
             _cats = new List<CleanCategory>();
             for (int i = 0; i < _chips.Count; i++) Controls.Remove(_chips[i]);
             _chips.Clear();
             _filter = "all";
-            _lastFreed = freed;
             _doneClean = true;
             _list.Clear();
             _list.EmptyText = Lang.T("本次清理已完成");
@@ -701,8 +775,9 @@ namespace AGCleaner
             _status = Lang.T("清理完成，本次释放 ") + Byt.Format(freed) + Lang.T("；已回到概览页");
             _bar.Invalidate();
             UpdateSummary();
+            _doneFreed = freed; // UpdateSummary 会按空清单把 _lastFreed 归零，完成页必须用这份原始值
             MainForm mf = FindForm() as MainForm;
-            if (mf != null) mf.SelectPage(0);
+            if (mf != null && !stayOnPage) mf.SelectPage(0);
         }
 
         private void ExecuteClean()
@@ -746,6 +821,7 @@ namespace AGCleaner
             _scanBtn.Enabled = false;
             _cleanBtn.Enabled = false;
             _status = Lang.T("正在清理...");
+            ResetProgress();
             ShowProgress(0, Lang.T("准备清理..."));
             _bar.Invalidate();
             ThreadPool.QueueUserWorkItem(delegate

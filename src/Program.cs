@@ -124,6 +124,25 @@ namespace AGCleaner
                 return;
             }
 
+            if (args.Length >= 1 && args[0] == "--progtrace")
+            {
+                // 诊断用：把扫描过程中每一次进度回调连时间戳写出来，核对是否有长时间停滞或大跳
+                System.Text.StringBuilder sb = new System.Text.StringBuilder();
+                long t0 = System.Environment.TickCount;
+                object lk = new object();
+                try
+                {
+                    Core.Settings st = Core.Settings.Load();
+                    Core.CleanEngine.Scan(st, delegate (int pc, string msg)
+                    {
+                        lock (lk) { sb.AppendLine((System.Environment.TickCount - t0) + "ms\t" + pc + "%\t" + msg); }
+                    });
+                }
+                catch (Exception ex) { sb.AppendLine("EX " + ex.Message); }
+                System.IO.File.WriteAllText(args.Length >= 2 ? args[1] : "progtrace.txt", sb.ToString(), System.Text.Encoding.UTF8);
+                return;
+            }
+
             if (args.Length >= 1 && args[0] == "--scan")
             {
                 System.Text.StringBuilder sb = new System.Text.StringBuilder();
@@ -512,6 +531,23 @@ namespace AGCleaner
                 f.Show();
                 f.SelectPage(page);
                 Application.DoEvents();
+                for (int i = 0; i < args.Length; i++)
+                {
+                    if (args[i] == "scanprog")
+                    {
+                        CleanPage cp0 = f.PageAt(page) as CleanPage;
+                        if (cp0 != null) cp0.StartScan();
+                        Application.DoEvents();
+                    }
+                    if (args[i].StartsWith("done:"))
+                    {
+                        long n = 0;
+                        long.TryParse(args[i].Substring(5), out n);
+                        CleanPage cp = f.PageAt(page) as CleanPage;
+                        if (cp != null) cp.SimulateDoneForShot(n);
+                        Application.DoEvents();
+                    }
+                }
                 for (int i = 0; i < args.Length; i++)
                 {
                     if (args[i] == "reload") { f.ReloadPages(page); Application.DoEvents(); }

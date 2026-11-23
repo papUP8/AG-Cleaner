@@ -123,7 +123,14 @@ namespace AGCleaner.Core
 
         public static List<OrphanGroup> Scan(Action<string> report, StepProgress prog)
         {
+            return Scan(report, prog, null);
+        }
+
+        /// <summary>精细进度回调：fine(0..1, 说明)，用于把单个大目录的枚举折算成连续进度。</summary>
+        public static List<OrphanGroup> Scan(Action<string> report, StepProgress prog, Action<double, string> fine)
+        {
             List<OrphanGroup> groups = new List<OrphanGroup>();
+            _fine = fine;
             if (prog != null) prog(4, Lang.T("读取已安装程序索引..."));
             List<Installed> apps = ReadInstalled();
             R(report, Lang.T("读取已安装程序索引：") + apps.Count + Lang.T(" 条"));
@@ -148,6 +155,18 @@ namespace AGCleaner.Core
         }
 
         private static void R(Action<string> report, string msg) { if (report != null) report(msg); }
+
+        [ThreadStatic] private static Action<double, string> _fine;
+
+        /// <summary>把一个根目录枚举到第几个折算成百分比区间内的连续进度。</summary>
+        private static void Fine(double f, string msg)
+        {
+            Action<double, string> h = _fine;
+            if (h == null) return;
+            if (f < 0) f = 0;
+            if (f > 0.999) f = 0.999;
+            try { h(f, msg); } catch (Exception) { }
+        }
 
         private static string Str(object o)
         {
@@ -226,31 +245,33 @@ namespace AGCleaner.Core
             // 系统盘上的常规位置
             int step = 0;
             bool sysOn = DriveAllowed(pf);
+            // 每个根目录占一个百分比窗口，窗口内再按“枚举到第几个子目录”连续推进
             step = Step(prog, step, 14, Lang.T("扫描 Program Files（系统盘）..."));
-            if (sysOn) ScanRoot(g, apps, pf, 90, false);
+            if (sysOn) ScanRoot(g, apps, pf, 90, false, 14, 18);
             step = Step(prog, step, 18, Lang.T("扫描 Program Files (x86)（系统盘）..."));
-            if (sysOn) ScanRoot(g, apps, pf86, 90, false);
+            if (sysOn) ScanRoot(g, apps, pf86, 90, false, 18, 21);
             step = Step(prog, step, 21, Lang.T("扫描用户 Programs 目录..."));
-            if (sysOn) ScanRoot(g, apps, lap, 60, false);
+            if (sysOn) ScanRoot(g, apps, lap, 60, false, 21, 24);
             step = Step(prog, step, 24, Lang.T("扫描 ProgramData..."));
-            if (sysOn) ScanRoot(g, apps, pd, 60, false);
+            if (sysOn) ScanRoot(g, apps, pd, 60, false, 24, 27);
             step = Step(prog, step, 27, Lang.T("扫描 LocalAppData..."));
-            if (sysOn) ScanRoot(g, apps, la, 40, false);
+            if (sysOn) ScanRoot(g, apps, la, 40, false, 27, 30);
             step = Step(prog, step, 30, Lang.T("扫描 Roaming..."));
-            if (sysOn) ScanRoot(g, apps, ra, 40, false);
+            if (sysOn) ScanRoot(g, apps, ra, 40, false, 30, 32);
 
             // 其他磁盘上的同类位置（软件常装到 D/E 盘，这里以前漏扫）
             string[] driveRoots = DriveRoots();
             for (int i = 0; i < driveRoots.Length; i++)
             {
                 string dr = driveRoots[i];
-                step = Step(prog, step, 32 + i * 3, Lang.T("扫描 ") + dr + Lang.T(" 下的软件目录..."));
+                double dlo = 32 + i * 3;
+                step = Step(prog, step, (int)dlo, Lang.T("扫描 ") + dr + Lang.T(" 下的软件目录..."));
                 if (!DriveAllowed(dr)) continue;
-                ScanRoot(g, apps, Path.Combine(dr, "Program Files"), 60, false);
-                ScanRoot(g, apps, Path.Combine(dr, "Program Files (x86)"), 60, false);
-                ScanRoot(g, apps, Path.Combine(dr, "Programs"), 40, false);
+                ScanRoot(g, apps, Path.Combine(dr, "Program Files"), 60, false, dlo, dlo + 1);
+                ScanRoot(g, apps, Path.Combine(dr, "Program Files (x86)"), 60, false, dlo + 1, dlo + 2);
+                ScanRoot(g, apps, Path.Combine(dr, "Programs"), 40, false, dlo + 2, dlo + 3);
                 // 盘根目录下的厂商目录（例如 D:\360、D:\2345Soft），只认带卸载程序的那种
-                ScanRoot(g, apps, dr, 30, true);
+                ScanRoot(g, apps, dr, 30, true, dlo + 3, dlo + 4);
             }
             return g;
         }
@@ -323,10 +344,18 @@ namespace AGCleaner.Core
 
         private static void ScanRoot(OrphanGroup g, List<Installed> apps, string root, int max, bool driveRoot)
         {
+            ScanRoot(g, apps, root, max, driveRoot, -1, -1);
+        }
+
+        /// <summary>loPct/hiPct 是本根目录在残留扫描 0-100 里占的百分比窗口；&lt;0 表示不报精细进度。</summary>
+        private static void ScanRoot(OrphanGroup g, List<Installed> apps, string root, int max, bool driveRoot, double loPct, double hiPct)
+        {
             if (root.Length == 0 || !Directory.Exists(root)) return;
             string[] dirs;
             try { dirs = Directory.GetDirectories(root); }
             catch (Exception) { return; }
+            if (loPct >= 0 && hiPct > loPct)
+                Fine(loPct / 100.0, Lang.T("扫描 ") + Path.GetFileName(root) + Lang.T(" 目录..."));
             int added = 0;
             string owner;
             for (int i = 0; i < dirs.Length; i++)
@@ -335,6 +364,9 @@ namespace AGCleaner.Core
                 if (g.Items.Count > 90) return;
                 string dir = dirs[i];
                 string name = Path.GetFileName(dir);
+                if (loPct >= 0 && hiPct > loPct)
+                    Fine(loPct / 100.0 + (hiPct - loPct) / 100.0 * ((double)i / Math.Max(1, dirs.Length)),
+                         Lang.T("扫描 ") + Path.GetFileName(root) + " · " + name);
                 if (Skip(name)) continue;
                 if (Guard.IsWhitelisted(dir)) continue;
                 // 盘根目录只处理像软件安装目录的（带卸载程序、非用户常见文件夹）
