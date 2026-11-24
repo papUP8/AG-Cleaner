@@ -1879,6 +1879,9 @@ namespace AGCleaner.Core
 
         /// <summary>上一次清理里没删干净的条目（完成页据此列出“被谁占着”），每次 Execute 开头重置。</summary>
         public static List<CleanSkip> LastSkips = new List<CleanSkip>();
+        /// <summary>扫描时有大体积、清理时已经不存在了（被别的程序或上一次清理清掉）的合计，属于过期数字。</summary>
+        public static long LastStaleBytes = 0;
+        public static int LastStaleCount = 0;
 
         public static long Execute(List<CleanItem> items, out List<string> log, out int errors, StepProgress prog)
         {
@@ -1886,6 +1889,8 @@ namespace AGCleaner.Core
             errors = 0;
             Planned = 0;
             LastSkips = new List<CleanSkip>();
+            LastStaleBytes = 0;
+            LastStaleCount = 0;
             // 预计量按“用户在清单里勾选、且会被真正删除”的条目统计，和确认框里的数字同源；
             // 缺少权限、被占用或已不存在的条目会计入差额，完成页据此给出解释
             for (int i = 0; i < items.Count; i++)
@@ -1940,6 +1945,49 @@ namespace AGCleaner.Core
                     freed += freed2;
                     errors += err2;
                     if (lg != null) for (int k = 0; k < lg.Count; k++) log.Add(lg[k]);
+                    // 卸载残留这一组走的是另一条执行路径，原来成功与否都不记账，
+                    // 于是“扫出 1.3 GB 却只释放几十 MB”时完成页一句话都解释不了，这里补上
+                    long left2 = Math.Max(0, it.Bytes - freed2);
+                    if (left2 > 65536)
+                    {
+                        CleanSkip sk2 = new CleanSkip();
+                        sk2.Name = it.Name;
+                        sk2.Planned = Math.Max(it.Bytes, freed2);
+                        sk2.Freed = freed2;
+                        List<string> who2 = new List<string>();
+                        for (int gi = 0; gi < g.Items.Count && who2.Count == 0; gi++)
+                        {
+                            string t = g.Items[gi].Target;
+                            if (t.Length == 0) continue;
+                            who2 = Locker.WhoForPath(t, 10);
+                        }
+                        if (who2.Count > 0)
+                        {
+                            string j2 = "";
+                            for (int wi = 0; wi < who2.Count; wi++)
+                            {
+                                if (wi > 0) j2 += " / ";
+                                j2 += who2[wi];
+                            }
+                            sk2.Who = j2;
+                        }
+                        else
+                        {
+                            // 卸载残留的执行明细里本来就有“为什么没删”的说明，直接拿来当原因
+                            string why2 = "";
+                            if (lg != null)
+                            {
+                                for (int k = 0; k < lg.Count; k++)
+                                {
+                                    string s = (lg[k] ?? "").Trim();
+                                    if (s.Length > 70) s = s.Substring(0, 70) + "…";
+                                    if (s.Length > 0) { why2 = s; break; }
+                                }
+                            }
+                            sk2.Why = why2.Length > 0 ? why2 : Lang.T("需要管理员权限，或残留目录里还有程序占用的文件");
+                        }
+                        LastSkips.Add(sk2);
+                    }
                     continue;
                 }
                 if (it.Kind == CleanKind.RecycleBin)
@@ -2018,25 +2066,42 @@ namespace AGCleaner.Core
                 }
                 // 留下的部分要能说清楚：多少没删掉、是哪个程序占着。
                 // 只对“本来就勾选要永久删”的条目记账，回收站条目不算。
-                if (!it.Recycle && it.Bytes > 0 && it.Bytes - before > 65536)
+                // 同时分清两种情况：清理时还在但删不掉（真占用）；扫描后已经被别的程序清掉了（旧数字）
+                if (!it.Recycle && it.Bytes > 0)
                 {
-                    CleanSkip sk = new CleanSkip();
-                    sk.Name = it.Name;
-                    sk.Planned = it.Bytes;
-                    sk.Freed = before;
-                    List<string> who = Locker.WhoForPath(it.Path, 30);
-                    if (who.Count > 0)
+                    long remained = 0;
+                    try
                     {
-                        string j = "";
-                        for (int wi = 0; wi < who.Count; wi++)
-                        {
-                            if (wi > 0) j += " / ";
-                            j += who[wi];
-                        }
-                        sk.Who = j;
+                        if (Directory.Exists(it.Path) || File.Exists(it.Path)) remained = FileUtil.SizeOf(it.Path);
                     }
-                    else sk.Why = Lang.T("文件仍被占用或当前账户没有删除权限");
-                    LastSkips.Add(sk);
+                    catch (Exception) { }
+                    long existedNow = before + remained;
+                    long stale = it.Bytes - existedNow;
+                    if (remained > 65536)
+                    {
+                        CleanSkip sk = new CleanSkip();
+                        sk.Name = it.Name;
+                        sk.Planned = existedNow;
+                        sk.Freed = before;
+                        List<string> who = Locker.WhoForPath(it.Path, 30);
+                        if (who.Count > 0)
+                        {
+                            string j = "";
+                            for (int wi = 0; wi < who.Count; wi++)
+                            {
+                                if (wi > 0) j += " / ";
+                                j += who[wi];
+                            }
+                            sk.Who = j;
+                        }
+                        else sk.Why = Lang.T("文件仍被占用或当前账户没有删除权限");
+                        LastSkips.Add(sk);
+                    }
+                    else if (stale > 65536)
+                    {
+                        LastStaleBytes += stale;
+                        LastStaleCount++;
+                    }
                 }
             }
             FileUtil.SizeHook = null;

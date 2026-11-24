@@ -342,6 +342,50 @@ namespace AGCleaner.Core
             return false;
         }
 
+        /// <summary>缓存所有正在运行进程的可执行文件路径，用来判断“这目录其实是一个在跑的程序”。</summary>
+        private static List<string> _procPaths;
+
+        private static List<string> ProcPaths()
+        {
+            if (_procPaths != null) return _procPaths;
+            List<string> list = new List<string>();
+            try
+            {
+                System.Diagnostics.Process[] ps = System.Diagnostics.Process.GetProcesses();
+                for (int i = 0; i < ps.Length; i++)
+                {
+                    try
+                    {
+                        string exe = ps[i].MainModule == null ? null : ps[i].MainModule.FileName;
+                        if (exe != null && exe.Length > 0) list.Add(exe);
+                    }
+                    catch (Exception) { }
+                    finally { try { ps[i].Dispose(); } catch (Exception) { } }
+                }
+            }
+            catch (Exception) { }
+            _procPaths = list;
+            return list;
+        }
+
+        /// <summary>
+        /// 目录里有正在运行的进程（exe 就在这个目录下）就绝不当作残留：
+        /// 有些软件不写卸载注册表项，按“没人引用”判断会被误判成孤儿目录，实际它正在运行。
+        /// </summary>
+        private static bool RunningFrom(string dir)
+        {
+            if (dir.Length == 0) return false;
+            string norm = dir.TrimEnd('\\');
+            List<string> paths = ProcPaths();
+            for (int i = 0; i < paths.Count; i++)
+            {
+                string exe = paths[i];
+                if (exe.Length <= norm.Length) continue;
+                if (exe.StartsWith(norm + "\\", StringComparison.OrdinalIgnoreCase)) return true;
+            }
+            return false;
+        }
+
         private static void ScanRoot(OrphanGroup g, List<Installed> apps, string root, int max, bool driveRoot)
         {
             ScanRoot(g, apps, root, max, driveRoot, -1, -1);
@@ -369,6 +413,8 @@ namespace AGCleaner.Core
                          Lang.T("扫描 ") + Path.GetFileName(root) + " · " + name);
                 if (Skip(name)) continue;
                 if (Guard.IsWhitelisted(dir)) continue;
+                // 正在运行的程序目录不能算残留（有的软件不写卸载项，会被误判成孤儿目录）
+                if (RunningFrom(dir)) continue;
                 // 盘根目录只处理像软件安装目录的（带卸载程序、非用户常见文件夹）
                 if (driveRoot && IsCommonUserDir(name)) continue;
 
@@ -416,6 +462,7 @@ namespace AGCleaner.Core
                 string n = Path.GetFileName(sub);
                 if (Skip(n)) continue;
                 if (Guard.IsWhitelisted(sub)) continue;
+                if (RunningFrom(sub)) continue;
                 int strength = RefStrength(sub, apps, out owner);
                 if (strength >= 2) continue;
                 if (!HasUninstaller(sub))

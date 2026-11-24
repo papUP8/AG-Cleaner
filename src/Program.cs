@@ -7,7 +7,7 @@ namespace AGCleaner
 {
     public static class Program
     {
-        public static string Version = "1.9.6";
+        public static string Version = "1.9.7";
 
         private static Icon _appIcon;
 

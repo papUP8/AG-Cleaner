@@ -97,6 +97,8 @@ namespace AGCleaner
         /// <summary>本次没删干净的条目（含占用它们的程序名），完成页要列出来。</summary>
         private List<Core.CleanSkip> _doneSkips = new List<Core.CleanSkip>();
         private List<Btn> _doneBtns = new List<Btn>();
+        private long _doneStaleBytes = 0;
+        private int _doneStaleCount = 0;
 
         /// <summary>扫描是否已结束并拿到清单（供离屏截图脚本等待，不影响界面逻辑）。</summary>
         public bool ScanDone { get { return !_busy && _cats.Count > 0; } }
@@ -419,6 +421,7 @@ namespace AGCleaner
             _mRows = Math.Min(Math.Min(5, _doneSkips != null ? _doneSkips.Count : 0), rowsBySpace);
             _mRowH = rowH;
             int moreRows = (_doneSkips != null && _doneSkips.Count > _mRows) ? 1 : 0;
+            if (_doneStaleBytes > 0) moreRows++;
             int infoH = (_mRows + moreRows) * rowH;
             int hintH = _mRows > 0 ? 46 : 0;
             int blockH = 34 + 28 + infoH + hintH + 24 + 42;
@@ -429,6 +432,13 @@ namespace AGCleaner
             _mHintY = _mInfoY + infoH;
             _mBtnY = _mHintY + hintH + 8;
             if (_mBtnY + 42 > h) _mBtnY = Math.Max(_mTitleY + 64, h - 44);
+        }
+
+        private long LeftTotal(int from)
+        {
+            long t = 0;
+            for (int i = from; i < _doneSkips.Count; i++) t += _doneSkips[i].Left;
+            return t;
         }
 
         private void DonePaint(object sender, PaintEventArgs e)
@@ -459,8 +469,15 @@ namespace AGCleaner
             if (_doneSkips.Count > rows)
             {
                 using (StringFormat nr = Theme.SF(StringAlignment.Far, StringAlignment.Near))
-                Theme.Txt(g, Lang.T("另有 ") + (_doneSkips.Count - rows) + Lang.T(" 项已写入操作日志"),
+                Theme.Txt(g, Lang.T("另有 ") + (_doneSkips.Count - rows) + Lang.T(" 项未清理，合计 ") + Byt.Format(LeftTotal(rows)) + Lang.T("，已写入操作日志"),
                     Theme.F(8.6f), Theme.Muted, new Rectangle(x0, _mInfoY + rows * _mRowH, boxW, 18), nr);
+            }
+            if (_doneStaleBytes > 0)
+            {
+                int y = _mInfoY + (rows + (_doneSkips.Count > rows ? 1 : 0)) * _mRowH;
+                using (StringFormat nr = Theme.SF(StringAlignment.Far, StringAlignment.Near))
+                Theme.Txt(g, Lang.T("另有 ") + _doneStaleCount + Lang.T(" 项（合计 ") + Byt.Format(_doneStaleBytes) + Lang.T("）是扫描后已被其他程序清掉的旧数字，不是没删干净"),
+                    Theme.F(8.6f), Theme.Muted, new Rectangle(x0, y, boxW, 18), nr);
             }
             // 处理办法说清楚：这些程序退出后，文件锁就释放，再扫一遍就能删干净
             using (StringFormat wrap = Theme.SF(StringAlignment.Center, StringAlignment.Near, true))
@@ -823,9 +840,17 @@ namespace AGCleaner
                 _doneTitle.Text = Lang.T("清理完成 · 实际释放 ") + Byt.Format(_doneActual > 0 ? _doneActual : _donePlan);
             if (_doneSub != null && doneView)
             {
-                // 主数字必须是磁盘上真实减少的量；确认时的预计值放在下一行，差额说明是被占用还是跳过
+                // 主数字必须是磁盘上真实减少的量；确认时的预计值放在下一行，差额拆成“扫描后已消失”和“被占用”
                 if (_donePlan - _doneActual > 65536)
-                    _doneSub.Text = Lang.T("确认时预计 ") + Byt.Format(_donePlan) + Lang.T("，实际释放 ") + Byt.Format(_doneActual) + Lang.T("，下列项目没删干净");
+                {
+                    long gap = _donePlan - _doneActual;
+                    long stale = Math.Min(gap, _doneStaleBytes);
+                    long busy = gap - stale;
+                    if (stale > 65536)
+                        _doneSub.Text = Lang.T("确认时预计 ") + Byt.Format(_donePlan) + Lang.T("，其中 ") + Byt.Format(stale) + Lang.T(" 扫描后已消失、") + Byt.Format(busy) + Lang.T(" 被占用，实际释放 ") + Byt.Format(_doneActual);
+                    else
+                        _doneSub.Text = Lang.T("确认时预计 ") + Byt.Format(_donePlan) + Lang.T("，实际释放 ") + Byt.Format(_doneActual) + Lang.T("，下列项目没删干净");
+                }
                 else
                     _doneSub.Text = Lang.T("垃圾已清完，接着处理这些");
             }
@@ -850,11 +875,40 @@ namespace AGCleaner
             if (r == null) return;
             CleanItem it = r.Data as CleanItem;
             if (it == null) return;
-            using (DetailForm f = new DetailForm(it))
+            using (DetailForm f = new DetailForm(it, AfterItemDeleted))
             {
                 Form host = FindForm();
                 if (host != null) f.ShowDialog(host); else f.Show();
             }
+        }
+
+        /// <summary>详情页里手动删了某一项之后，把清单上的这一行同步成真实结果。</summary>
+        private void AfterItemDeleted(CleanItem it, long freed, long remain)
+        {
+            it.Bytes = remain;
+            it.Exists = remain > 0;
+            for (int i = 0; i < _list.VisibleCount; i++)
+            {
+                VRow r = _list.RowAt(i);
+                if (r.Data != it) continue;
+                if (remain <= 0)
+                {
+                    r.Visible = false;
+                    r.Checked = false;
+                    r.Title = it.Name + Lang.T("（已删除）");
+                    r.Right = "0 B";
+                }
+                else
+                {
+                    r.Right = Byt.Format(remain);
+                }
+                break;
+            }
+            _list.Invalidate();
+            UpdateSummary();
+            UpdateBackButton();
+            _status = Lang.T("已删除一项，本次释放 ") + Byt.Format(freed) + (remain > 0 ? Lang.T("；还有 ") + Byt.Format(remain) + Lang.T(" 没删掉") : Lang.T("；该项已清空"));
+            _bar.Invalidate();
         }
 
         private void UpdateSummary()
@@ -941,6 +995,9 @@ namespace AGCleaner
                     sk.Who = "Google Chrome";
                     _doneSkips.Add(sk);
                 }
+                _doneStaleCount = 4;
+                _doneStaleBytes = (long)(gap * 0.12);
+                _doneSkips.Sort(delegate (Core.CleanSkip a, Core.CleanSkip b) { return b.Left.CompareTo(a.Left); });
             }
             UpdateIdleState();
             LayoutChildren();
@@ -976,6 +1033,10 @@ namespace AGCleaner
             _doneActual = freed;
             _donePlan = planned >= 0 ? planned : freed;
             _doneSkips = new List<Core.CleanSkip>(Core.CleanEngine.LastSkips);
+            // 没删掉的东西按“剩下多少”从大到小排，大块头排在最前面，不能让小项把 1 GB 挡在后面
+            _doneSkips.Sort(delegate (Core.CleanSkip a, Core.CleanSkip b) { return b.Left.CompareTo(a.Left); });
+            _doneStaleBytes = Core.CleanEngine.LastStaleBytes;
+            _doneStaleCount = Core.CleanEngine.LastStaleCount;
             if (_done != null) LayoutChildren();
             MainForm mf = FindForm() as MainForm;
             if (mf != null && !stayOnPage) mf.SelectPage(0);

@@ -11,8 +11,16 @@ namespace AGCleaner
     /// <summary>单项详情：把这一项到底包含哪些文件/子目录/注册表项摊开给用户看，避免误伤。</summary>
     public class DetailForm : Form
     {
-        public DetailForm(CleanItem item)
+        private CleanItem _item;
+        private Action<CleanItem, long, long> _onDeleted;
+
+        public DetailForm(CleanItem item) : this(item, null) { }
+
+        /// <summary>onDeleted(条目, 本次实际释放, 删除后仍剩余)：用于详情页里“手动删除此项”后回写清单。</summary>
+        public DetailForm(CleanItem item, Action<CleanItem, long, long> onDeleted)
         {
+            _item = item;
+            _onDeleted = onDeleted;
             Text = Lang.T("详情") + " · " + item.Name;
             FormBorderStyle = FormBorderStyle.Sizable;
             StartPosition = FormStartPosition.CenterParent;
@@ -79,6 +87,20 @@ namespace AGCleaner
             foot.Padding = new Padding(0, 11, 8, 11);
             foot.Controls.Add(close);
 
+            // 既然这一项能扫出来，就应该能单独删掉：给它一个“删除此项”，不必整轮重扫
+            bool canDelete = !item.Recycle &&
+                (item.Kind == CleanKind.OrphanGroup || Directory.Exists(item.Path) || File.Exists(item.Path));
+            if (canDelete)
+            {
+                Btn del = new Btn();
+                del.Kind = ButtonKind.Danger;
+                del.Text = Lang.T("删除此项");
+                del.Size = new Size(104, 34);
+                del.Dock = DockStyle.Right;
+                del.Click += delegate { DeleteThis(); };
+                foot.Controls.Add(del);
+            }
+
             TextBox body = new TextBox();
             body.Multiline = true;
             body.ReadOnly = true;
@@ -94,6 +116,56 @@ namespace AGCleaner
             body.Select(0, 0);
             Controls.Add(body);
             body.BringToFront();
+        }
+
+        private void DeleteThis()
+        {
+            CleanItem it = _item;
+            if (it == null) return;
+            long size = 0;
+            if (it.Kind == CleanKind.OrphanGroup) size = it.Bytes;
+            else try { size = FileUtil.SizeOf(it.Path); } catch (Exception) { }
+            string body = Lang.T("将永久删除下列内容，不会进回收站，删掉无法恢复：\n\n") + it.Path +
+                "\n\n" + Lang.T("当前体积 ") + Byt.Format(size);
+            if (!Dlg.Confirm(this, Lang.T("删除 ") + it.Name + Lang.T(" ？"), body, Lang.T("删除"), true)) return;
+
+            long freed = 0;
+            int errors = 0;
+            List<CleanItem> one = new List<CleanItem>();
+            one.Add(it);
+            try
+            {
+                List<string> log = null;
+                freed = CleanEngine.Execute(one, out log, out errors);
+            }
+            catch (Exception ex)
+            {
+                Dlg.Info(this, Lang.T("删除失败"), ex.Message);
+                return;
+            }
+            long remain = 0;
+            if (it.Kind == CleanKind.OrphanGroup) remain = Math.Max(0, it.Bytes - freed);
+            else
+            {
+                try
+                {
+                    if (Directory.Exists(it.Path) || File.Exists(it.Path)) remain = FileUtil.SizeOf(it.Path);
+                }
+                catch (Exception) { }
+            }
+            if (_onDeleted != null) _onDeleted(it, freed, remain);
+
+            string msg;
+            if (remain <= 0) msg = Lang.T("已删除完成，本次释放 ") + Byt.Format(freed) + "。";
+            else
+            {
+                string who = CleanEngine.LastSkips.Count > 0 ? CleanEngine.LastSkips[0].Who : "";
+                msg = Lang.T("本次释放 ") + Byt.Format(freed) + Lang.T("，还有 ") + Byt.Format(remain) + Lang.T(" 没删掉");
+                msg += who.Length > 0 ? Lang.T("，这些文件正被 ") + who + Lang.T(" 占用。") : Lang.T("，文件仍被占用或当前账户没有删除权限。");
+                msg += "\n\n" + Lang.T("把这个程序退出（或改用管理员身份运行）后再删一次，这部分就能清干净。");
+            }
+            Dlg.Info(this, Lang.T("删除此项"), msg);
+            Close();
         }
 
         private static string CatName(string id)
