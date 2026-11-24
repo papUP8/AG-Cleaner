@@ -403,35 +403,19 @@ namespace AGCleaner
             }
         }
 
-        // 完成页的竖向坐标只算一次，布局与绘制共用，避免两边各算一套导致文字叠在一起。
-        private int _mTitleY, _mSubY, _mInfoY, _mBtnY, _mHintY, _mRows, _mBoxW, _mRowH = 22;
+        // 完成页只讲结果：一行标题 + 一行说明 + 按钮。
+        // 没删掉的明细不再铺在界面上，免得用户被一堆“占用/过期”绕晕；明细照旧写进操作日志。
+        private int _mTitleY, _mSubY, _mBtnY;
 
-        /// <summary>完成页竖向排布：整块在可用区域里居中；高度不够时先减少列出的条目数，保证一屏放得下。</summary>
         private void DoneMetrics()
         {
             int h = _done != null ? _done.Height : 300;
-            int w = _done != null ? _done.Width : 900;
-            _mBoxW = Math.Min(700, Math.Max(360, w - 80));
-            int avail = Math.Max(120, h - 12);
-            // 行距按字体实际高度算，高 DPI 下字变大也不会把两行挤在一起
-            int rowH = Math.Max(22, TextRenderer.MeasureText("国Ag", Theme.F(9f)).Height + 6);
-            int fixedH = 34 + 28 + 46 + 42 + 24;
-            int rowsBySpace = (avail - fixedH) / rowH;
-            if (rowsBySpace < 0) rowsBySpace = 0;
-            _mRows = Math.Min(Math.Min(5, _doneSkips != null ? _doneSkips.Count : 0), rowsBySpace);
-            _mRowH = rowH;
-            int moreRows = (_doneSkips != null && _doneSkips.Count > _mRows) ? 1 : 0;
-            if (_doneStaleBytes > 0) moreRows++;
-            int infoH = (_mRows + moreRows) * rowH;
-            int hintH = _mRows > 0 ? 46 : 0;
-            int blockH = 34 + 28 + infoH + hintH + 24 + 42;
+            int blockH = 34 + 26 + 18 + 42;
             int y0 = Math.Max(6, (h - blockH) / 2);
             _mTitleY = y0;
             _mSubY = y0 + 34;
-            _mInfoY = _mSubY + 28;
-            _mHintY = _mInfoY + infoH;
-            _mBtnY = _mHintY + hintH + 8;
-            if (_mBtnY + 42 > h) _mBtnY = Math.Max(_mTitleY + 64, h - 44);
+            _mBtnY = _mSubY + 26 + 18;
+            if (_mBtnY + 42 > h) _mBtnY = Math.Max(_mTitleY + 60, h - 44);
         }
 
         private long LeftTotal(int from)
@@ -443,48 +427,8 @@ namespace AGCleaner
 
         private void DonePaint(object sender, PaintEventArgs e)
         {
-            Graphics g = e.Graphics;
-            Theme.Smooth(g);
-            if (_doneSkips == null || _doneSkips.Count == 0) return;
-            int w = _done.Width;
-            int boxW = _mBoxW > 0 ? _mBoxW : Math.Min(700, w - 80);
-            int x0 = (w - boxW) / 2;
-            // 列宽：条目名 / 没清掉的体积（右对齐）/ 占着它的程序
-            int nameW = boxW / 2;
-            int leftW = 92;
-            int rows = Math.Min(_mRows, _doneSkips.Count);
-            using (StringFormat nl = Theme.SF(StringAlignment.Near, StringAlignment.Near))
-            using (StringFormat nr = Theme.SF(StringAlignment.Far, StringAlignment.Near))
-            {
-                for (int i = 0; i < rows; i++)
-                {
-                    Core.CleanSkip sk = _doneSkips[i];
-                    int y = _mInfoY + i * _mRowH;
-                    Theme.Txt(g, sk.Name, Theme.F(9f), Theme.TextDim, new Rectangle(x0, y, nameW, 20), nl);
-                    Theme.Txt(g, Byt.Format(sk.Left), Theme.F(9f), Theme.Text, new Rectangle(x0 + nameW, y, leftW, 20), nr);
-                    string who = sk.Who.Length > 0 ? Lang.T("被 ") + sk.Who + Lang.T(" 占用") : sk.Why;
-                    Theme.Txt(g, who, Theme.F(9f), Theme.Warn, new Rectangle(x0 + nameW + leftW + 10, y, boxW - nameW - leftW - 10, 20), nl);
-                }
-            }
-            if (_doneSkips.Count > rows)
-            {
-                using (StringFormat nr = Theme.SF(StringAlignment.Far, StringAlignment.Near))
-                Theme.Txt(g, Lang.T("另有 ") + (_doneSkips.Count - rows) + Lang.T(" 项未清理，合计 ") + Byt.Format(LeftTotal(rows)) + Lang.T("，已写入操作日志"),
-                    Theme.F(8.6f), Theme.Muted, new Rectangle(x0, _mInfoY + rows * _mRowH, boxW, 18), nr);
-            }
-            if (_doneStaleBytes > 0)
-            {
-                int y = _mInfoY + (rows + (_doneSkips.Count > rows ? 1 : 0)) * _mRowH;
-                using (StringFormat nr = Theme.SF(StringAlignment.Far, StringAlignment.Near))
-                Theme.Txt(g, Lang.T("另有 ") + _doneStaleCount + Lang.T(" 项（合计 ") + Byt.Format(_doneStaleBytes) + Lang.T("）是扫描后已被其他程序清掉的旧数字，不是没删干净"),
-                    Theme.F(8.6f), Theme.Muted, new Rectangle(x0, y, boxW, 18), nr);
-            }
-            // 处理办法说清楚：这些程序退出后，文件锁就释放，再扫一遍就能删干净
-            using (StringFormat wrap = Theme.SF(StringAlignment.Center, StringAlignment.Near, true))
-            {
-                Theme.Txt(g, Lang.T("这些程序还在运行时，它们的文件无法删除（已被独占锁定）。\n退出这些程序后点「重新扫描」再清一次，这部分就能全部清掉。"),
-                    Theme.F(8.8f), Theme.Muted, new Rectangle(x0, _mHintY, boxW, 44), wrap);
-            }
+            // 完成页不再铺“没删干净的条目/被谁占用”这类明细：
+            // 说不清的地方就不说，只给结果。明细仍在 operations.log 里可查。
         }
 
         protected override void OnResize(EventArgs e)
@@ -837,28 +781,16 @@ namespace AGCleaner
             }
             if (_list != null) _list.Visible = !idle && !doneView && !_busy; // 扫描/清理期间把列表让出来，居中进度才看得见
             if (_doneTitle != null && doneView)
-                _doneTitle.Text = Lang.T("清理完成 · 实际释放 ") + Byt.Format(_doneActual > 0 ? _doneActual : _donePlan);
+                _doneTitle.Text = Lang.T("清理完成 · 释放 ") + Byt.Format(_doneActual > 0 ? _doneActual : _donePlan);
             if (_doneSub != null && doneView)
             {
-                // 主数字必须是磁盘上真实减少的量；确认时的预计值放在下一行，差额拆成“扫描后已消失”和“被占用”
-                if (_donePlan - _doneActual > 65536)
-                {
-                    long gap = _donePlan - _doneActual;
-                    long stale = Math.Min(gap, _doneStaleBytes);
-                    long busy = gap - stale;
-                    if (stale > 65536)
-                        _doneSub.Text = Lang.T("确认时预计 ") + Byt.Format(_donePlan) + Lang.T("，其中 ") + Byt.Format(stale) + Lang.T(" 扫描后已消失、") + Byt.Format(busy) + Lang.T(" 被占用，实际释放 ") + Byt.Format(_doneActual);
-                    else
-                        _doneSub.Text = Lang.T("确认时预计 ") + Byt.Format(_donePlan) + Lang.T("，实际释放 ") + Byt.Format(_doneActual) + Lang.T("，下列项目没删干净");
-                }
-                else
-                    _doneSub.Text = Lang.T("垃圾已清完，接着处理这些");
+                // 只留一句中性说明：多少、哪些没删掉都不铺在界面上，说多了反而让人困惑
+                _doneSub.Text = Lang.T("已经清理完毕，可以接着做下一步");
             }
             if (_doneBtns.Count > 0 && doneView)
             {
-                // 有没删干净的条目时，第一优先动作是“重新扫描”，把它标成主按钮
-                _doneBtns[0].Kind = _doneSkips.Count > 0 ? ButtonKind.Accent : ButtonKind.Subtle;
-                _doneBtns[1].Kind = _doneSkips.Count > 0 ? ButtonKind.Subtle : ButtonKind.Accent;
+                _doneBtns[0].Kind = ButtonKind.Subtle;
+                _doneBtns[1].Kind = ButtonKind.Accent;
                 _doneBtns[0].Visible = true;
                 _doneBtns[0].Invalidate();
                 _doneBtns[1].Invalidate();
@@ -1130,9 +1062,6 @@ namespace AGCleaner
                 }
                 long f = freed;
                 long plannedNow = CleanEngine.Planned;
-                List<string> lg = log;
-                int err = errors;
-                int sel = selected.Count;
                 try
                 {
                     BeginInvoke((MethodInvoker)delegate
@@ -1144,28 +1073,9 @@ namespace AGCleaner
                         _list.SetLoading(false, null);
                         _cleanBtn.Enabled = true;
                         UpdateIdleState();
-                        _status = Lang.T("实际释放 ") + Byt.Format(f) + (err > 0 ? "，" + err + Lang.T(" 处被占用或跳过") : "") + Lang.T("；点“重新扫描”查看最新清单");
+                        // 结果只报一个数，不再弹明细弹窗、不再解释差额，免得用户被一堆术语绕住
+                        _status = Lang.T("清理完成，释放 ") + Byt.Format(f);
                         _bar.Invalidate();
-
-                        List<string> lines = new List<string>();
-                        if (lg != null)
-                        {
-                            for (int i = 0; i < lg.Count; i++)
-                            {
-                                lines.Add(lg[i]);
-                            }
-                        }
-                        string summary = Lang.T("实际释放 ") + Byt.Format(f) + Lang.T(" · 处理 ") + sel + Lang.T(" 项 · 明细 ") + lines.Count + Lang.T(" 条");
-                        long planned = plannedNow > 0 ? plannedNow : CleanEngine.Planned;
-                        if (planned > f + 1024 * 64)
-                        {
-                            // 预计与实际对不上时把差额说清楚：多半是文件被程序占用、无权限或被保护规则挡住
-                            summary += Lang.T("（确认时预计 ") + Byt.Format(planned) + Lang.T("，差额 ") + Byt.Format(planned - f) + Lang.T(" 被占用或跳过）");
-                        }
-                        string hint = err > 0
-                            ? Lang.T("没删掉的文件正被其他程序占用；退出这些程序后再点「重新扫描」清理一次即可清干净")
-                            : Lang.T("全部处理完成；来源路径与体积已写入操作日志，可在历史记录页导出 CSV");
-                        Dlg.Report(FindForm(), Lang.T("清理完成"), summary, lines, hint);
                         ResetAfterClean(f, false, plannedNow);
                         UpdateIdleState();
                     });
