@@ -388,8 +388,7 @@ namespace AGCleaner
                 _done.SetBounds(0, listTop, w, freeH);
                 DoneMetrics();
                 _doneTitle.SetBounds(0, _mTitleY, w, 32);
-                _doneSub.SetBounds(0, _mSubY, w, 22);
-                int bw = 132, gap = 12;
+                int bw = 148, gap = 12;
                 int total = bw * _doneBtns.Count + gap * (_doneBtns.Count - 1);
                 int bx = (w - total) / 2;
                 int nth = 0;
@@ -403,18 +402,16 @@ namespace AGCleaner
             }
         }
 
-        // 完成页只讲结果：一行标题 + 一行说明 + 按钮。
-        // 没删掉的明细不再铺在界面上，免得用户被一堆“占用/过期”绕晕；明细照旧写进操作日志。
-        private int _mTitleY, _mSubY, _mBtnY;
+        // 完成页只留一句“清理完成”，体积、占用、未清理清单全部不显示：说多了反而让人困惑。
+        private int _mTitleY, _mBtnY;
 
         private void DoneMetrics()
         {
             int h = _done != null ? _done.Height : 300;
-            int blockH = 34 + 26 + 18 + 42;
+            int blockH = 34 + 34 + 42;
             int y0 = Math.Max(6, (h - blockH) / 2);
             _mTitleY = y0;
-            _mSubY = y0 + 34;
-            _mBtnY = _mSubY + 26 + 18;
+            _mBtnY = y0 + 34 + 34;
             if (_mBtnY + 42 > h) _mBtnY = Math.Max(_mTitleY + 60, h - 44);
         }
 
@@ -781,11 +778,11 @@ namespace AGCleaner
             }
             if (_list != null) _list.Visible = !idle && !doneView && !_busy; // 扫描/清理期间把列表让出来，居中进度才看得见
             if (_doneTitle != null && doneView)
-                _doneTitle.Text = Lang.T("清理完成 · 释放 ") + Byt.Format(_doneActual > 0 ? _doneActual : _donePlan);
-            if (_doneSub != null && doneView)
+                _doneTitle.Text = Lang.T("清理完成");
+            if (_doneSub != null)
             {
-                // 只留一句中性说明：多少、哪些没删掉都不铺在界面上，说多了反而让人困惑
-                _doneSub.Text = Lang.T("已经清理完毕，可以接着做下一步");
+                // 完成页不显示任何解释性文字，副标题整条收起来
+                _doneSub.Visible = false;
             }
             if (_doneBtns.Count > 0 && doneView)
             {
@@ -867,9 +864,9 @@ namespace AGCleaner
         {
             Graphics g = e.Graphics;
             Theme.Smooth(g);
-            // 扫描/清理进行中，底栏左侧不显示“已选 0 项 · 预计释放 0 B”这类还没意义的数字，
-            // 免得用户以为选了东西或者以为估算出错；扫描完再按真实勾选显示
-            if (!_busy)
+            // 完成页只报“清理完成”，底栏不重复数字；扫描/清理进行中也不显示“已选 0 项 · 预计释放 0 B”这类还没意义的数字
+            bool doneView = _done != null && _done.Visible;
+            if (!_busy && !doneView)
             {
                 long bytes = 0;
                 int count = 0;
@@ -1073,8 +1070,8 @@ namespace AGCleaner
                         _list.SetLoading(false, null);
                         _cleanBtn.Enabled = true;
                         UpdateIdleState();
-                        // 结果只报一个数，不再弹明细弹窗、不再解释差额，免得用户被一堆术语绕住
-                        _status = Lang.T("清理完成，释放 ") + Byt.Format(f);
+                        // 结果只报一个“清理完成”，体积与差额都不再提，免得用户被数字绕住
+                        _status = Lang.T("清理完成");
                         _bar.Invalidate();
                         ResetAfterClean(f, false, plannedNow);
                         UpdateIdleState();

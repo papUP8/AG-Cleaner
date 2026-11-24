@@ -177,6 +177,15 @@ namespace AGCleaner
                 "Irréversible ; à cocher manuellement",
                 "Необратимо; отметьте вручную",
                 "Irreversible; marca manualmente" },
+            new string[] { "启动项优化", "Optimize startup", "Autostart optimieren", "Optimiser démarrage", "Автозапуск", "Optimizar el inicio" },
+            new string[] { "卸载应用", "Uninstall apps", "Apps deinstallieren", "Désinstaller des apps", "Удалить приложения", "Desinstalar apps" },
+            new string[] {
+                "扫描不会自动开始，点按钮后再检查磁盘，两分钟左右",
+                "Scanning starts only when you click the button; the check takes about two minutes",
+                "Die Suche startet erst per Klick; sie dauert etwa zwei Minuten",
+                "L’analyse ne démarre qu’au clic ; elle prend environ deux minutes",
+                "Сканирование начинается только по кнопке; это занимает около двух минут",
+                "El análisis solo empieza al pulsar el botón; tarda unos dos minutos" },
         };
 
         public static void Fill(Dictionary<string, string> en, Dictionary<string, string> de,
