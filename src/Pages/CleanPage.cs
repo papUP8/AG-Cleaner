@@ -21,7 +21,7 @@ namespace AGCleaner
             BackColor = Theme.Bg;
             Height = 28;
             Cursor = Cursors.Hand;
-            Font = Theme.F(8.3f);
+            Font = Theme.F(9.3f);
         }
 
         protected override void OnMouseEnter(EventArgs e) { _hover = true; Invalidate(); base.OnMouseEnter(e); }
@@ -371,7 +371,7 @@ namespace AGCleaner
                 if (freeH < 170) freeH = 170;
                 _prog.SetBounds(0, listTop, w, freeH);
             }
-            _list.SetBounds(0, listTop, w, Height - listTop - 72);
+            _list.SetBounds(0, listTop, w, Height - listTop - 96);
             _spinner.SetBounds(w - 56, y, 44, 44);
             if (_cta != null)
             {
@@ -881,7 +881,7 @@ namespace AGCleaner
                     }
                 }
                 Theme.Txt(g, Lang.T("已选 ") + count + Lang.T(" 项 · 预计释放 ") + Byt.Format(bytes), Theme.F(9.5f, FontStyle.Bold), Theme.Text, 4, 12);
-                Theme.Txt(g, _status, Theme.F(8f), Theme.Muted, 4, 34);
+                Theme.Txt(g, _status, Theme.F(9f), Theme.Muted, 4, 34);
             }
             _cleanBtn.SetBounds(_bar.Width - 148, 10, 128, 38);
             if (_sortBtn != null) _sortBtn.SetBounds(_bar.Width - 148 - 102, 14, 96, 30);

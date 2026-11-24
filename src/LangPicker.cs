@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Drawing;
 using System.Windows.Forms;
 
@@ -27,7 +27,7 @@ namespace AGCleaner
                 string code = Lang.Codes[i];
                 Btn b = new Btn();
                 b.Kind = code == Lang.Cur ? ButtonKind.Accent : ButtonKind.Ghost;
-                b.Text = Lang.NativeName(code) + (code == "zh" ? "" : "  ·  " + code.ToUpperInvariant());
+                b.Text = Lang.NativeName(code);
                 b.Size = new Size(212, 34);
                 b.Location = new Point(24, 50 + i * 42);
                 b.Click += delegate { Chosen = code; Close(); };

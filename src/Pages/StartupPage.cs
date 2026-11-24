@@ -50,7 +50,7 @@ namespace AGCleaner
             _list = new VList();
             _list.ShowCheck = false;
             _list.RightHeader = Lang.T("状态");
-            _list.RowHeight = 74;
+            _list.RowHeight = 86;
             _list.EmptyText = Lang.T("没有启动项");
             _list.EmptyHint = Lang.T("当前分类下没有项目");
             _list.ActionClicked += delegate { ToggleSelected(); };

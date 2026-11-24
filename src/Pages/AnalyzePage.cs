@@ -84,7 +84,7 @@ namespace AGCleaner
             _list = new VList();
             _list.ShowCheck = false;
             _list.RightHeader = Lang.T("占用");
-            _list.RowHeight = 56;
+            _list.RowHeight = 66;
             _list.EmptyText = Lang.T("尚未扫描");
             _list.EmptyHint = Lang.T("点击左侧磁盘按钮选择驱动器");
             _list.RowActivated += delegate { OpenSelected(); };
@@ -278,10 +278,10 @@ namespace AGCleaner
             Graphics g = e.Graphics;
             Theme.Smooth(g);
             Theme.Txt(g, Theme.ShortPath(_path, 90), Theme.F(9.5f, FontStyle.Bold), Theme.Text, 4, 10);
-            Theme.Txt(g, _status, Theme.F(8f), Theme.Muted, 4, 33);
+            Theme.Txt(g, _status, Theme.F(9f), Theme.Muted, 4, 33);
             using (StringFormat sf = Theme.SF(StringAlignment.Far, StringAlignment.Near))
             {
-                Theme.Txt(g, Lang.T("双击展开子文件夹 · “定位”在资源管理器中打开所在位置；本页只读，不删除任何文件"), Theme.F(8f), Theme.Hint, new Rectangle(0, 32, _bar.Width - 8, 20), sf);
+                Theme.Txt(g, Lang.T("双击展开子文件夹 · “定位”在资源管理器中打开所在位置；本页只读，不删除任何文件"), Theme.F(9f), Theme.Hint, new Rectangle(0, 32, _bar.Width - 8, 20), sf);
             }
         }
 

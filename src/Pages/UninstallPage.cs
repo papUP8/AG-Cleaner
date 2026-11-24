@@ -39,7 +39,7 @@ namespace AGCleaner
             _list = new VList();
             _list.ShowCheck = false;
             _list.RightHeader = Lang.T("占用");
-            _list.RowHeight = 60;
+            _list.RowHeight = 72;
             _list.EmptyText = Lang.T("尚未读取应用列表");
             _list.EmptyHint = Lang.T("点击右上角“刷新列表”开始");
             _list.ActionClicked += delegate { UninstallSelected(); };

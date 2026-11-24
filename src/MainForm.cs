@@ -132,14 +132,14 @@ namespace AGCleaner
 
             MiniBtn min = new MiniBtn();
             min.Glyph = "—";
-            min.SetBounds(ClientSize.Width - 92, 16, 36, 24);
+            min.SetBounds(ClientSize.Width - 92, 12, 36, 28);
             min.Click += delegate { WindowState = FormWindowState.Minimized; };
             _title.Controls.Add(min);
 
             MiniBtn close = new MiniBtn();
             close.Glyph = "✕";
             close.Danger = true;
-            close.SetBounds(ClientSize.Width - 48, 16, 36, 24);
+            close.SetBounds(ClientSize.Width - 48, 12, 36, 28);
             close.Click += delegate { Close(); };
             _title.Controls.Add(close);
 
@@ -148,14 +148,14 @@ namespace AGCleaner
             _themeMode = startup.ThemeMode;
             if (_themeMode != "light" && _themeMode != "dark" && _themeMode != "system") _themeMode = "dark";
             _themeSeg.Mode = _themeMode;
-            _themeSeg.SetBounds(ClientSize.Width - 286, 16, 176, 24);
+            _themeSeg.FitWidth(); _themeSeg.SetBounds(ClientSize.Width - 110 - _themeSeg.Width, 12, _themeSeg.Width, 28);
             _themeSeg.Changed += delegate { SetThemeMode(_themeSeg.Mode); };
             _title.Controls.Add(_themeSeg);
 
             _langBtn = new TitleBtn();
-            _langBtn.Size = new Size(58, 24);
+            _langBtn.Size = new Size(66, 28);
             _langBtn.Click += delegate { OpenLanguageMenu(); };
-            _langBtn.SetBounds(ClientSize.Width - 372, 16, 68, 24);
+            _langBtn.SetBounds(_themeSeg.Left - 10 - _langBtn.Width, 12, _langBtn.Width, 28);
             _title.Controls.Add(_langBtn);
             SyncLanguageButton();
         }
@@ -424,8 +424,8 @@ namespace AGCleaner
             {
                 _pages[i].SetBounds(28, 18, _content.Width - 56, _content.Height - 36);
             }
-            if (_themeSeg != null) _themeSeg.SetBounds(ClientSize.Width - 250, 16, 150, 24);
-            if (_langBtn != null) _langBtn.SetBounds(ClientSize.Width - 372, 16, 68, 24);
+            if (_themeSeg != null) { _themeSeg.FitWidth(); _themeSeg.SetBounds(ClientSize.Width - 110 - _themeSeg.Width, 12, _themeSeg.Width, 28); }
+            if (_langBtn != null) _langBtn.SetBounds(_themeSeg.Left - 10 - _langBtn.Width, 12, _langBtn.Width, 28);
             _title.Invalidate();
         }
 

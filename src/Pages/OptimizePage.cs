@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Text;
@@ -28,7 +28,7 @@ namespace AGCleaner
             _list = new VList();
             _list.ShowCheck = false;
             _list.RightHeader = "";
-            _list.RowHeight = 64;
+            _list.RowHeight = 74;
             _list.EmptyText = Lang.T("没有可用的优化项");
             _list.ActionClicked += delegate { RunSelected(); };
             Controls.Add(_list);

@@ -222,7 +222,7 @@ namespace AGCleaner
         {
             SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
             Cursor = Cursors.Hand;
-            Font = Theme.F(8.4f);
+            Font = Theme.F(9.5f);
         }
 
         protected override void OnMouseEnter(EventArgs e) { _hover = true; Invalidate(); base.OnMouseEnter(e); }
@@ -438,7 +438,7 @@ namespace AGCleaner
 
         private List<VRow> _rows = new List<VRow>();
         private List<VRow> _view = new List<VRow>();
-        public int RowHeight = 54;
+        public int RowHeight = 64;
         public bool ShowCheck = true;
         public string RightHeader = "";
         public string EmptyText = Lang.T("暂无内容");
@@ -570,6 +570,27 @@ namespace AGCleaner
 
         private int HeaderHeight { get { return RightHeader.Length > 0 ? 30 : 4; } }
 
+        // 高度按整行对齐：列表底部不会出现被切掉一半的行
+        private bool _snapHeight;
+
+        protected override void OnSizeChanged(EventArgs e)
+        {
+            base.OnSizeChanged(e);
+            if (_snapHeight) return;
+            int rowH = Math.Max(24, RowHeight);
+            int body = Height - HeaderHeight;
+            if (body > rowH)
+            {
+                int extra = body % rowH;
+                if (extra > 0)
+                {
+                    _snapHeight = true;
+                    Height = Height - extra;
+                    _snapHeight = false;
+                }
+            }
+        }
+
         /// <summary>滚动条宽度与可点区域：条本身 10px，连同留白 22px 都可抓，免得点不中。</summary>
         public const int ScrollBarW = 10;
         private const int ScrollHitW = 22;
@@ -694,12 +715,17 @@ namespace AGCleaner
             if (RowActivated != null) RowActivated(this, EventArgs.Empty);
         }
 
+        private int ActionWidth(VRow row)
+        {
+            return Math.Min(100, Math.Max(62, TextRenderer.MeasureText(row.Action, Theme.F(9.5f)).Width + 18));
+        }
+
         private Rectangle ActionRect(VRow row, int idx)
         {
             if (row.Action.Length <= 0) return Rectangle.Empty;
-            int w = 62;
+            int w = ActionWidth(row);
             int top = HeaderHeight + idx * RowHeight - _scroll;
-            return new Rectangle(Width - w - 26, top + (RowHeight - 26) / 2, w, 26);
+            return new Rectangle(Width - w - 26, top + (RowHeight - 28) / 2, w, 28);
         }
 
         protected override void OnPaint(PaintEventArgs e)
@@ -715,13 +741,13 @@ namespace AGCleaner
             {
                 using (StringFormat sf = Theme.SF(StringAlignment.Near, StringAlignment.Near))
                 {
-                    Theme.Txt(g, Lang.T("项目"), Theme.F(8.5f), Theme.Muted, new Rectangle(20, 6, 200, 20), sf);
+                    Theme.Txt(g, Lang.T("项目"), Theme.F(9.5f), Theme.Muted, new Rectangle(20, 6, 200, 20), sf);
                 }
                 using (StringFormat sf = Theme.SF(StringAlignment.Far, StringAlignment.Near))
                 {
                     int hw = RightW;
                     int ax = _anyAction ? 90 : 0;
-                    Theme.Txt(g, RightHeader, Theme.F(8.5f), Theme.Muted, new Rectangle(Width - hw - ax - 14, 6, hw - 6, 20), sf);
+                    Theme.Txt(g, RightHeader, Theme.F(9.5f), Theme.Muted, new Rectangle(Width - hw - ax - 14, 6, hw - 6, 20), sf);
                 }
                 using (Pen p = new Pen(Theme.BorderSoft))
                 {
@@ -820,20 +846,20 @@ namespace AGCleaner
 
             // 右侧“体积/状态”列与操作按钮列宽固定，标题、标签、数字互相避让，不再叠字
             int rightW = RightW;
-            int actionW = row.Action.Length > 0 ? 78 : 0;
+            int actionW = row.Action.Length > 0 ? ActionWidth(row) + 4 : 0;
             int rightX = Width - rightW - actionW - 20;
 
             Color titleColor = row.Disabled ? Theme.Muted : (row.Risk ? Theme.Danger : Theme.Text);
             int textW = Math.Max(40, rightX - textX - 34);
             using (StringFormat sf = Theme.SF(StringAlignment.Near, StringAlignment.Near))
             {
-                Theme.Txt(g, row.Title, Theme.F(9.5f), titleColor, new Rectangle(textX, top + 10, textW, 20), sf);
+                Theme.Txt(g, row.Title, Theme.F(10.5f), titleColor, new Rectangle(textX, top + 8, textW, 24), sf);
             }
             if (row.Sub.Length > 0)
             {
                 using (StringFormat sf = Theme.SF(StringAlignment.Near, StringAlignment.Near))
                 {
-                    Font subFont = Theme.F(8.2f);
+                    Font subFont = Theme.F(9.5f);
                     int linkW = 0;
                     if (row.SubLink.Length > 0)
                     {
@@ -843,10 +869,10 @@ namespace AGCleaner
                     int avail = Math.Max(40, textW - linkW);
                     int used = (int)Math.Ceiling(g.MeasureString(row.Sub, subFont).Width) + 2;
                     int subW = Math.Min(used, avail);
-                    Theme.Txt(g, row.Sub, subFont, row.SubColor, new Rectangle(textX, top + 30, subW, 18), sf);
+                    Theme.Txt(g, row.Sub, subFont, row.SubColor, new Rectangle(textX, top + 34, subW, 20), sf);
                     if (linkW > 0)
                     {
-                        Theme.Txt(g, row.SubLink, subFont, Theme.Blue, new Rectangle(textX + subW + 2, top + 30, linkW, 18), sf);
+                        Theme.Txt(g, row.SubLink, subFont, Theme.Blue, new Rectangle(textX + subW + 2, top + 34, linkW, 20), sf);
                     }
                 }
             }
@@ -854,7 +880,7 @@ namespace AGCleaner
             {
                 using (StringFormat sf = Theme.SF(StringAlignment.Near, StringAlignment.Near))
                 {
-                    Theme.Txt(g, row.Note, Theme.F(8f), Theme.Muted, new Rectangle(textX, top + 50, textW, 18), sf);
+                    Theme.Txt(g, row.Note, Theme.F(9.5f), Theme.Muted, new Rectangle(textX, top + 58, textW, 20), sf);
                 }
             }
 
@@ -872,10 +898,10 @@ namespace AGCleaner
 
             if (row.Tag.Length > 0)
             {
-                Font tf = Theme.F(7.5f);
+                Font tf = Theme.F(9f);
                 Color tagColor = row.Risk ? Theme.Danger : row.TagColor;
                 int tw = Math.Min(rightX - textX - 120, (int)g.MeasureString(row.Tag, tf).Width + 14);
-                Rectangle tagRect = new Rectangle(rightX - tw, top + (RowHeight - 18) / 2, tw, 18);
+                Rectangle tagRect = new Rectangle(rightX - tw, top + (RowHeight - 22) / 2, tw, 22);
                 Theme.FillRound(g, tagRect, 4, Theme.Alpha(tagColor, row.Risk ? 34 : 26));
                 using (StringFormat sf = Theme.SF(StringAlignment.Center, StringAlignment.Center))
                 {
@@ -890,13 +916,13 @@ namespace AGCleaner
                 Theme.StrokeRound(g, ar, 6, Theme.Alpha(row.ActionColor, 60), 1);
                 using (StringFormat sf = Theme.SF(StringAlignment.Center, StringAlignment.Center))
                 {
-                    Theme.Txt(g, row.Action, Theme.F(8.2f), row.ActionColor, ar, sf);
+                    Theme.Txt(g, row.Action, Theme.F(9.5f), row.ActionColor, ar, sf);
                 }
             }
 
             using (StringFormat sf = Theme.SF(StringAlignment.Far, StringAlignment.Center))
             {
-                Theme.Txt(g, row.Right, Theme.F(9f), row.Risk ? Theme.Danger : (row.Alarm ? Theme.Warn : Theme.TextDim), new Rectangle(rightX, top, rightW - 6, RowHeight), sf);
+                Theme.Txt(g, row.Right, Theme.F(9.8f), row.Risk ? Theme.Danger : (row.Alarm ? Theme.Warn : Theme.TextDim), new Rectangle(rightX, top, rightW - 6, RowHeight), sf);
             }
         }
     }
@@ -917,9 +943,25 @@ namespace AGCleaner
             SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint |
                      ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
             BackColor = Theme.TitleBg;
-            Font = Theme.F(8f);
-            Size = new Size(176, 24);
+            Font = Theme.F(9.5f);
+            Size = new Size(196, 28);
             Cursor = Cursors.Hand;
+        }
+
+        /// <summary>按当前语言文字实测宽度撑开自身宽度，俄/德等长词不再挤在一起。</summary>
+        public void FitWidth()
+        {
+            int total = 0;
+            using (Graphics g = CreateGraphics())
+            {
+                for (int i = 0; i < 3; i++)
+                {
+                    int w = (int)Math.Ceiling(g.MeasureString(Lang.T(RawLabels[i]), Font).Width) + 28;
+                    if (w < 36) w = 36;
+                    total += w;
+                }
+            }
+            Width = Math.Max(196, total + 4);
         }
 
         /// <summary>按每段文字的实测宽度分配段宽，避免小语种被截断。</summary>
@@ -932,7 +974,7 @@ namespace AGCleaner
             {
                 for (int i = 0; i < 3; i++)
                 {
-                    need[i] = (int)Math.Ceiling(g.MeasureString(Lang.T(RawLabels[i]), Font).Width) + 16;
+                    need[i] = (int)Math.Ceiling(g.MeasureString(Lang.T(RawLabels[i]), Font).Width) + 26;
                     if (need[i] < 36) need[i] = 36;
                     total += need[i];
                 }
@@ -1144,7 +1186,7 @@ namespace AGCleaner
             Input.BorderStyle = BorderStyle.None;
             Input.BackColor = Theme.Card;
             Input.ForeColor = Theme.Text;
-            Input.Font = Theme.F(9f);
+            Input.Font = Theme.F(9.8f);
             Input.SetBounds(34, 9, 100, 18);
             Input.TextChanged += delegate { Invalidate(); };
             Controls.Add(Input);
