@@ -1,4 +1,4 @@
-# AG Cleaner · Windows 桌面清理与优化
+﻿# AG Cleaner · Windows 桌面清理与优化
 
 **下载一个 exe，双击就能用；扫出来的东西先列给你看，你点头才删。**
 
@@ -11,7 +11,7 @@
 - 运行依赖：Windows 10 / 11 自带的 .NET Framework 4.8，不装 .NET SDK、不用 Node/Electron
 - 不联网、不上传任何清单；配置与日志只写本地 `%USERPROFILE%\.config\agcleaner`
 - 未做代码签名，首次运行可能弹 SmartScreen，点「更多信息 → 仍要运行」即可；介意可从源码自行编译（见第七节）
-- 中文 / English / Deutsch / Français / Русский / Español 六种界面语言，顶栏一键切换，选择会记住（英文说明见 [README.en.md](README.en.md)）
+- 繁體中文 / 中文 / English / Deutsch / Français / Русский / Español 七种界面语言，顶栏一键切换，选择会记住（英文说明见 [README.en.md](README.en.md)）
 - 使用说明、变更记录、版权署名与许可证已编译进 exe：设置页「关于」卡片里的「说明与许可」直接查看，无需另带文档
 - 代码开源（GPL-3.0），源码即本仓库
 
@@ -47,7 +47,7 @@ powershell -ExecutionPolicy Bypass -File uninstall.ps1
 
 **切换主题**：标题栏右上角「浅色 / 深色 / 系统」按钮，选择会记住。
 
-**切换语言**：标题栏右侧的语言按钮显示当前语言代码（中文 / EN / DE / FR / RU / ES），点开是六种语言的列表（中文、English、Deutsch、Français、Русский、Español），选中立即生效；设置页「关于」卡片右侧有同样的入口。选择会记住。
+**切换语言**：标题栏右侧的语言按钮显示当前语言代码（繁中 / 中文 / EN / DE / FR / RU / ES），点开是七种语言的列表（繁體中文、中文、English、Deutsch、Français、Русский、Español），选中立即生效；设置页「关于」卡片右侧有同样的入口。选择会记住。
 
 语言覆盖度：中、英、德、法、俄、西六套均为全量（每套 650 条词条，与英文一键对齐，无回落缺口）。四套小语种为作者自译，欢迎 native speaker 提 PR 校对。
 

@@ -904,6 +904,8 @@ namespace AGCleaner
     /// <summary>三档分段选择器：系统 / 浅色 / 深色。</summary>
     public class Seg3 : Control
     {
+        // 原始中文文案；绘制时按当前语言实时取词，避免切换语言后仍是旧文字
+        public static readonly string[] RawLabels = new string[] { "系统", "浅色", "深色" };
         public string[] Labels = new string[] { Lang.T("系统"), Lang.T("浅色"), Lang.T("深色") };
         public string[] Modes = new string[] { "system", "light", "dark" };
         public string Mode = "dark";
@@ -930,7 +932,7 @@ namespace AGCleaner
             {
                 for (int i = 0; i < 3; i++)
                 {
-                    need[i] = (int)Math.Ceiling(g.MeasureString(Labels[i], Font).Width) + 16;
+                    need[i] = (int)Math.Ceiling(g.MeasureString(Lang.T(RawLabels[i]), Font).Width) + 16;
                     if (need[i] < 36) need[i] = 36;
                     total += need[i];
                 }
@@ -1019,7 +1021,7 @@ namespace AGCleaner
                     : (onBlue ? Theme.TitleText : Theme.TextDim);
                 using (StringFormat sf = Theme.SF(StringAlignment.Center, StringAlignment.Center))
                 {
-                    Theme.Txt(g, Labels[i], Font, fg, seg, sf);
+                    Theme.Txt(g, Lang.T(RawLabels[i]), Font, fg, seg, sf);
                 }
             }
         }

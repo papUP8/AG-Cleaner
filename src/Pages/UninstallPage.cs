@@ -63,7 +63,14 @@ namespace AGCleaner
             int w = Width;
             int y = HeaderH + 2;
             _search.SetBounds(0, y, 320, 34);
-            _refresh.SetBounds(w - 96, y, 96, 34);
+            // 按钮宽度按当前语言实测文字，俄文/德文这类长词组不会被截断
+            int bw = 96;
+            using (Graphics g = CreateGraphics())
+            using (StringFormat sf = Theme.SF(StringAlignment.Center, StringAlignment.Center))
+            {
+                bw = Math.Max(96, (int)Math.Ceiling(g.MeasureString(_refresh.Text, _refresh.Font).Width) + 28);
+            }
+            _refresh.SetBounds(w - bw, y, bw, 34);
             _bar.SetBounds(0, Height - 58, w, 58);
             _list.SetBounds(0, y + 46, w, Height - (y + 46) - 72);
             _spinner.SetBounds(w - 140, y - 6, 44, 44);

@@ -52,6 +52,7 @@ namespace AGCleaner
         private Label _verLabel;
         private Label _credit;
         private Seg3 _themeSeg;
+        private string[] _navKeys;
         private TitleBtn _langBtn;
         private Timer _sysWatch;
         private string _themeMode = "dark";
@@ -171,8 +172,26 @@ namespace AGCleaner
         {
             if (!LangSwitch.Pick(this)) return;
             SyncLanguageButton();
+            // 侧栏、主题分段、副标题都是建窗体时定死的文字，切语言要一起换掉，否则会出现“一半新语言一半旧语言”
+            ReloadLanguageUI();
             // 点击来源就在即将被重建的页面上，延后一帧再重建，避免在事件里 Dispose 自己
             BeginInvoke((Action)delegate { ReloadPages(_current); });
+        }
+
+        /// <summary>语言切换后把不随页面重建的外壳文字刷新一遍。</summary>
+        public void ReloadLanguageUI()
+        {
+            if (_navKeys != null)
+            {
+                for (int i = 0; i < _navs.Count && i < _navKeys.Length; i++)
+                {
+                    _navs[i].Text = Lang.T(_navKeys[i]);
+                    _navs[i].Invalidate();
+                }
+            }
+            if (_credit != null) _credit.Text = Lang.T("社区版 · GPL-3.0 · 代码开源");
+            if (_themeSeg != null) _themeSeg.Invalidate();
+            Invalidate(true);
         }
 
         private void SetThemeMode(string mode)
@@ -281,6 +300,7 @@ namespace AGCleaner
             Controls.Add(_sidebar);
 
             string[] names = new string[] { Lang.T("深度清理"), Lang.T("应用卸载"), Lang.T("启动项管理"), Lang.T("磁盘分析"), Lang.T("系统优化"), Lang.T("设置") };
+            _navKeys = new string[] { "深度清理", "应用卸载", "启动项管理", "磁盘分析", "系统优化", "设置" };
             string[] glyphs = new string[] { "◉", "✦", "⌫", "▣", "⚡", "⚙", "↺" };
 
             for (int i = 0; i < names.Length; i++)

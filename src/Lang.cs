@@ -10,17 +10,30 @@ namespace AGCleaner
     /// </summary>
     public static class Lang
     {
-        public static readonly string[] Codes = { "zh", "en", "de", "fr", "ru", "es" };
+        public static readonly string[] Codes = { "zh", "zhhant", "en", "de", "fr", "ru", "es" };
 
         public static string Cur = "zh";
 
         public static bool IsEn { get { return Cur == "en"; } }
 
-        public static bool IsZh { get { return Cur == "zh"; } }
+        public static bool IsZh { get { return Cur == "zh" || Cur == "zhhant"; } }
 
         public static void Set(string code)
         {
             Cur = Norm(code);
+        }
+
+        /// <summary>某个语言是否已收录这条中文原文（用于自检，查“切了语言还是中文”这类漏网）。</summary>
+        public static bool Has(string code, string zh)
+        {
+            Dictionary<string, string> t = Table(code);
+            return t != null && t.ContainsKey(zh);
+        }
+
+        /// <summary>给自检用的只读视图。</summary>
+        public static Dictionary<string, string> Dict(string code)
+        {
+            return Table(code);
         }
 
         public static string T(string zh)
@@ -29,6 +42,8 @@ namespace AGCleaner
             string v;
             Dictionary<string, string> t = Table(Cur);
             if (t != null && t.TryGetValue(zh, out v) && v.Length > 0) return v;
+            // 繁体缺词时回落成简体原文，而不是把中文换成英文
+            if (Cur == "zhhant") return zh;
             if (En.TryGetValue(zh, out v)) return v;
             return zh;
         }
@@ -42,6 +57,8 @@ namespace AGCleaner
                 _extraDone = true;
                 LangExtra.Fill(En, De, Fr, Ru, Es);
             }
+            if (code == "zh") return null;
+            if (code == "zhhant") return Hant;
             if (code == "en") return En;
             if (code == "de") return De;
             if (code == "fr") return Fr;
@@ -54,6 +71,7 @@ namespace AGCleaner
         public static string Badge(string code)
         {
             if (code == "zh") return "中文";
+            if (code == "zhhant") return "繁中";
             return code.ToUpperInvariant();
         }
 
@@ -61,6 +79,7 @@ namespace AGCleaner
         public static string NativeName(string code)
         {
             if (code == "zh") return "中文";
+            if (code == "zhhant") return "繁體中文";
             if (code == "en") return "English";
             if (code == "de") return "Deutsch";
             if (code == "fr") return "Français";
@@ -75,10 +94,15 @@ namespace AGCleaner
             catch (Exception) { return zh; }
         }
 
-        /// <summary>从配置里读到的语言代码，非法值回落到中文。</summary>
+        /// <summary>从配置里读到的语言代码，非法值回落到中文。zh-tw / zh-hant 这类写法一并认。</summary>
         public static string Norm(string code)
         {
-            for (int i = 0; i < Codes.Length; i++) { if (Codes[i] == code) return code; }
+            if (code != null)
+            {
+                string c = code.Trim().ToLowerInvariant();
+                if (c == "zh-tw" || c == "zh-hant" || c == "zh_tw" || c == "zh_hant" || c == "tw" || c == "hant") return "zhhant";
+                for (int i = 0; i < Codes.Length; i++) { if (Codes[i] == c) return c; }
+            }
             return "zh";
         }
 
@@ -86,6 +110,7 @@ namespace AGCleaner
         private static readonly Dictionary<string, string> Fr = LangTables.Fr();
         private static readonly Dictionary<string, string> Ru = LangTables.Ru();
         private static readonly Dictionary<string, string> Es = LangTables.Es();
+        private static readonly Dictionary<string, string> Hant = LangHant.Table();
 
         private static readonly Dictionary<string, string> En = new Dictionary<string, string>(StringComparer.Ordinal)
         {

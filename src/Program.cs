@@ -7,7 +7,7 @@ namespace AGCleaner
 {
     public static class Program
     {
-        public static string Version = "1.9.9";
+        public static string Version = "1.9.10";
 
         private static Icon _appIcon;
 
@@ -53,6 +53,47 @@ namespace AGCleaner
                 ReportCrash(e.ExceptionObject as Exception);
             };
 
+            // 语言自检：--langdump 导出中文词表及各语言覆盖情况；--langcheck 按外部清单核对缺失
+            if (args.Length >= 2 && args[0] == "--langdump")
+            {
+                System.Text.StringBuilder sb = new System.Text.StringBuilder();
+                string[] langs = new string[] { "en", "zhhant", "de", "fr", "ru", "es" };
+                sb.AppendLine("key\t" + string.Join("\t", langs));
+                foreach (string key in Lang.Dict("en").Keys)
+                {
+                    sb.Append(Esc(key));
+                    for (int li = 0; li < langs.Length; li++)
+                    {
+                        string v = Lang.Dict(langs[li]) != null && Lang.Has(langs[li], key) ? Lang.Dict(langs[li])[key] : "";
+                        sb.Append("\t" + Esc(v));
+                    }
+                    sb.AppendLine();
+                }
+                System.IO.File.WriteAllText(args[1], sb.ToString(), new System.Text.UTF8Encoding(true));
+                return;
+            }
+            if (args.Length >= 2 && args[0] == "--langcheck")
+            {
+                string[] langs = new string[] { "en", "zhhant", "de", "fr", "ru", "es" };
+                System.Text.StringBuilder sb = new System.Text.StringBuilder();
+                string[] keys = System.IO.File.ReadAllLines(args[1], System.Text.Encoding.UTF8);
+                int miss = 0, total = 0;
+                for (int ki = 0; ki < keys.Length; ki++)
+                {
+                    string k = Unesc(keys[ki]);
+                    if (k == null || k.Length == 0) continue;
+                    total++;
+                    string lacks = "";
+                    for (int li = 0; li < langs.Length; li++)
+                    {
+                        if (!Lang.Has(langs[li], k)) lacks += (lacks.Length > 0 ? "," : "") + langs[li];
+                    }
+                    if (lacks.Length > 0) { miss++; sb.AppendLine(lacks + "\t" + Esc(k)); }
+                }
+                sb.AppendLine("TOTAL=" + total + " MISSING=" + miss);
+                System.IO.File.WriteAllText(args[1] + ".out.txt", sb.ToString(), new System.Text.UTF8Encoding(true));
+                return;
+            }
             if (args.Length >= 1 && args[0] == "--selftest")
             {
                 System.Text.StringBuilder sb = new System.Text.StringBuilder();
@@ -614,7 +655,7 @@ namespace AGCleaner
                 if (themeMode.Length > 0) Theme.ApplyMode(themeMode, Theme.SystemLight());
                 for (int i = 0; i < args.Length; i++)
                 {
-                    if (args[i] == "en" || args[i] == "zh" || args[i] == "de" || args[i] == "fr" || args[i] == "ru" || args[i] == "es") Lang.Set(args[i]);
+                    if (args[i] == "en" || args[i] == "zh" || args[i] == "de" || args[i] == "fr" || args[i] == "ru" || args[i] == "es" || args[i] == "zhhant" || args[i] == "zh-tw") Lang.Set(args[i]);
                 }
                 for (int i = 0; i < args.Length; i++)
                 {
@@ -692,13 +733,36 @@ namespace AGCleaner
             Application.Run(form);
         }
 
+        private static void DumpLang(Control c, System.Text.StringBuilder sb)
+        {
+            Seg3 sg = c as Seg3;
+            if (sg != null) sb.AppendLine("seg-in-form=" + string.Join("/", sg.Labels));
+            if (c.Text != null && c.Text.Length > 0 && c.Text.Length <= 20) sb.AppendLine(c.GetType().Name + ": " + c.Text);
+            for (int i = 0; i < c.Controls.Count; i++) DumpLang(c.Controls[i], sb);
+        }
+
+        /// <summary>把换行、制表符转义成可见占位，便于按行导出词表。</summary>
+        private static string Esc(string s)
+        {
+            if (s == null) return "";
+            return s.Replace("\r", "").Replace("\n", "\\n").Replace("\t", "\\t");
+        }
+
+        private static string Unesc(string s)
+        {
+            if (s == null) return "";
+            return s.Replace("\\n", "\n").Replace("\\t", "\t").Replace("\\\\", "\\");
+        }
+
         /// <summary>离屏截图诊断用：递归列出控件的类型、可见性与位置。</summary>
         private static void DumpControls(System.Windows.Forms.Control c, System.Text.StringBuilder sb, int depth)
         {
             if (c == null || depth > 4) return;
+            Seg3 sg = c as Seg3;
+            string extra = sg != null ? " seg=" + string.Join("/", sg.Labels) : "";
             sb.AppendLine(new string(' ', depth * 2) + c.GetType().Name + " visible=" + c.Visible + " handle=" + (c.IsHandleCreated ? c.Handle.ToString() : "0") +
                           " idx=" + (c.Parent == null ? -1 : c.Parent.Controls.GetChildIndex(c)) + " of=" + (c.Parent == null ? 0 : c.Parent.Controls.Count) +
-                          " bounds=" + c.Bounds + " text=" + (c.Text == null ? "" : c.Text.Replace("\r", "").Replace("\n", " ")));
+                          " bounds=" + c.Bounds + extra + " text=" + (c.Text == null ? "" : c.Text.Replace("\r", "").Replace("\n", " ")));
             for (int i = 0; i < c.Controls.Count; i++) DumpControls(c.Controls[i], sb, depth + 1);
         }
 

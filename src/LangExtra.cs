@@ -200,6 +200,7 @@ namespace AGCleaner
                 if (!ru.ContainsKey(r[0])) ru[r[0]] = r[4];
                 if (!es.ContainsKey(r[0])) es[r[0]] = r[5];
             }
+            LangFix.Fill(en, de, fr, ru, es);
         }
     }
 }

@@ -1,4 +1,4 @@
-# AG Cleaner · Windows cleanup and tune-up
+﻿# AG Cleaner · Windows cleanup and tune-up
 
 **One executable, double-click to run; everything it finds is listed for you first, and only deleted when you say so.**
 
@@ -11,7 +11,7 @@ Grab `AG-Cleaner.exe` (about 820 KB, portable) from [Releases](../../releases/la
 - Requires the .NET Framework 4.8 shipped with Windows 10 / 11; no .NET SDK, no Node/Electron
 - No network, nothing uploaded; config and logs stay in `%USERPROFILE%\.config\agcleaner`
 - Not code-signed, so SmartScreen may warn on first run (More info → Run anyway); you can always build it yourself (see section 7)
-- Chinese / English / Deutsch / Français / Русский / Español interfaces, one click in the title bar, remembered
+- Traditional Chinese / Simplified Chinese / English / Deutsch / Français / Русский / Español interfaces, one click in the title bar, remembered
 - Usage notes, changelog, credits and licence are compiled into the exe (Settings → About → Notes & licence)
 - Open source (GPL-3.0); this repository is the source
 
@@ -51,9 +51,9 @@ powershell -ExecutionPolicy Bypass -File uninstall.ps1
 
 **Theme**: the System / Light / Dark buttons at the top right of the title bar; the choice is remembered.
 
-**Language**: the title-bar button shows the current language code (中文 / EN / DE / FR / RU / ES) and opens a menu with Chinese, English, Deutsch, Français, Русский and Español; the same entry sits on the right of the "About AG Cleaner" card in Settings. The choice is remembered.
+**Language**: the title-bar button shows the current language code (繁中 / EN / DE / FR / RU / ES) and opens a menu with Traditional Chinese, Simplified Chinese, English, Deutsch, Français, Русский and Español; the same entry sits on the right of the "About AG Cleaner" card in Settings. The choice is remembered.
 
-Coverage: all six languages are complete — 650 strings per language, aligned one-to-one with the English table, with no fallback gaps. The four translations are the author's own — native speakers are welcome to send corrections.
+Coverage: all seven languages are complete — every UI string is covered, checked by an automated key audit, with no fallback gaps. The four translations are the author's own — native speakers are welcome to send corrections.
 
 ---
 
