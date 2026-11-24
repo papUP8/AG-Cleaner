@@ -731,12 +731,12 @@ namespace AGCleaner
             }
             if (_list != null) _list.Visible = !idle && !doneView && !_busy; // 扫描/清理期间把列表让出来，居中进度才看得见
             if (_doneTitle != null && doneView)
-                _doneTitle.Text = Lang.T("清理完成 · 释放 ") + Byt.Format(_donePlan > 0 ? _donePlan : _doneFreed);
+                _doneTitle.Text = Lang.T("清理完成 · 实际释放 ") + Byt.Format(_doneActual > 0 ? _doneActual : _donePlan);
             if (_doneSub != null && doneView)
             {
-                // 主数字用用户确认时看到的那个值；实际删掉的量放在下一行说明，避免两个页面出现两个数
-                if (_doneActual > 0 && _donePlan - _doneActual > 65536)
-                    _doneSub.Text = Lang.T("实际释放 ") + Byt.Format(_doneActual) + Lang.T("，其余被程序占用或已不存在");
+                // 主数字必须是磁盘上真实减少的量；确认时的预计值放在下一行，差额说明是被占用还是跳过
+                if (_donePlan - _doneActual > 65536)
+                    _doneSub.Text = Lang.T("确认时预计 ") + Byt.Format(_donePlan) + Lang.T("，其中 ") + Byt.Format(_donePlan - _doneActual) + Lang.T(" 被程序占用或跳过");
                 else
                     _doneSub.Text = Lang.T("垃圾已清完，接着处理这些");
             }
@@ -850,7 +850,7 @@ namespace AGCleaner
             _list.Clear();
             _list.EmptyText = Lang.T("本次清理已完成");
             _list.EmptyHint = Lang.T("如需再次查看可清理项，请点击上方“重新扫描”；本次运行期间不会自动重扫");
-            _status = Lang.T("清理完成，本次释放 ") + Byt.Format(planned >= 0 ? planned : freed) + Lang.T("；已回到概览页");
+            _status = Lang.T("清理完成，本次实际释放 ") + Byt.Format(freed) + Lang.T("；已回到概览页");
             UpdateBackButton();
             _bar.Invalidate();
             UpdateSummary();
@@ -963,7 +963,7 @@ namespace AGCleaner
                         _list.SetLoading(false, null);
                         _cleanBtn.Enabled = true;
                         UpdateIdleState();
-                        _status = Lang.T("已释放 ") + Byt.Format(plannedNow > 0 ? plannedNow : f) + (err > 0 ? "，" + err + Lang.T(" 项被占用或跳过") : "") + Lang.T("；点“重新扫描”查看最新清单");
+                        _status = Lang.T("实际释放 ") + Byt.Format(f) + (err > 0 ? "，" + err + Lang.T(" 处被占用或跳过") : "") + Lang.T("；点“重新扫描”查看最新清单");
                         _bar.Invalidate();
 
                         List<string> lines = new List<string>();
@@ -974,12 +974,12 @@ namespace AGCleaner
                                 lines.Add(lg[i]);
                             }
                         }
-                        string summary = Lang.T("释放空间 ") + Byt.Format(plannedNow > 0 ? plannedNow : f) + Lang.T(" · 处理 ") + sel + Lang.T(" 项 · 明细 ") + lines.Count + Lang.T(" 条");
+                        string summary = Lang.T("实际释放 ") + Byt.Format(f) + Lang.T(" · 处理 ") + sel + Lang.T(" 项 · 明细 ") + lines.Count + Lang.T(" 条");
                         long planned = plannedNow > 0 ? plannedNow : CleanEngine.Planned;
                         if (planned > f + 1024 * 64)
                         {
                             // 预计与实际对不上时把差额说清楚：多半是文件被程序占用、无权限或被保护规则挡住
-                            summary += Lang.T("（其中实际释放 ") + Byt.Format(f) + Lang.T("，差额 ") + Byt.Format(planned - f) + Lang.T(" 未能删除）");
+                            summary += Lang.T("（确认时预计 ") + Byt.Format(planned) + Lang.T("，差额 ") + Byt.Format(planned - f) + Lang.T(" 被占用或跳过）");
                         }
                         string hint = err > 0
                             ? Lang.T("有 ") + err + Lang.T(" 项被系统占用或无权删除，已记入日志，可选择重启后再清理")

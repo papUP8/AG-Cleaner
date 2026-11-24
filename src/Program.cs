@@ -7,7 +7,7 @@ namespace AGCleaner
 {
     public static class Program
     {
-        public static string Version = "1.9.2";
+        public static string Version = "1.9.3";
 
         private static Icon _appIcon;
 
@@ -107,6 +107,26 @@ namespace AGCleaner
                     items.Add(it2);
                     freed = Core.CleanEngine.Execute(items, out log, out errors);
                     sb.AppendLine("recycle delete freed=" + freed + " errors=" + errors + " gone=" + (!System.IO.Directory.Exists(sandbox)));
+
+                    // 占用文件测试：目录里两个文件，其中一个被打开占用。
+                    // 期望：能删的那个真被删掉、体积计入释放；被占用的那个保留并计入 errors，
+                    // 不能像以前那样登记“重启后删除”就当作已释放（那会造成重扫又出现）
+                    System.IO.Directory.CreateDirectory(sandbox);
+                    string freeFile = System.IO.Path.Combine(sandbox, "free.bin");
+                    string lockedFile = System.IO.Path.Combine(sandbox, "locked.bin");
+                    System.IO.File.WriteAllBytes(freeFile, new byte[1024 * 1024]);
+                    System.IO.File.WriteAllBytes(lockedFile, new byte[1024 * 1024]);
+                    long freeSize = new System.IO.FileInfo(freeFile).Length;
+                    using (System.IO.FileStream hold = new System.IO.FileStream(lockedFile, System.IO.FileMode.Open, System.IO.FileAccess.ReadWrite, System.IO.FileShare.None))
+                    {
+                        int err3 = 0;
+                        long got = Core.FileUtil.DeleteContents(sandbox, false, ref err3);
+                        sb.AppendLine("locked-file delete freed=" + got + " errors=" + err3 + " lockedStill=" + System.IO.File.Exists(lockedFile) + " freeGone=" + (!System.IO.File.Exists(freeFile)));
+                        if (got < freeSize * 0.9 || !System.IO.File.Exists(lockedFile) || System.IO.File.Exists(freeFile))
+                            throw new Exception("locked-file delete behaviour wrong");
+                    }
+                    System.IO.File.Delete(lockedFile);
+                    System.IO.Directory.Delete(sandbox, true);
 
                     // 白名单增删
                     Core.Guard.AddWhitelist("%USERPROFILE%\\selftest-wl");

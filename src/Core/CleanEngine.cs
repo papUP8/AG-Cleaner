@@ -210,19 +210,51 @@ namespace AGCleaner.Core
             {
                 long before = SizeOf(safe[i]);
                 ClearReadOnly(safe[i]);
-                if (!File.Exists(safe[i]) && !Directory.Exists(safe[i])) freed += before;
-                else if (Native.DelayDelete(safe[i])) freed += before;
-                else
+                // 真正删除：文件删不掉就记为未删，目录逐层删到能删的为止。
+                // 以前这里会登记“重启后删除”，函数返回成功、体积也计入已释放，
+                // 但文件其实还在盘上，重新扫描又出现同一批项目——那就是假清理。
+                if (File.Exists(safe[i]))
                 {
-                    // 目录里部分文件被占用时，ClearReadOnly 可能只删掉了一部分，
-                    // 这里按“少了多少”记账，避免清单说删了 664 MB、实际只少了 370 MB 的对不上
-                    long after = SizeOf(safe[i]);
-                    if (after < before) freed += before - after;
-                    errors++;
+                    try { File.Delete(safe[i]); }
+                    catch (Exception) { }
                 }
+                else if (Directory.Exists(safe[i]))
+                {
+                    RemoveDirBestEffort(safe[i], 0);
+                }
+                long after = File.Exists(safe[i]) || Directory.Exists(safe[i]) ? SizeOf(safe[i]) : 0;
+                if (after < before) freed += before - after;
+                if (after > 0) errors++;
                 if (sub != null) sub(i + 1, total);
             }
             return freed;
+        }
+
+        /// <summary>逐层删除目录内容：被占用的单个文件跳过，其余照删，最后清掉空目录。</summary>
+        private static void RemoveDirBestEffort(string dir, int depth)
+        {
+            if (depth > 12) return;
+            string[] ents;
+            try { ents = Directory.GetFileSystemEntries(dir); }
+            catch (Exception) { return; }
+            for (int i = 0; i < ents.Length; i++)
+            {
+                string e = ents[i];
+                try
+                {
+                    if (!Guard.CanDelete(e, false)) continue;
+                    ClearReadOnly(e);
+                    if (Directory.Exists(e)) RemoveDirBestEffort(e, depth + 1);
+                    else if (File.Exists(e))
+                    {
+                        try { File.Delete(e); }
+                        catch (Exception) { }
+                    }
+                }
+                catch (Exception) { }
+            }
+            try { Directory.Delete(dir, false); }
+            catch (Exception) { }
         }
 
         /// <summary>删除若干“早于 cutoff”的文件。</summary>
@@ -253,8 +285,12 @@ namespace AGCleaner.Core
                 long before = 0;
                 try { before = new FileInfo(targets[i]).Length; } catch (Exception) { }
                 ClearReadOnly(targets[i]);
+                if (File.Exists(targets[i]))
+                {
+                    try { File.Delete(targets[i]); }
+                    catch (Exception) { }
+                }
                 if (!File.Exists(targets[i])) freed += before;
-                else if (Native.DelayDelete(targets[i])) freed += before;
                 else errors++;
                 if (sub != null) sub(i + 1, n);
             }
@@ -1185,6 +1221,8 @@ namespace AGCleaner.Core
             AddFileItem(cat, Lang.T("完整内存转储 MEMORY.DMP"), @"C:\Windows\MEMORY.DMP", false);
             AddDirItem(cat, Lang.T("Office 文件缓存"), Path.Combine(la, @"Microsoft\Office\16.0\OfficeFileCache"), CleanKind.DirContents, 0, true);
             AddDirItem(cat, Lang.T("IE / INetCache 临时文件"), Path.Combine(la, @"Microsoft\Windows\INetCache"), CleanKind.DirContents, 0, true);
+            // Windows 磁盘清理里的“已下载的程序文件”，平时基本是空的，留着对齐口径
+            AddDirItem(cat, Lang.T("已下载的程序文件"), Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "Downloaded Program Files"), CleanKind.DirContents, 0, true);
             AddDirItem(cat, Lang.T("Adobe Reader 缓存"), Path.Combine(la, @"Adobe\Acrobat\DC\Cache"), CleanKind.DirContents, 0, true);
             AddDirItem(cat, Lang.T("WPS 缓存"), Path.Combine(ra, @"Kingsoft\office6\cache"), CleanKind.DirContents, 0, true);
             AddDirItem(cat, Lang.T("腾讯会议日志"), Path.Combine(la, @"Tencent\Wemeet\logs"), CleanKind.OldFilesInDir, 7, true);
@@ -1991,7 +2029,6 @@ namespace AGCleaner.Core
                 try { sz = new FileInfo(targets[i]).Length; } catch (Exception) { }
                 FileUtil.ClearReadOnly(targets[i]);
                 if (!File.Exists(targets[i])) realFreed += sz;
-                else if (Native.DelayDelete(targets[i])) realFreed += sz;
             }
             return realFreed;
         }
