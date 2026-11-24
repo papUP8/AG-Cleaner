@@ -26,6 +26,8 @@ namespace AGCleaner.Core
         public bool AdminNeeded = false;
         /// <summary>清单上要给用户看的影响说明（Cookie 这类删了有代价的项），多行用 \n 分隔。</summary>
         public string Impact = "";
+        /// <summary>清单行上显示的一句话影响（Impact 太长，这里放精简版）。</summary>
+        public string ImpactShort = "";
         public string Note = "";
         public long MinBytes = 0;
         public bool Exists = false;
@@ -1649,15 +1651,16 @@ namespace AGCleaner.Core
             catch (Exception) { }
             // Cookie 删掉等于这些网站退出登录，一律按高风险项标红；
             // 同时给每一项挂上完整的影响说明，别只说“需要重新登录”就完事
-            string impact = Lang.T("• 这些网站会退出登录，需要重新输入账号或走一次验证\n") +
+            string impact = Lang.T("• 会删除保存的网站登录账号与登录凭据，这些网站会退出登录，需要重新输入账号或验证\n") +
                 Lang.T("• 购物车、站点记住的语言/主题/显示偏好会重置\n") +
                 Lang.T("• 部分网站的“记住此设备”会失效，可能要重新做短信/邮箱验证\n") +
-                Lang.T("• 保存的密码不受影响：密码存在浏览器的密码数据库（Login Data）里，不在 Cookies 里\n") +
+                Lang.T("• 保存的密码不受影响：密码在 Login Data 里，不在 Cookies 里\n") +
                 Lang.T("• 不会删除书签、浏览历史、下载文件与聊天记录");
             for (int i3 = 0; i3 < cat.Items.Count; i3++)
             {
                 cat.Items[i3].HighRisk = true;
                 cat.Items[i3].Impact = impact;
+                cat.Items[i3].ImpactShort = Lang.T("清理此项会删除保存的网站登录账号与登录凭据，再次登录需重新输入账号或验证");
             }
             return cat;
         }

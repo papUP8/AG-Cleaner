@@ -588,12 +588,19 @@ namespace AGCleaner
                     CleanItem it = c.Items[j];
                     VRow r = new VRow();
                     r.Title = it.Name;
-                    // 有影响说明的项（Cookie 这类）把说明放在标题后面，路径留给详情页看
-                    if (it.Impact.Length > 0)
+                    // 有影响说明的项（Cookie 这类）把说明放在标题后面，路径留给详情页看；
+                    // 说明末尾跟一个蓝色“点击查看详情”，点这一行就会打开详情
+                    if (it.ImpactShort.Length > 0)
+                    {
+                        r.Sub = it.ImpactShort;
+                        r.SubLink = Lang.T("点击查看详情");
+                    }
+                    else if (it.Impact.Length > 0)
                     {
                         string first = it.Impact.Split('\n')[0].Trim();
                         if (first.StartsWith("•")) first = first.Substring(1).Trim();
                         r.Sub = first;
+                        r.SubLink = Lang.T("点击查看详情");
                     }
                     else r.Sub = it.Note.Length > 0 ? it.Path + "  ·  " + it.Note : it.Path;
                     r.Right = Byt.Format(it.Bytes);
@@ -869,7 +876,7 @@ namespace AGCleaner
             else if (recycleCount >= total) mode = Lang.T("所选项目将移入回收站（可恢复）。");
             else mode = Lang.T("其中 ") + recycleCount + Lang.T(" 项移入回收站（可恢复），其余 ") + (total - recycleCount) + Lang.T(" 项永久删除。");
             if (hasCookie) mode += Lang.T("\n\n清单里有 Cookie 数据库，删除后：\n") +
-                Lang.T("• 这些网站会退出登录，需要重新输入账号或走一次验证\n") +
+                Lang.T("• 会删除保存的网站登录账号与登录凭据，这些网站会退出登录，需要重新输入账号或验证\n") +
                 Lang.T("• 购物车、站点记住的语言/主题/显示偏好会重置\n") +
                 Lang.T("• 部分网站的“记住此设备”会失效，可能要重新做短信/邮箱验证\n") +
                 Lang.T("• 保存的密码不受影响（密码在浏览器的 Login Data 里，不在 Cookies 里）\n") +

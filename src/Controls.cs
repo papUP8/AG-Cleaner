@@ -408,6 +408,8 @@ namespace AGCleaner
     {
         public string Title = "";
         public string Sub = "";
+        /// <summary>跟在说明文字后面的可点击蓝色链接（例如“点击查看详情”），点行任意位置会打开详情。</summary>
+        public string SubLink = "";
         public string Note = "";
         public Color SubColor = Theme.Muted;
         public string Right = "";
@@ -831,7 +833,21 @@ namespace AGCleaner
             {
                 using (StringFormat sf = Theme.SF(StringAlignment.Near, StringAlignment.Near))
                 {
-                    Theme.Txt(g, row.Sub, Theme.F(8.2f), row.SubColor, new Rectangle(textX, top + 30, textW, 18), sf);
+                    Font subFont = Theme.F(8.2f);
+                    int linkW = 0;
+                    if (row.SubLink.Length > 0)
+                    {
+                        // 用 GDI+ 测量（与 DrawString 同源），GDI 的 TextRenderer 在这里会多算一截，导致尾部被省略号吃掉
+                        linkW = (int)Math.Ceiling(g.MeasureString(row.SubLink, subFont).Width) + 8;
+                    }
+                    int avail = Math.Max(40, textW - linkW);
+                    int used = (int)Math.Ceiling(g.MeasureString(row.Sub, subFont).Width) + 2;
+                    int subW = Math.Min(used, avail);
+                    Theme.Txt(g, row.Sub, subFont, row.SubColor, new Rectangle(textX, top + 30, subW, 18), sf);
+                    if (linkW > 0)
+                    {
+                        Theme.Txt(g, row.SubLink, subFont, Theme.Blue, new Rectangle(textX + subW + 2, top + 30, linkW, 18), sf);
+                    }
                 }
             }
             if (row.Note.Length > 0)
