@@ -94,6 +94,9 @@ namespace AGCleaner
         private Label _doneTitle;
         private Label _doneSub;
         private bool _doneClean;
+        /// <summary>本次没删干净的条目（含占用它们的程序名），完成页要列出来。</summary>
+        private List<Core.CleanSkip> _doneSkips = new List<Core.CleanSkip>();
+        private List<Btn> _doneBtns = new List<Btn>();
 
         /// <summary>扫描是否已结束并拿到清单（供离屏截图脚本等待，不影响界面逻辑）。</summary>
         public bool ScanDone { get { return !_busy && _cats.Count > 0; } }
@@ -200,6 +203,7 @@ namespace AGCleaner
             _done = new Panel();
             _done.BackColor = Theme.Bg;
             _done.Visible = false;
+            _done.Paint += DonePaint;
             Controls.Add(_done);
 
             _doneTitle = new Label();
@@ -218,8 +222,9 @@ namespace AGCleaner
             _doneSub.Text = Lang.T("垃圾已清完，接着处理这些");
             _done.Controls.Add(_doneSub);
 
-            string[] nexts = new string[] { Lang.T("启动项优化"), Lang.T("卸载应用"), Lang.T("磁盘分析"), Lang.T("系统优化") };
-            int[] targets = new int[] { 2, 1, 3, 4 };
+            // 完成页的下一步：优先“重新扫描”（有没删干净的东西时要再清一次），其余是顺带推荐的页面
+            string[] nexts = new string[] { Lang.T("重新扫描"), Lang.T("启动项优化"), Lang.T("卸载应用"), Lang.T("磁盘分析"), Lang.T("系统优化") };
+            int[] targets = new int[] { -1, 2, 1, 3, 4 };
             for (int ni = 0; ni < nexts.Length; ni++)
             {
                 Btn b = new Btn();
@@ -227,8 +232,10 @@ namespace AGCleaner
                 b.Text = nexts[ni];
                 b.Size = new Size(132, 42);
                 int tgt = targets[ni];
-                b.Click += delegate { if (MainForm.Instance != null) MainForm.Instance.SelectPage(tgt); };
+                if (tgt < 0) b.Click += delegate { StartScan(); };
+                else b.Click += delegate { if (MainForm.Instance != null) MainForm.Instance.SelectPage(tgt); };
                 _done.Controls.Add(b);
+                _doneBtns.Add(b);
             }
             _cta = new Panel();
             _cta.BackColor = Theme.Bg;
@@ -377,19 +384,79 @@ namespace AGCleaner
                 int freeH = Height - listTop - 72;
                 if (freeH < 150) freeH = 150;
                 _done.SetBounds(0, listTop, w, freeH);
-                _doneTitle.SetBounds(0, freeH / 2 - 92, w, 32);
-                _doneSub.SetBounds(0, freeH / 2 - 54, w, 22);
-                int bw = 132, gap = 12, total = bw * 4 + gap * 3;
+                int titleY, subY, infoY, btnY, hintY;
+                DoneMetrics(out titleY, out subY, out infoY, out btnY, out hintY);
+                _doneTitle.SetBounds(0, titleY, w, 32);
+                _doneSub.SetBounds(0, subY, w, 22);
+                int bw = 132, gap = 12;
+                int total = bw * _doneBtns.Count + gap * (_doneBtns.Count - 1);
                 int bx = (w - total) / 2;
-                int by = freeH / 2 - 6;
                 int nth = 0;
                 for (int ci = 0; ci < _done.Controls.Count; ci++)
                 {
                     Btn b = _done.Controls[ci] as Btn;
                     if (b == null) continue;
-                    b.SetBounds(bx + nth * (bw + gap), by, bw, 42);
+                    b.SetBounds(bx + nth * (bw + gap), btnY, bw, 42);
                     nth++;
                 }
+            }
+        }
+
+        /// <summary>完成页的竖向排布：整块内容在可用区域里上下居中，条目多时整体下移但不超出一屏。</summary>
+        private void DoneMetrics(out int titleY, out int subY, out int infoY, out int btnY, out int hintY)
+        {
+            int h = _done != null ? _done.Height : 300;
+            int rows = _doneSkips != null ? Math.Min(5, _doneSkips.Count) : 0;
+            int infoH = rows > 0 ? rows * 22 + 6 : 0;
+            int hintH = rows > 0 ? 40 : 0;
+            int blockH = 30 + 28 + infoH + hintH + 18 + 42;
+            int y0 = Math.Max(14, (h - blockH) / 2);
+            titleY = y0;
+            subY = y0 + 36;
+            infoY = subY + 30;
+            hintY = infoY + infoH;
+            btnY = hintY + hintH + 14;
+        }
+
+        private void DonePaint(object sender, PaintEventArgs e)
+        {
+            Graphics g = e.Graphics;
+            Theme.Smooth(g);
+            if (_doneSkips == null || _doneSkips.Count == 0) return;
+            int titleY, subY, infoY, btnY, hintY;
+            DoneMetrics(out titleY, out subY, out infoY, out btnY, out hintY);
+            int w = _done.Width;
+            int boxW = Math.Min(700, w - 80);
+            int x0 = (w - boxW) / 2;
+            // 列宽：条目名 / 没清掉的体积（右对齐）/ 占着它的程序
+            int nameW = boxW / 2;
+            int leftW = 92;
+            int rows = Math.Min(5, _doneSkips.Count);
+            using (StringFormat nl = Theme.SF(StringAlignment.Near, StringAlignment.Near))
+            using (StringFormat nr = Theme.SF(StringAlignment.Far, StringAlignment.Near))
+            {
+                for (int i = 0; i < rows; i++)
+                {
+                    Core.CleanSkip sk = _doneSkips[i];
+                    int y = infoY + i * 22;
+                    string nm = sk.Name;
+                    Theme.Txt(g, nm, Theme.F(9f), Theme.TextDim, new Rectangle(x0, y, nameW, 20), nl);
+                    Theme.Txt(g, Byt.Format(sk.Left), Theme.F(9f), Theme.Text, new Rectangle(x0 + nameW, y, leftW, 20), nr);
+                    string who = sk.Who.Length > 0 ? Lang.T("被 ") + sk.Who + Lang.T(" 占用") : sk.Why;
+                    Theme.Txt(g, who, Theme.F(9f), Theme.Warn, new Rectangle(x0 + nameW + leftW + 10, y, boxW - nameW - leftW - 10, 20), nl);
+                }
+            }
+            if (_doneSkips.Count > rows)
+            {
+                using (StringFormat nr = Theme.SF(StringAlignment.Far, StringAlignment.Near))
+                Theme.Txt(g, Lang.T("另有 ") + (_doneSkips.Count - rows) + Lang.T(" 项已写入操作日志"),
+                    Theme.F(8.6f), Theme.Muted, new Rectangle(x0, infoY + rows * 22, boxW, 20), nr);
+            }
+            // 处理办法说清楚：这些程序退出后，文件锁就释放，再扫一遍就能删干净
+            using (StringFormat wrap = Theme.SF(StringAlignment.Center, StringAlignment.Near, true))
+            {
+                Theme.Txt(g, Lang.T("这些程序还在运行时，它们的文件无法删除（已被独占锁定）。\n退出这些程序后点「重新扫描」再清一次，这部分就能全部清掉。"),
+                    Theme.F(8.8f), Theme.Muted, new Rectangle(x0, hintY, boxW, 40), wrap);
             }
         }
 
@@ -729,7 +796,11 @@ namespace AGCleaner
             if (_done != null)
             {
                 _done.Visible = doneView;
-                if (doneView) _done.BringToFront();
+                if (doneView)
+                {
+                    _done.BringToFront();
+                    _done.Invalidate();
+                }
             }
             if (_cta != null)
             {
@@ -743,9 +814,18 @@ namespace AGCleaner
             {
                 // 主数字必须是磁盘上真实减少的量；确认时的预计值放在下一行，差额说明是被占用还是跳过
                 if (_donePlan - _doneActual > 65536)
-                    _doneSub.Text = Lang.T("确认时预计 ") + Byt.Format(_donePlan) + Lang.T("，其中 ") + Byt.Format(_donePlan - _doneActual) + Lang.T(" 被程序占用或跳过");
+                    _doneSub.Text = Lang.T("确认时预计 ") + Byt.Format(_donePlan) + Lang.T("，实际释放 ") + Byt.Format(_doneActual) + Lang.T("，下列项目没删干净");
                 else
                     _doneSub.Text = Lang.T("垃圾已清完，接着处理这些");
+            }
+            if (_doneBtns.Count > 0 && doneView)
+            {
+                // 有没删干净的条目时，第一优先动作是“重新扫描”，把它标成主按钮
+                _doneBtns[0].Kind = _doneSkips.Count > 0 ? ButtonKind.Accent : ButtonKind.Subtle;
+                _doneBtns[1].Kind = _doneSkips.Count > 0 ? ButtonKind.Subtle : ButtonKind.Accent;
+                _doneBtns[0].Visible = true;
+                _doneBtns[0].Invalidate();
+                _doneBtns[1].Invalidate();
             }
             if (_scanBtn != null) _scanBtn.Visible = !idle && !doneView;
             if (_allBtn != null) _allBtn.Visible = !idle && !doneView;
@@ -832,8 +912,24 @@ namespace AGCleaner
         public void SimulateDoneForShot(long planned, long actual)
         {
             ResetAfterClean(actual, true, planned);
+            // 截图核对“没删干净”清单的排布：没有真实数据时按差额编三条示例
+            if (_doneSkips.Count == 0 && planned - actual > 65536)
+            {
+                long gap = planned - actual;
+                string[] names = new string[] { "Chrome · Profile 5\\Cache", "Chrome · Profile 5\\GPUCache", "用户临时目录" };
+                long[] parts = new long[] { gap / 2, gap / 4, gap - gap / 2 - gap / 4 };
+                for (int i = 0; i < names.Length; i++)
+                {
+                    Core.CleanSkip sk = new Core.CleanSkip();
+                    sk.Name = names[i];
+                    sk.Planned = parts[i];
+                    sk.Who = "Google Chrome";
+                    _doneSkips.Add(sk);
+                }
+            }
             UpdateIdleState();
             LayoutChildren();
+            if (_done != null) _done.Invalidate();
         }
 
         public void SimulateDoneForShot(long freed)
@@ -864,6 +960,7 @@ namespace AGCleaner
             _doneFreed = freed; // UpdateSummary 会按空清单把 _lastFreed 归零，完成页必须用这份原始值
             _doneActual = freed;
             _donePlan = planned >= 0 ? planned : freed;
+            _doneSkips = new List<Core.CleanSkip>(Core.CleanEngine.LastSkips);
             MainForm mf = FindForm() as MainForm;
             if (mf != null && !stayOnPage) mf.SelectPage(0);
         }
@@ -989,7 +1086,7 @@ namespace AGCleaner
                             summary += Lang.T("（确认时预计 ") + Byt.Format(planned) + Lang.T("，差额 ") + Byt.Format(planned - f) + Lang.T(" 被占用或跳过）");
                         }
                         string hint = err > 0
-                            ? Lang.T("有 ") + err + Lang.T(" 项被系统占用或无权删除，已记入日志，可选择重启后再清理")
+                            ? Lang.T("没删掉的文件正被其他程序占用；退出这些程序后再点「重新扫描」清理一次即可清干净")
                             : Lang.T("全部处理完成；来源路径与体积已写入操作日志，可在历史记录页导出 CSV");
                         Dlg.Report(FindForm(), Lang.T("清理完成"), summary, lines, hint);
                         ResetAfterClean(f, false, plannedNow);

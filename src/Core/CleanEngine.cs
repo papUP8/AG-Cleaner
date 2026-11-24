@@ -6,6 +6,17 @@ namespace AGCleaner.Core
 {
     public enum CleanKind { DirContents, DirItself, OldFilesInDir, OldFilesExt, RecycleBin, FileItself, OrphanGroup }
 
+    /// <summary>一个没删干净的条目：预计、实际、以及是哪个程序占着。</summary>
+    public class CleanSkip
+    {
+        public string Name = "";
+        public long Planned = 0;
+        public long Freed = 0;
+        public string Who = "";
+        public string Why = "";
+        public long Left { get { return Math.Max(0, Planned - Freed); } }
+    }
+
     public class CleanItem
     {
         public string CategoryId = "";
@@ -1866,11 +1877,15 @@ namespace AGCleaner.Core
             return Execute(items, out log, out errors, null);
         }
 
+        /// <summary>上一次清理里没删干净的条目（完成页据此列出“被谁占着”），每次 Execute 开头重置。</summary>
+        public static List<CleanSkip> LastSkips = new List<CleanSkip>();
+
         public static long Execute(List<CleanItem> items, out List<string> log, out int errors, StepProgress prog)
         {
             long freed = 0;
             errors = 0;
             Planned = 0;
+            LastSkips = new List<CleanSkip>();
             // 预计量按“用户在清单里勾选、且会被真正删除”的条目统计，和确认框里的数字同源；
             // 缺少权限、被占用或已不存在的条目会计入差额，完成页据此给出解释
             for (int i = 0; i < items.Count; i++)
@@ -1948,6 +1963,14 @@ namespace AGCleaner.Core
                 if (!Guard.CanDelete(it.Path, true) && it.Kind != CleanKind.OldFilesExt)
                 {
                     log.Add(Lang.T("已跳过（受保护）：") + it.Path);
+                    if (!it.Recycle && it.Bytes > 65536)
+                    {
+                        CleanSkip sk0 = new CleanSkip();
+                        sk0.Name = it.Name;
+                        sk0.Planned = it.Bytes;
+                        sk0.Why = Lang.T("受保护路径，程序主动跳过，没有删除");
+                        LastSkips.Add(sk0);
+                    }
                     continue;
                 }
                 long before = 0;
@@ -1992,6 +2015,28 @@ namespace AGCleaner.Core
                 {
                     log.Add(it.Name + "  " + Theme_Size(before));
                     OpLog.Write("clean", it.Path, before);
+                }
+                // 留下的部分要能说清楚：多少没删掉、是哪个程序占着。
+                // 只对“本来就勾选要永久删”的条目记账，回收站条目不算。
+                if (!it.Recycle && it.Bytes > 0 && it.Bytes - before > 65536)
+                {
+                    CleanSkip sk = new CleanSkip();
+                    sk.Name = it.Name;
+                    sk.Planned = it.Bytes;
+                    sk.Freed = before;
+                    List<string> who = Locker.WhoForPath(it.Path, 30);
+                    if (who.Count > 0)
+                    {
+                        string j = "";
+                        for (int wi = 0; wi < who.Count; wi++)
+                        {
+                            if (wi > 0) j += " / ";
+                            j += who[wi];
+                        }
+                        sk.Who = j;
+                    }
+                    else sk.Why = Lang.T("文件仍被占用或当前账户没有删除权限");
+                    LastSkips.Add(sk);
                 }
             }
             FileUtil.SizeHook = null;

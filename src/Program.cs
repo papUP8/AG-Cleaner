@@ -7,7 +7,7 @@ namespace AGCleaner
 {
     public static class Program
     {
-        public static string Version = "1.9.4";
+        public static string Version = "1.9.5";
 
         private static Icon _appIcon;
 
@@ -126,6 +126,45 @@ namespace AGCleaner
                             throw new Exception("locked-file delete behaviour wrong");
                     }
                     System.IO.File.Delete(lockedFile);
+                    System.IO.Directory.Delete(sandbox, true);
+
+                    // 占用清单测试：另一个进程独占打开文件，清理该目录，期望引擎既记下“没删干净”，
+                    // 也通过重启管理器查到占用它的进程名（自己的进程不会被列出来）
+                    System.IO.Directory.CreateDirectory(sandbox);
+                    string held = System.IO.Path.Combine(sandbox, "held.bin");
+                    System.IO.File.WriteAllBytes(held, new byte[2 * 1024 * 1024]);
+                    string holdCmd = "$f=[System.IO.File]::Open('" + held + "','Open','ReadWrite','None'); Start-Sleep -Seconds 12; $f.Close()";
+                    System.Diagnostics.Process holder = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(
+                        "powershell.exe", "-NoLogo -NoProfile -Command \"" + holdCmd + "\"")
+                    { UseShellExecute = false, CreateNoWindow = true });
+                    try
+                    {
+                        System.Threading.Thread.Sleep(2500);
+                        Core.CleanItem it3 = new Core.CleanItem();
+                        it3.Name = "selftest-held";
+                        it3.Path = sandbox;
+                        it3.Kind = Core.CleanKind.DirContents;
+                        it3.Bytes = 2 * 1024 * 1024;
+                        it3.Exists = true;
+                        items.Clear();
+                        items.Add(it3);
+                        long got3 = Core.CleanEngine.Execute(items, out log, out errors);
+                        string who3 = Core.CleanEngine.LastSkips.Count > 0 ? Core.CleanEngine.LastSkips[0].Who : "-";
+                        sb.AppendLine("skip list count=" + Core.CleanEngine.LastSkips.Count + " left=" +
+                            (Core.CleanEngine.LastSkips.Count > 0 ? Core.CleanEngine.LastSkips[0].Left : 0) + " who=" + who3 +
+                            " got=" + got3 + " heldStill=" + System.IO.File.Exists(held));
+                        if (Core.CleanEngine.LastSkips.Count != 1 || got3 != 0 || who3.Length == 0)
+                            throw new Exception("skip list not recorded");
+                    }
+                    finally
+                    {
+                        try { if (holder != null && !holder.HasExited) holder.Kill(); } catch (Exception) { }
+                        try { if (holder != null) holder.WaitForExit(3000); } catch (Exception) { }
+                    }
+                    for (int rt = 0; rt < 10 && System.IO.File.Exists(held); rt++)
+                    {
+                        try { System.IO.File.Delete(held); } catch (Exception) { System.Threading.Thread.Sleep(150); }
+                    }
                     System.IO.Directory.Delete(sandbox, true);
 
                     // 白名单增删

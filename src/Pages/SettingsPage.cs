@@ -329,11 +329,14 @@ namespace AGCleaner
             Graphics g = e.Graphics;
             Theme.Smooth(g);
             Card c = (Card)sender;
-            Theme.Txt(g, Lang.T("关于 AG Cleaner"), Theme.F(10.5f, FontStyle.Bold), Theme.Text, 20, 14);
+            // 三行内容作为一整块在卡片里上下居中，不再贴着卡片顶部
+            int blockH = 68;
+            int y0 = Math.Max(12, (c.Height - blockH) / 2);
+            Theme.Txt(g, Lang.T("关于 AG Cleaner"), Theme.F(10.5f, FontStyle.Bold), Theme.Text, 20, y0);
             Theme.Txt(g, "AG Cleaner " + Program.Version + Lang.T("  ·  Windows 图形桌面清理与优化工具"),
-                Theme.F(8.8f), Theme.TextDim, 20, 39);
+                Theme.F(8.8f), Theme.TextDim, 20, y0 + 25);
             Theme.Txt(g, Lang.T("许可证：GPL-3.0 · 社区版，代码开源可审计 · 所有配置与日志只保存在本机"),
-                Theme.F(8.8f), Theme.TextDim, 20, 62);
+                Theme.F(8.8f), Theme.TextDim, 20, y0 + 48);
             
             // 语言标签跟着按钮走，卡片里不再重复
         }
