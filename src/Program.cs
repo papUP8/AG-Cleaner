@@ -7,7 +7,7 @@ namespace AGCleaner
 {
     public static class Program
     {
-        public static string Version = "1.9.5";
+        public static string Version = "1.9.6";
 
         private static Icon _appIcon;
 
@@ -622,6 +622,16 @@ namespace AGCleaner
                 }
                 MainForm f = new MainForm();
                 if (themeMode.Length > 0) f.SyncThemeVisualMode(themeMode);
+                for (int i = 0; i < args.Length; i++)
+                {
+                    if (args[i].StartsWith("win:"))
+                    {
+                        string[] wh = args[i].Substring(4).Split('x');
+                        int ww = 0, hh = 0;
+                        if (wh.Length == 2 && int.TryParse(wh[0], out ww) && int.TryParse(wh[1], out hh))
+                            f.ClientSize = new Size(ww, hh);
+                    }
+                }
                 f.StartPosition = FormStartPosition.Manual;
                 f.Location = new Point(-4000, 0);
                 f.ShowInTaskbar = false;
@@ -668,6 +678,13 @@ namespace AGCleaner
                 }
                 Application.DoEvents();
                 f.ExportShot(args[1]);
+                try
+                {
+                    System.Text.StringBuilder sb2 = new System.Text.StringBuilder();
+                    DumpControls(f, sb2, 0);
+                    System.IO.File.WriteAllText(args[1] + ".txt", sb2.ToString(), System.Text.Encoding.UTF8);
+                }
+                catch (Exception) { }
                 return;
             }
 

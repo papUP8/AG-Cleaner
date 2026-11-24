@@ -384,10 +384,9 @@ namespace AGCleaner
                 int freeH = Height - listTop - 72;
                 if (freeH < 150) freeH = 150;
                 _done.SetBounds(0, listTop, w, freeH);
-                int titleY, subY, infoY, btnY, hintY;
-                DoneMetrics(out titleY, out subY, out infoY, out btnY, out hintY);
-                _doneTitle.SetBounds(0, titleY, w, 32);
-                _doneSub.SetBounds(0, subY, w, 22);
+                DoneMetrics();
+                _doneTitle.SetBounds(0, _mTitleY, w, 32);
+                _doneSub.SetBounds(0, _mSubY, w, 22);
                 int bw = 132, gap = 12;
                 int total = bw * _doneBtns.Count + gap * (_doneBtns.Count - 1);
                 int bx = (w - total) / 2;
@@ -396,26 +395,40 @@ namespace AGCleaner
                 {
                     Btn b = _done.Controls[ci] as Btn;
                     if (b == null) continue;
-                    b.SetBounds(bx + nth * (bw + gap), btnY, bw, 42);
+                    b.SetBounds(bx + nth * (bw + gap), _mBtnY, bw, 42);
                     nth++;
                 }
             }
         }
 
-        /// <summary>完成页的竖向排布：整块内容在可用区域里上下居中，条目多时整体下移但不超出一屏。</summary>
-        private void DoneMetrics(out int titleY, out int subY, out int infoY, out int btnY, out int hintY)
+        // 完成页的竖向坐标只算一次，布局与绘制共用，避免两边各算一套导致文字叠在一起。
+        private int _mTitleY, _mSubY, _mInfoY, _mBtnY, _mHintY, _mRows, _mBoxW, _mRowH = 22;
+
+        /// <summary>完成页竖向排布：整块在可用区域里居中；高度不够时先减少列出的条目数，保证一屏放得下。</summary>
+        private void DoneMetrics()
         {
             int h = _done != null ? _done.Height : 300;
-            int rows = _doneSkips != null ? Math.Min(5, _doneSkips.Count) : 0;
-            int infoH = rows > 0 ? rows * 22 + 6 : 0;
-            int hintH = rows > 0 ? 40 : 0;
-            int blockH = 30 + 28 + infoH + hintH + 18 + 42;
-            int y0 = Math.Max(14, (h - blockH) / 2);
-            titleY = y0;
-            subY = y0 + 36;
-            infoY = subY + 30;
-            hintY = infoY + infoH;
-            btnY = hintY + hintH + 14;
+            int w = _done != null ? _done.Width : 900;
+            _mBoxW = Math.Min(700, Math.Max(360, w - 80));
+            int avail = Math.Max(120, h - 12);
+            // 行距按字体实际高度算，高 DPI 下字变大也不会把两行挤在一起
+            int rowH = Math.Max(22, TextRenderer.MeasureText("国Ag", Theme.F(9f)).Height + 6);
+            int fixedH = 34 + 28 + 46 + 42 + 24;
+            int rowsBySpace = (avail - fixedH) / rowH;
+            if (rowsBySpace < 0) rowsBySpace = 0;
+            _mRows = Math.Min(Math.Min(5, _doneSkips != null ? _doneSkips.Count : 0), rowsBySpace);
+            _mRowH = rowH;
+            int moreRows = (_doneSkips != null && _doneSkips.Count > _mRows) ? 1 : 0;
+            int infoH = (_mRows + moreRows) * rowH;
+            int hintH = _mRows > 0 ? 46 : 0;
+            int blockH = 34 + 28 + infoH + hintH + 24 + 42;
+            int y0 = Math.Max(6, (h - blockH) / 2);
+            _mTitleY = y0;
+            _mSubY = y0 + 34;
+            _mInfoY = _mSubY + 28;
+            _mHintY = _mInfoY + infoH;
+            _mBtnY = _mHintY + hintH + 8;
+            if (_mBtnY + 42 > h) _mBtnY = Math.Max(_mTitleY + 64, h - 44);
         }
 
         private void DonePaint(object sender, PaintEventArgs e)
@@ -423,24 +436,21 @@ namespace AGCleaner
             Graphics g = e.Graphics;
             Theme.Smooth(g);
             if (_doneSkips == null || _doneSkips.Count == 0) return;
-            int titleY, subY, infoY, btnY, hintY;
-            DoneMetrics(out titleY, out subY, out infoY, out btnY, out hintY);
             int w = _done.Width;
-            int boxW = Math.Min(700, w - 80);
+            int boxW = _mBoxW > 0 ? _mBoxW : Math.Min(700, w - 80);
             int x0 = (w - boxW) / 2;
             // 列宽：条目名 / 没清掉的体积（右对齐）/ 占着它的程序
             int nameW = boxW / 2;
             int leftW = 92;
-            int rows = Math.Min(5, _doneSkips.Count);
+            int rows = Math.Min(_mRows, _doneSkips.Count);
             using (StringFormat nl = Theme.SF(StringAlignment.Near, StringAlignment.Near))
             using (StringFormat nr = Theme.SF(StringAlignment.Far, StringAlignment.Near))
             {
                 for (int i = 0; i < rows; i++)
                 {
                     Core.CleanSkip sk = _doneSkips[i];
-                    int y = infoY + i * 22;
-                    string nm = sk.Name;
-                    Theme.Txt(g, nm, Theme.F(9f), Theme.TextDim, new Rectangle(x0, y, nameW, 20), nl);
+                    int y = _mInfoY + i * _mRowH;
+                    Theme.Txt(g, sk.Name, Theme.F(9f), Theme.TextDim, new Rectangle(x0, y, nameW, 20), nl);
                     Theme.Txt(g, Byt.Format(sk.Left), Theme.F(9f), Theme.Text, new Rectangle(x0 + nameW, y, leftW, 20), nr);
                     string who = sk.Who.Length > 0 ? Lang.T("被 ") + sk.Who + Lang.T(" 占用") : sk.Why;
                     Theme.Txt(g, who, Theme.F(9f), Theme.Warn, new Rectangle(x0 + nameW + leftW + 10, y, boxW - nameW - leftW - 10, 20), nl);
@@ -450,13 +460,13 @@ namespace AGCleaner
             {
                 using (StringFormat nr = Theme.SF(StringAlignment.Far, StringAlignment.Near))
                 Theme.Txt(g, Lang.T("另有 ") + (_doneSkips.Count - rows) + Lang.T(" 项已写入操作日志"),
-                    Theme.F(8.6f), Theme.Muted, new Rectangle(x0, infoY + rows * 22, boxW, 20), nr);
+                    Theme.F(8.6f), Theme.Muted, new Rectangle(x0, _mInfoY + rows * _mRowH, boxW, 18), nr);
             }
             // 处理办法说清楚：这些程序退出后，文件锁就释放，再扫一遍就能删干净
             using (StringFormat wrap = Theme.SF(StringAlignment.Center, StringAlignment.Near, true))
             {
                 Theme.Txt(g, Lang.T("这些程序还在运行时，它们的文件无法删除（已被独占锁定）。\n退出这些程序后点「重新扫描」再清一次，这部分就能全部清掉。"),
-                    Theme.F(8.8f), Theme.Muted, new Rectangle(x0, hintY, boxW, 40), wrap);
+                    Theme.F(8.8f), Theme.Muted, new Rectangle(x0, _mHintY, boxW, 44), wrap);
             }
         }
 
@@ -799,6 +809,7 @@ namespace AGCleaner
                 if (doneView)
                 {
                     _done.BringToFront();
+                    LayoutChildren();   // 完成页的坐标只算一遍，显示前后都对齐，避免文字错位
                     _done.Invalidate();
                 }
             }
@@ -916,13 +927,17 @@ namespace AGCleaner
             if (_doneSkips.Count == 0 && planned - actual > 65536)
             {
                 long gap = planned - actual;
-                string[] names = new string[] { "Chrome · Profile 5\\Cache", "Chrome · Profile 5\\GPUCache", "用户临时目录" };
-                long[] parts = new long[] { gap / 2, gap / 4, gap - gap / 2 - gap / 4 };
+                string[] names = new string[] { "Chrome · Profile 5\\Cache", "Chrome · Profile 5\\GPUCache", "用户临时目录", "Chrome · Profile 5\\DawnGraphiteCache", "Chrome · Profile 5\\Service Worker" };
+                long[] parts = new long[names.Length];
+                for (int i = 0; i < names.Length; i++)
+                {
+                    parts[i] = gap * (i + 1) / 21;
+                }
                 for (int i = 0; i < names.Length; i++)
                 {
                     Core.CleanSkip sk = new Core.CleanSkip();
                     sk.Name = names[i];
-                    sk.Planned = parts[i];
+                    sk.Planned = Math.Max(1, parts[i]);
                     sk.Who = "Google Chrome";
                     _doneSkips.Add(sk);
                 }
@@ -961,6 +976,7 @@ namespace AGCleaner
             _doneActual = freed;
             _donePlan = planned >= 0 ? planned : freed;
             _doneSkips = new List<Core.CleanSkip>(Core.CleanEngine.LastSkips);
+            if (_done != null) LayoutChildren();
             MainForm mf = FindForm() as MainForm;
             if (mf != null && !stayOnPage) mf.SelectPage(0);
         }
